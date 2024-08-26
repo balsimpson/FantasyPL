@@ -10,8 +10,8 @@
 
 		<div class="space-y-12">
 			<!-- Most Transferred In -->
-			<div v-if="bootstrap && bootstrap.elements" class="w-full max-w-3xl mx-auto mt-4">
-				<div class="max-w-3xl px-6 mb-6">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full max-w-3xl mt-4">
+				<div class="max-w-3xl mb-6">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -28,7 +28,8 @@
 						v-for="item in getMostTransferredInPlayers(bootstrap.elements, 20)"
 						:key="item"
 						:player="item"
-						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-tr from-slate-200 to-slate-400 snap-start"
+						:data="bootstrap.teams"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 					<!-- </div> -->
 				</AppCarousel>

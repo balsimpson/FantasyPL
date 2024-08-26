@@ -71,7 +71,7 @@
 		<!-- image -->
 		<img
 			:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
-			class="object-cover w-full h-auto sm:z-10 sm:h-36 sm:w-auto"
+			class="object-cover w-full h-auto sm:z-10 sm:w-auto"
 			:alt="player.web_name"
 		/>
 	</div>
@@ -80,9 +80,13 @@
 <script setup>
 	const props = defineProps({
 		player: Object,
+		data: Object,
 	});
 
-	const teamName = ref("");
+	const teamName = computed(() => {
+		const team = props.data.find((team) => team.id === props.player.team);
+        return team ? team.name : "Unknown Team";
+    });
 
 	const inPercentage = computed(() =>
 		totalTransfers.value === 0
