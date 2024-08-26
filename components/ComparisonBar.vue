@@ -58,7 +58,7 @@
 				{{ comparison.awayValue }}
 			</div>
 		</div>
-		<div class="flex text-xs bg-blue-300">
+		<div class="flex text-xs ">
 			<div
 				class="flex items-center justify-between h-4 px-3 font-semibold text-white bg-teal-500 rounded-l-full shadow-inner"
 				:style="{ width: comparison.homeWidth + '%' }"
@@ -86,7 +86,6 @@
 		},
 		label: {
 			type: String,
-			required: true,
 		},
 	});
 </script>

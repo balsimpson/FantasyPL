@@ -53,6 +53,117 @@
 		:gameweek="getGameweekData('current', bootstrap)"
 	/>
 
+				<!-- Most Transferred Out -->
+				<div v-if="store && store.elements" class="w-full max-w-3xl mx-auto mt-4">
+				<div class="max-w-3xl px-6 mb-6">
+					<h1
+						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
+					>
+						Most Transferred Out Players
+					</h1>
+					<p class="mt-4 text-sm text-gray-500">
+						These are the players managers are dropping, often due to injuries,
+						poor form, or tough upcoming fixtures.
+					</p>
+				</div>
+				<AppCarousel v-if="store && store.elements">
+					<!-- <div class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"> -->
+					<PlayerCard
+						v-for="item in getMostTransferredOutPlayers(store.elements, 20)"
+						:key="item"
+						:player="item"
+						class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"
+					/>
+					<!-- </div> -->
+				</AppCarousel>
+			</div>
+
+			<!-- Top Players -->
+			<div v-if="store && store.elements" class="w-full max-w-3xl mx-auto mt-4">
+				<div class="max-w-3xl px-6 mb-6">
+					<h1
+						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
+					>
+						Top Forwards
+					</h1>
+				</div>
+
+				<AppCarousel v-if="store && store.elements">
+					<!-- <div class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"> -->
+					<PlayerCard
+						v-for="item in getTopPlayers(store.elements, 4, 20)"
+						:key="item"
+						:player="item"
+						class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"
+					/>
+					<!-- </div> -->
+				</AppCarousel>
+
+				<!-- <AppCarousel v-if="store && store.elements">
+					<div
+						v-for="player in getTopPlayers(store.elements, 4, 20)"
+						class="bg-blue-100 shrink-0"
+					>
+						<div class="flex flex-col">
+							<div class="bg-blue-200 grow">
+								<h2 class="w-full text-2xl font-bold leading-5">
+									{{ player.web_name }}
+								</h2>
+								<div class="mt-1 mb-3 text-3xl font-black text-slate-500">
+									{{ player.now_cost / 10
+									}}<span class="text-slate-400">m</span>
+								</div> -->
+
+				<!-- transfers -->
+				<!-- <div class="w-full"> -->
+				<!-- <ComparisonBar
+										:comparison="{
+											label: 'Transfers',
+											homeWidth: inPercentage,
+											homeTitle: 'In',
+											homeValue: shortenNumber(player.transfers_in_event),
+											awayWidth: outPercentage,
+											awayTitle: 'Out',
+											awayValue: shortenNumber(player.transfers_out_event),
+										}"
+									/> -->
+				<!-- </div> -->
+				<!-- </div>
+
+							<div>
+								<img
+									:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
+									class="object-cover w-full h-auto sm:z-10 sm:h-36 sm:w-auto"
+									:alt="player.web_name"
+								/>
+							</div>
+						</div>
+					</div>
+				</AppCarousel> -->
+			</div>
+
+			<!-- Top Players -->
+			<div v-if="store && store.elements" class="w-full max-w-3xl mx-auto mt-4">
+				<div class="max-w-3xl px-6 mb-6">
+					<h1
+						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
+					>
+						Top Forwards
+					</h1>
+				</div>
+
+				<AppCarousel v-if="store && store.elements">
+					<!-- <div class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"> -->
+					<PlayerCard
+						v-for="item in getTopPlayers(store.elements, 4, 20)"
+						:key="item"
+						:player="item"
+						class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"
+					/>
+					<!-- </div> -->
+				</AppCarousel>
+			</div>
+
 	<!-- <pre>{{ bootstrap }}</pre> -->
 
 	<!-- <pre>{{ getTopPlayers(store.elements, 1, 5) }}</pre> -->
