@@ -3,9 +3,9 @@
 		<!-- content -->
 		<div class="flex-grow">
 			<div class="flex flex-col order-1 p-3 sm:order-1">
-				<div class="leading-3">
+				<div class="flex justify-between leading-3">
 					<!-- cards issued -->
-					<div class="flex items-center">
+					<div class="flex items-start">
 						<div class="pr-3">
 							<div class="text-sm font-semibold">{{ teamName }}</div>
 							<div class="text-xs uppercase text-slate-500">
@@ -13,17 +13,16 @@
 							</div>
 						</div>
 					</div>
+
+					<div class="text-4xl font-black text-slate-500">
+						{{ player.now_cost / 10 }}<span class="text-slate-400">m</span>
+					</div>
 				</div>
 
-				<div class="flex justify-between">
-					<div>
-						<h2 class="w-full text-2xl font-bold leading-5">
-							{{ player.web_name }}
-						</h2>
-						<div class="mt-1 mb-3 text-3xl font-black text-slate-500">
-							{{ player.now_cost / 10 }}<span class="text-slate-400">m</span>
-						</div>
-					</div>
+				<div class="flex items-center justify-between mb-3">
+					<h2 class="w-full text-2xl font-bold leading-5">
+						{{ player.web_name }}
+					</h2>
 					<section v-if="player.yellow_cards > 0 || player.red_cards > 0">
 						<!-- <div class="mt-2 text-sm font-semibold">Cards</div> -->
 						<div class="flex items-center">
@@ -85,8 +84,8 @@
 
 	const teamName = computed(() => {
 		const team = props.data.find((team) => team.id === props.player.team);
-        return team ? team.name : "Unknown Team";
-    });
+		return team ? team.name : "Unknown Team";
+	});
 
 	const inPercentage = computed(() =>
 		totalTransfers.value === 0

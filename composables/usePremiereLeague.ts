@@ -112,6 +112,7 @@ function calculatePlayerScore(player) {
 	let weightInfluence = 1.5;
 	let weightValue = 1.5;
 	let weightTransfersIn = 1.5;
+	let weightTransfersOut = 1.5;
 	let weightGoals = 0;
 	let weightAssists = 0;
 	let weightSavesPer90 = 0;
@@ -142,6 +143,8 @@ function calculatePlayerScore(player) {
 			weightAssists = 2.5;
 			weightThreat = 3;
 			weightExpectedGoalsPer90 = 3;
+			weightTransfersOut = 0.1;
+			weightTransfersIn = 3.0;
 			break;
 	}
 
@@ -156,7 +159,8 @@ function calculatePlayerScore(player) {
 		parseFloat(player.threat) * weightThreat +
 		parseFloat(player.influence) * weightInfluence +
 		parseFloat(player.value_form) * weightValue +
-		player.transfers_in * weightTransfersIn +
+		player.transfers_in_event * weightTransfersIn +
+		player.transfers_out_event * weightTransfersOut +
 		player.goals_scored * weightGoals +
 		player.assists * weightAssists +
 		parseFloat(player.saves_per_90) * weightSavesPer90 +
@@ -185,29 +189,40 @@ export function getTopPlayers(players, position = null, topN = 5) {
 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
 }
 
-// @ts-ignore
-
-export function getMostTransferredInPlayers(players, topN = 5) {
-	// Sort players by transfers_in in descending order
-	return (
-		players
-			// @ts-ignore
-
-			.sort((a, b) => b.transfers_in_event - a.transfers_in_event)
-			.slice(0, topN)
-	);
+export function getMostTransferredInPlayers(players: any[], topN = 5) {
+	return [...players]
+		.sort((a, b) => (b.transfers_in_event || 0) - (a.transfers_in_event || 0))
+		.slice(0, topN);
 }
 
-// @ts-ignore
-export function getMostTransferredOutPlayers(players, topN = 5) {
-	// Sort players by transfers_out in descending order
-	return (
-		players
-			// @ts-ignore
-			.sort((a, b) => b.transfers_out_event - a.transfers_out_event)
-			.slice(0, topN)
-	);
+export function getMostTransferredOutPlayers(players: any[], topN = 5) {
+	return [...players]
+		.sort((a, b) => (b.transfers_out_event || 0) - (a.transfers_out_event || 0))
+		.slice(0, topN);
 }
+
+// // @ts-ignore
+// export function getMostTransferredInPlayers(players, topN = 5) {
+// 	// Sort players by transfers_in in descending order
+// 	return (
+// 		players
+// 			// @ts-ignore
+
+// 			.sort((a, b) => b.transfers_in_event - a.transfers_in_event)
+// 			.slice(0, topN)
+// 	);
+// }
+
+// // @ts-ignore
+// export function getMostTransferredOutPlayers(players, topN = 5) {
+// 	// Sort players by transfers_out in descending order
+// 	return (
+// 		players
+// 			// @ts-ignore
+// 			.sort((a, b) => b.transfers_out_event - a.transfers_out_event)
+// 			.slice(0, topN)
+// 	);
+// }
 
 // export const consolidateGameweekData = (gameweekData: any, data: any) => {
 // 	try {

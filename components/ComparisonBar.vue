@@ -1,5 +1,5 @@
 <template>
-	<div class="">
+	<div v-if="comparison" class="">
 		<div class="flex items-center justify-between px-2 ">
 			<div
 				class="text-xs font-semibold text-center text-gray-600 uppercase"
