@@ -27,6 +27,18 @@ export const getPlayerInfo = (id: number, data: any) => {
 	}
 };
 
+// get team info
+export const getTeamInfo = (id: number, data: any) => {
+	try {
+		const team = data.teams.find((team: any) => team.id === id);
+		// console.log("getTeamInfo", team);
+		return team;
+	} catch (error) {
+		console.log("getTeamInfo: Error - ", error);
+		return null;
+	}
+}
+
 /**
  * Retrieves gameweek data based on the specified type.
  * @param {String|Number} type - Can be 'current', 'next', 'previous', or a specific gameweek ID (number).
@@ -102,15 +114,15 @@ export const gameweekPlayerDetails = (gameweekData: any, data: any) => {
 // get top players
 // @ts-ignore
 export function calculatePlayerScore(player) {
-	let weightTotalPoints = 3;
+	let weightTotalPoints = 5;
 	let weightPointsPerGame = 2.5;
-	let weightForm = 2.5;
+	let weightForm = 0.5;
 	let weightCleanSheetsPer90 = 0;
 	let weightExpectedGoalsConcededPer90 = 0;
 	let weightBps = 2;
 	let weightThreat = 0;
 	let weightInfluence = 1.5;
-	let weightValue = 1.5;
+	let weightValue = 3.5;
 	let weightTransfersIn = 1.5;
 	let weightTransfersOut = 1.5;
 	let weightGoals = 0;
@@ -169,26 +181,6 @@ export function calculatePlayerScore(player) {
 	);
 }
 
-// @ts-ignore
-// export function getTopPlayers(players, position = null, topN = 5) {
-// 	// Filter players by position if specified
-// 	let filteredPlayers = position
-// 		? // @ts-ignore
-// 		  players.filter((p) => p.element_type === position)
-// 		: players;
-
-// 	// Calculate scores
-// 	// @ts-ignore
-// 	const scoredPlayers = filteredPlayers.map((player) => ({
-// 		...player,
-// 		score: calculatePlayerScore(player),
-// 	}));
-
-// 	// Sort by score in descending order and take the top N
-// 	// @ts-ignore
-// 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
-// }
-
 export function getTopPlayers(
 	players: any[],
 	position = null,
@@ -230,60 +222,11 @@ export function getTopPlayers(
 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
 }
 
-// export const getRecommendedTopPlayers = (
-// 	players: any[],
-// 	position = null,
-// 	topN = 5,
-// 	budget = Infinity
-// ) => {
-// 	let filteredPlayers = [];
-
-// 	filteredPlayers = players.filter(
-// 		(p) =>
-// 			(position ? p.element_type === position : true) &&
-// 			p.now_cost <= budget * 10
-// 	); // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
-
-// 	console.log("filteredPlayers", filteredPlayers.length, position, budget);
-// 	return filteredPlayers;
-// };
-
-export const useRecommendedPlayers = () => {
-  const getRecommendedTopPlayers = computed(() => 
-	// @ts-ignore
-    (players, position = null, topN = 5, budget = Infinity) => {
-      console.log("Input players:", players.length);
-      console.log("Position:", position);
-      console.log("Budget:", budget);
-
-      let filteredPlayers = players;
-
-      if (position) {
-		// @ts-ignore
-        filteredPlayers = players.filter((p) => {
-			console.log("Player element_type:", p.element_type);
-			return p.element_type === parseInt(position);
-        });
-        console.log("After position filter:", filteredPlayers.length);
-	}
-	
-	// @ts-ignore
-      filteredPlayers = filteredPlayers.filter((p) => {
-        console.log("Player cost:", p.now_cost);
-        return p.now_cost <= budget;
-      });
-      console.log("After budget filter:", filteredPlayers.length);
-
-      const result = filteredPlayers.slice(0, topN);
-      console.log("Final result:", result.length);
-      return result;
-    }
-  );
-
-  return {
-    getRecommendedTopPlayers
-  };
-};
+export function getMostSelectedPlayers(players: any[], topN = 5) {
+	return [...players]
+		.sort((a, b) => (b.selected_by_percent || 0) - (a.selected_by_percent || 0))
+		.slice(0, topN);
+}
 
 export function getMostTransferredInPlayers(players: any[], topN = 5) {
 	return [...players]
@@ -297,28 +240,6 @@ export function getMostTransferredOutPlayers(players: any[], topN = 5) {
 		.slice(0, topN);
 }
 
-// // @ts-ignore
-// export function getMostTransferredInPlayers(players, topN = 5) {
-// 	// Sort players by transfers_in in descending order
-// 	return (
-// 		players
-// 			// @ts-ignore
-
-// 			.sort((a, b) => b.transfers_in_event - a.transfers_in_event)
-// 			.slice(0, topN)
-// 	);
-// }
-
-// // @ts-ignore
-// export function getMostTransferredOutPlayers(players, topN = 5) {
-// 	// Sort players by transfers_out in descending order
-// 	return (
-// 		players
-// 			// @ts-ignore
-// 			.sort((a, b) => b.transfers_out_event - a.transfers_out_event)
-// 			.slice(0, topN)
-// 	);
-// }
 
 // export const consolidateGameweekData = (gameweekData: any, data: any) => {
 // 	try {

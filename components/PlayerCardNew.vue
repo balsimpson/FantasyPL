@@ -14,8 +14,14 @@
 				</div>
 				<div class="flex items-center justify-between mb-3 leading-3">
 					<!-- cards issued -->
-					<div class="flex items-start">
-						<div class="pr-3">
+					<div class="flex items-center">
+						<img
+							:src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
+							alt=""
+							class="w-8 pr-1 sm:z-0 sm:top-1 sm:right-1 bottom-1"
+						/>
+
+						<div class="pr-3 leading-5">
 							<div class="text-sm font-semibold">{{ teamName }}</div>
 							<div class="text-xs uppercase text-slate-500">
 								{{ elementType }}
@@ -74,7 +80,9 @@
 				:alt="player.web_name"
 			/>
 
-			<div class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2">
+			<div
+				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
+			>
 				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
 					<div class="text-xs text-right uppercase">
 						<div class="opacity-50">Points</div>
@@ -85,7 +93,6 @@
 						<div class="opacity-50">Goals</div>
 						<div class="font-semibold lowercase">{{ player.goals_scored }}</div>
 					</div>
-					
 				</div>
 				<div class="flex justify-between pt-1">
 					<div class="text-xs text-left uppercase">
@@ -94,11 +101,13 @@
 					</div>
 					<div class="text-xs text-center uppercase">
 						<div class="opacity-50">Form</div>
-						<div class="font-semibold lowercase">{{ player.form }}</div>
+						<div class="font-semibold lowercase" :class="['form-value', getFormCategory(player.form)]">{{ player.form }}</div>
 					</div>
 					<div class="text-xs text-right uppercase">
 						<div class="opacity-50">Selected by</div>
-						<div class="font-semibold lowercase">{{ player.selected_by_percent }}%</div>
+						<div class="font-semibold lowercase">
+							{{ player.selected_by_percent }}%
+						</div>
 					</div>
 				</div>
 			</div>
@@ -143,4 +152,30 @@
 	const elementType = computed(
 		() => elementTypeMap[props.player.element_type] || "Unknown"
 	);
+
+	const getFormCategory = (form) => {
+		const formValue = parseFloat(form);
+		if (formValue >= 5) return "good";
+		if (formValue >= 3) return "average";
+		return "bad";
+	};
 </script>
+
+<style scoped>
+.form-value {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.good {
+  background-color: #4CAF50;
+  color: white;
+}
+.average {
+  background-color: #FFA500;
+  color: black;
+}
+.bad {
+  background-color: #F44336;
+  color: white;
+}
+</style>

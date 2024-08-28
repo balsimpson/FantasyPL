@@ -8,11 +8,40 @@
 			Fantasy<span class="text-[#7300c5]">PL</span>
 		</NuxtLink>
 
+		
+		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
+		
+
+		<div class="mt-6 text-2xl text-center"><span class="font-semibold">{{nextGameweek.name}}</span> starts <span class="font-bold text-teal-500">{{ getRemainingTime(nextGameweek.deadline_time) }}</span></div>
+
 		<!-- section to display options when the user picks the position and specifies a budget with a slider -->
 		<RecommendedPlayers />
 		<!-- </div> -->
 
-		<div v-if="bootstrap && bootstrap.elements" class="space-y-12">
+		<div v-if="bootstrap && bootstrap.elements" class="mt-12 space-y-12">
+			<!-- Most Selected -->
+			<div v-if="bootstrap && bootstrap.elements" class="w-full max-w-5xl mt-4">
+				<div class="max-w-3xl mb-6">
+					<h1
+						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
+					>
+						Most Selected Players
+					</h1>
+					<!-- <p class="mt-4 text-sm text-gray-500">
+						These are the rising stars, currently in high demand by managers
+						looking to strengthen their squads.
+					</p> -->
+				</div>
+				<AppCarousel>
+					<LazyPlayerCardNew
+						v-for="item in mostSelected"
+						:key="item.id"
+						:player="item"
+						:data="bootstrap.teams"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
+					/>
+				</AppCarousel>
+			</div>
 			<!-- Most Transferred In -->
 			<div v-if="bootstrap && bootstrap.elements" class="w-full max-w-5xl mt-4">
 				<div class="max-w-3xl mb-6">
@@ -140,7 +169,6 @@
 </template>
 
 <script setup>
-	
 	// const recommendedPlayers = ref([]);
 
 	const allPlayers = useState("allPlayers", () => []);
@@ -156,21 +184,81 @@
 	);
 	allPlayers.value = bootstrap.value.elements;
 	allTeams.value = bootstrap.value.teams;
+
+	const currentGameweek = computed(() => {
+		if (bootstrap.value && bootstrap.value.events) {
+			let currentWeek = bootstrap.value.events.find(
+				(event) => event.is_current
+			);
+
+			if (currentWeek) {
+				let most_captained = getPlayerInfo(
+					currentWeek.most_captained,
+					bootstrap.value
+				);
+				let most_captained_team = most_captained.team;
+				let most_vice_captained = getPlayerInfo(
+					currentWeek.most_vice_captained,
+					bootstrap.value
+				);
+				let most_vice_captained_team = most_vice_captained.team;
+
+				currentWeek.mostCaptained = `${most_captained.first_name} ${most_captained.second_name}`;
+
+				currentWeek.mostCaptainedTeam = getTeamInfo(most_captained_team, bootstrap.value);
+				
+				currentWeek.mostViceCaptained = `${most_vice_captained.first_name} ${most_vice_captained.second_name}`;
+				currentWeek.mostViceCaptainedTeam = getTeamInfo(most_vice_captained_team, bootstrap.value);
+				
+				return currentWeek;
+			}
+		}
+	});
+
+	const nextGameweek = computed(() => {
+		if (bootstrap.value && bootstrap.value.events) {
+			return bootstrap.value.events.find(
+				(event) => event.is_next
+			);
+		}
+	});
+
+	const mostSelected = computed(() => {
+		if (bootstrap.value && bootstrap.value.elements) {
+			return getMostSelectedPlayers(bootstrap.value.elements, 20);
+		}
+		return [];
+	});
+
+	const mostTransferredIn = computed(() => {
+		if (bootstrap.value && bootstrap.value.elements) {
+			return getMostTransferredInPlayers(bootstrap.value.elements, 20);
+		}
+		return [];
+	});
+
+	const mostTransferredOut = computed(() => {
+		if (bootstrap.value && bootstrap.value.elements) {
+			return getMostTransferredOutPlayers(bootstrap.value.elements, 20);
+		}
+		return [];
+	});
+
 	// const allPlayers = computed(() => {
 	// 	return bootstrap.value.elements;
 	// });
 
 	// const recommendedPlayers = computed(() => {
-		// console.log("Computing recommendedPlayers");
-		// console.log("allPlayers:", allPlayers.value.length);
-		// console.log("selectedPosition:", selectedPosition.value);
-		// console.log("selectedBudget:", selectedBudget.value);
-		// return getRecommendedTopPlayers(
-		// 	allPlayers.value,
-		// 	selectedPosition.value,
-		// 	5,
-		// 	selectedBudget.value
-		// );
+	// console.log("Computing recommendedPlayers");
+	// console.log("allPlayers:", allPlayers.value.length);
+	// console.log("selectedPosition:", selectedPosition.value);
+	// console.log("selectedBudget:", selectedBudget.value);
+	// return getRecommendedTopPlayers(
+	// 	allPlayers.value,
+	// 	selectedPosition.value,
+	// 	5,
+	// 	selectedBudget.value
+	// );
 	// });
 
 	// watch(
@@ -279,20 +367,6 @@
 	// 	}
 	// 	return [];
 	// });
-
-	const mostTransferredIn = computed(() => {
-		if (bootstrap.value && bootstrap.value.elements) {
-			return getMostTransferredInPlayers(bootstrap.value.elements, 20);
-		}
-		return [];
-	});
-
-	const mostTransferredOut = computed(() => {
-		if (bootstrap.value && bootstrap.value.elements) {
-			return getMostTransferredOutPlayers(bootstrap.value.elements, 20);
-		}
-		return [];
-	});
 </script>
 
 <style>

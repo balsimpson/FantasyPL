@@ -1,10 +1,12 @@
 <template>
 	<div class="w-full mx-auto my-6">
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            {{ recommendedPlayers.length }} recommendations 
-        </h1>
-		<div class="flex items-center justify-between p-3 mb-3 border rounded-lg">
-
+		<h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+			<span class="text-[#7300c5]">{{ recommendedPlayers.length }}</span>
+			recommendations
+		</h1>
+		<div
+			class="flex flex-col items-center justify-between p-3 mb-3 border rounded-lg sm:flex-row gap-x-3"
+		>
 			<div v-if="allPlayers && allPlayers.length" class="mb-4">
 				<div class="w-44">
 					<label
@@ -25,37 +27,37 @@
 					</select>
 				</div>
 			</div>
-            <div class="w-44">
-                <label
-                    for="budget-slider"
-                    class="block text-sm font-medium text-gray-900"
-                    >Budget: {{ selectedBudget }}£m</label
-                >
-                <input
-                    type="range"
-                    id="budget-slider"
-                    name="budget-slider"
-                    min="0"
-                    max="25"
-                    v-model="selectedBudget"
-                    step="1"
-                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                />
-                <div class="flex justify-between px-2 text-xs">
-                    <span>0</span>
-                    <span>25</span>
-                </div>
-            </div>
+			<div class="w-44">
+				<label
+					for="budget-slider"
+					class="block text-sm font-medium text-gray-900"
+					>Budget: {{ selectedBudget }}£m</label
+				>
+				<input
+					type="range"
+					id="budget-slider"
+					name="budget-slider"
+					min="0"
+					max="25"
+					v-model="selectedBudget"
+					step="1"
+					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+				/>
+				<div class="flex justify-between px-2 text-xs">
+					<span>0</span>
+					<span>25</span>
+				</div>
+			</div>
 		</div>
-        <AppCarousel>
-            <LazyPlayerCardNew
-                v-for="item in recommendedPlayers"
-                :key="item"
-                :player="item"
-                :data="allTeams"
-                class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
-            />
-        </AppCarousel>
+		<AppCarousel>
+			<LazyPlayerCardNew
+				v-for="item in recommendedPlayers"
+				:key="item"
+				:player="item"
+				:data="allTeams"
+				class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
+			/>
+		</AppCarousel>
 	</div>
 </template>
 
