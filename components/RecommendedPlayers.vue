@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-	const selectedPosition = ref(4);
+	const selectedPosition = ref(2);
 	const selectedBudget = ref(5);
 	const allPlayers = useState("allPlayers");
 	const allTeams = useState("allTeams");
