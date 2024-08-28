@@ -8,6 +8,10 @@
 			Fantasy<span class="text-[#7300c5]">PL</span>
 		</NuxtLink>
 
+		<!-- section to display options when the user picks the position and specifies a budget with a slider -->
+		<RecommendedPlayers />
+		<!-- </div> -->
+
 		<div v-if="bootstrap && bootstrap.elements" class="space-y-12">
 			<!-- Most Transferred In -->
 			<div v-if="bootstrap && bootstrap.elements" class="w-full max-w-5xl mt-4">
@@ -23,7 +27,7 @@
 					</p>
 				</div>
 				<AppCarousel>
-					<PlayerCardNew
+					<LazyPlayerCardNew
 						v-for="item in mostTransferredIn"
 						:key="item.id"
 						:player="item"
@@ -46,7 +50,7 @@
 					</p>
 				</div>
 				<AppCarousel>
-					<PlayerCardNew
+					<LazyPlayerCardNew
 						v-for="item in mostTransferredOut"
 						:key="item.id"
 						:player="item"
@@ -65,7 +69,7 @@
 					</h1>
 				</div>
 				<AppCarousel v-if="bootstrap && bootstrap.elements">
-					<PlayerCardNew
+					<LazyPlayerCardNew
 						v-for="item in getTopPlayers(bootstrap.elements, 4, 20)"
 						:key="item"
 						:player="item"
@@ -84,7 +88,7 @@
 					</h1>
 				</div>
 				<AppCarousel v-if="bootstrap && bootstrap.elements">
-					<PlayerCardNew
+					<LazyPlayerCardNew
 						v-for="item in getTopPlayers(bootstrap.elements, 3, 20)"
 						:key="item"
 						:player="item"
@@ -103,7 +107,7 @@
 					</h1>
 				</div>
 				<AppCarousel>
-					<PlayerCardNew
+					<LazyPlayerCardNew
 						v-for="item in getTopPlayers(bootstrap.elements, 2, 20)"
 						:key="item"
 						:player="item"
@@ -121,8 +125,8 @@
 						Top Goalkeepers
 					</h1>
 				</div>
-				<AppCarousel >
-					<PlayerCardNew
+				<AppCarousel>
+					<LazyPlayerCardNew
 						v-for="item in getTopPlayers(bootstrap.elements, 1, 20)"
 						:key="item"
 						:player="item"
@@ -136,10 +140,11 @@
 </template>
 
 <script setup>
-	const selectedPosition = ref(1);
-	const topPlayers = ref([]);
+	
+	// const recommendedPlayers = ref([]);
 
-	// const store = useState("store", () => ({}));
+	const allPlayers = useState("allPlayers", () => []);
+	const allTeams = useState("allTeams", () => []);
 
 	// const { data: bootstrap, error } = useFetch("/api/bootstrap-static");
 	// if (error.value) {
@@ -149,17 +154,142 @@
 	const { data: bootstrap, error } = await useAsyncData("bootstrap", () =>
 		$fetch("/api/bootstrap-static")
 	);
+	allPlayers.value = bootstrap.value.elements;
+	allTeams.value = bootstrap.value.teams;
+	// const allPlayers = computed(() => {
+	// 	return bootstrap.value.elements;
+	// });
+
+	// const recommendedPlayers = computed(() => {
+		// console.log("Computing recommendedPlayers");
+		// console.log("allPlayers:", allPlayers.value.length);
+		// console.log("selectedPosition:", selectedPosition.value);
+		// console.log("selectedBudget:", selectedBudget.value);
+		// return getRecommendedTopPlayers(
+		// 	allPlayers.value,
+		// 	selectedPosition.value,
+		// 	5,
+		// 	selectedBudget.value
+		// );
+	// });
+
+	// watch(
+	// 	recommendedPlayers,
+	// 	(newValue) => {
+	// 		console.log("recommendedPlayers changed:", newValue.length);
+	// 	},
+	// 	{ deep: true }
+	// );
+
+	// const recommendPlayers = () => {
+	// 	if (bootstrap.value && bootstrap.value.elements) {
+	// 		let filtered = bootstrap.value.elements.filter((p) => {
+	// 			console.log("p", p.now_cost, selectedBudget.value * 10, selectedPosition.value, p.element_type);
+	// 			if (
+	// 				p.element_type == selectedPosition.value &&
+	// 				p.now_cost <= selectedBudget.value * 10
+	// 			) {
+	// 				console.log('select', p);
+	// 				return p;
+	// 			} else {
+	// 				// console.log("element_type", p.element_type, selectedPosition.value)
+	// 				// console.log("budget", p.now_cost, selectedBudget.value * 10)
+	// 				// console.log('else', p.element_type == selectedPosition.value, p.now_cost <= selectedBudget.value * 10);
+	// 			}
+
+	// 			// return (
+	// 			// 	(selectedPosition.value
+	// 			// 		? p.element_type === selectedPosition.value
+	// 			// 		: true) && p.now_cost < selectedBudget.value * 10
+	// 			// );
+	// 		});
+	// 		// 	filteredPlayers = players.filter((p) => {
+	// 		// 		// console.log("p", p.now_cost);
+	// 		// 		console.log("budget", p.now_cost <= budget * 10);
+	// 		// 		return (position ? p.element_type === position : true) &&
+	// 		// 			p.now_cost <= budget * 10; // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
+	// 		// 	});
+
+	// 		// return getTopPlayers(
+	// 		// 	bootstrap.value.elements,
+	// 		// 	selectedPosition.value,
+	// 		// 	20,
+	// 		// 	selectedBudget.value
+	// 		// );
+	// 		recommendedPlayers.value = filtered
+	// 		console.log("recommendedPlayers", recommendedPlayers.value);
+	// 		// return filtered;
+	// 	}
+	// 	recommendedPlayers.value = [];
+	// };
+
+	// watchEffect(() => {
+	// 	if (bootstrap.value && bootstrap.value.elements) {
+	// 		let results = getTopPlayers(
+	// 			allPlayers.value,
+	// 			selectedPosition.value,
+	// 			5,
+	// 			selectedBudget.value
+	// 		);
+
+	// 		console.log("results", results.length);
+	// 		recommendedPlayers.value = results;
+	// 	}
+	// 	console.log("effect", selectedPosition.value);
+	// 	// recommendedPlayers.value = [];
+	// });
+
+	// const recommendedPlayers = computed(() => {
+	// 	if (bootstrap.value && bootstrap.value.elements) {
+	// 		let filtered = bootstrap.value.elements.filter((p) => {
+	// 			console.log("p", p.now_cost, selectedBudget.value * 10, selectedPosition.value, p.element_type);
+	// 			if (
+	// 				p.element_type === selectedPosition.value &&
+	// 				p.now_cost <= selectedBudget.value * 10
+	// 			) {
+	// 				console.log('select', p);
+	// 				return p;
+	// 			} else {
+	// 				console.log("element_type", p.element_type, selectedPosition.value)
+	// 				console.log("budget", p.now_cost, selectedBudget.value * 10)
+	// 				console.log('else', p.element_type == selectedPosition.value, p.now_cost <= selectedBudget.value * 10);
+	// 			}
+
+	// 			// return (
+	// 			// 	(selectedPosition.value
+	// 			// 		? p.element_type === selectedPosition.value
+	// 			// 		: true) && p.now_cost < selectedBudget.value * 10
+	// 			// );
+	// 		});
+	// 		// 	filteredPlayers = players.filter((p) => {
+	// 		// 		// console.log("p", p.now_cost);
+	// 		// 		console.log("budget", p.now_cost <= budget * 10);
+	// 		// 		return (position ? p.element_type === position : true) &&
+	// 		// 			p.now_cost <= budget * 10; // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
+	// 		// 	});
+
+	// 		// return getTopPlayers(
+	// 		// 	bootstrap.value.elements,
+	// 		// 	selectedPosition.value,
+	// 		// 	20,
+	// 		// 	selectedBudget.value
+	// 		// );
+	// 		console.log("filtered", filtered);
+	// 		return filtered;
+	// 	}
+	// 	return [];
+	// });
 
 	const mostTransferredIn = computed(() => {
 		if (bootstrap.value && bootstrap.value.elements) {
-			return getMostTransferredInPlayers(bootstrap.value.elements, 5);
+			return getMostTransferredInPlayers(bootstrap.value.elements, 20);
 		}
 		return [];
 	});
 
 	const mostTransferredOut = computed(() => {
 		if (bootstrap.value && bootstrap.value.elements) {
-			return getMostTransferredOutPlayers(bootstrap.value.elements, 5);
+			return getMostTransferredOutPlayers(bootstrap.value.elements, 20);
 		}
 		return [];
 	});

@@ -101,7 +101,7 @@ export const gameweekPlayerDetails = (gameweekData: any, data: any) => {
 
 // get top players
 // @ts-ignore
-function calculatePlayerScore(player) {
+export function calculatePlayerScore(player) {
 	let weightTotalPoints = 3;
 	let weightPointsPerGame = 2.5;
 	let weightForm = 2.5;
@@ -170,24 +170,120 @@ function calculatePlayerScore(player) {
 }
 
 // @ts-ignore
-export function getTopPlayers(players, position = null, topN = 5) {
-	// Filter players by position if specified
-	let filteredPlayers = position
+// export function getTopPlayers(players, position = null, topN = 5) {
+// 	// Filter players by position if specified
+// 	let filteredPlayers = position
+// 		? // @ts-ignore
+// 		  players.filter((p) => p.element_type === position)
+// 		: players;
+
+// 	// Calculate scores
+// 	// @ts-ignore
+// 	const scoredPlayers = filteredPlayers.map((player) => ({
+// 		...player,
+// 		score: calculatePlayerScore(player),
+// 	}));
+
+// 	// Sort by score in descending order and take the top N
+// 	// @ts-ignore
+// 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
+// }
+
+export function getTopPlayers(
+	players: any[],
+	position = null,
+	topN = 5,
+	budget = Infinity
+) {
+	let filteredPlayers = [];
+	// if (budget) {
+	// 	// Filter players by position and budget
+	// 	filteredPlayers = players.filter((p) => {
+	// 		// console.log("p", p.now_cost);
+	// 		console.log("budget", p.now_cost <= budget * 10);
+	// 		return (position ? p.element_type === position : true) &&
+	// 			p.now_cost <= budget * 10; // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
+	// 	});
+	// 	// filteredPlayers = players.filter(
+	// 	// 	(p) =>
+	// 	// 		(position ? p.element_type === position : true) &&
+	// 	// 		p.now_cost <= budget * 10 // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
+	// 	// );
+	// 	console.log("filteredPlayers", budget, filteredPlayers);
+	// } else {
+
+	// 	console.log("else", budget, filteredPlayers.slice(0, topN));
+	// }
+	filteredPlayers = position
 		? // @ts-ignore
 		  players.filter((p) => p.element_type === position)
 		: players;
-
+	console.log("filteredPlayers", filteredPlayers.length, position);
+	// console.log("filteredPlayers", filteredPlayers.slice(0, topN));
 	// Calculate scores
-	// @ts-ignore
 	const scoredPlayers = filteredPlayers.map((player) => ({
 		...player,
 		score: calculatePlayerScore(player),
 	}));
 
 	// Sort by score in descending order and take the top N
-	// @ts-ignore
 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
 }
+
+// export const getRecommendedTopPlayers = (
+// 	players: any[],
+// 	position = null,
+// 	topN = 5,
+// 	budget = Infinity
+// ) => {
+// 	let filteredPlayers = [];
+
+// 	filteredPlayers = players.filter(
+// 		(p) =>
+// 			(position ? p.element_type === position : true) &&
+// 			p.now_cost <= budget * 10
+// 	); // Convert budget from millions to FPL's cost unit (usually in tenths of millions)
+
+// 	console.log("filteredPlayers", filteredPlayers.length, position, budget);
+// 	return filteredPlayers;
+// };
+
+export const useRecommendedPlayers = () => {
+  const getRecommendedTopPlayers = computed(() => 
+	// @ts-ignore
+    (players, position = null, topN = 5, budget = Infinity) => {
+      console.log("Input players:", players.length);
+      console.log("Position:", position);
+      console.log("Budget:", budget);
+
+      let filteredPlayers = players;
+
+      if (position) {
+		// @ts-ignore
+        filteredPlayers = players.filter((p) => {
+			console.log("Player element_type:", p.element_type);
+			return p.element_type === parseInt(position);
+        });
+        console.log("After position filter:", filteredPlayers.length);
+	}
+	
+	// @ts-ignore
+      filteredPlayers = filteredPlayers.filter((p) => {
+        console.log("Player cost:", p.now_cost);
+        return p.now_cost <= budget;
+      });
+      console.log("After budget filter:", filteredPlayers.length);
+
+      const result = filteredPlayers.slice(0, topN);
+      console.log("Final result:", result.length);
+      return result;
+    }
+  );
+
+  return {
+    getRecommendedTopPlayers
+  };
+};
 
 export function getMostTransferredInPlayers(players: any[], topN = 5) {
 	return [...players]
