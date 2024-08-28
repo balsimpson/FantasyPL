@@ -211,7 +211,7 @@ export function getTopPlayers(
 		? // @ts-ignore
 		  players.filter((p) => p.element_type === position)
 		: players;
-	console.log("filteredPlayers", filteredPlayers.length, position);
+	// console.log("filteredPlayers", filteredPlayers.length, position);
 	// console.log("filteredPlayers", filteredPlayers.slice(0, topN));
 	// Calculate scores
 	const scoredPlayers = filteredPlayers.map((player) => ({
