@@ -142,7 +142,7 @@ export function calculatePlayerScore(player) {
 			weightCleanSheetsPer90 = 2.5;
 			weightExpectedGoalsConcededPer90 = 2;
 			weightThreat = 2;
-			weightTransfersOut = .5
+			weightTransfersOut = -1.5
 			break;
 		case 3: // Midfielder
 			weightGoals = 3;
