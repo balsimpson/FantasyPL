@@ -29,15 +29,16 @@ export const getPlayerInfo = (id: number, data: any) => {
 
 // get team info
 export const getTeamInfo = (id: number, data: any) => {
+	if (!id || !data) return;
 	try {
-		const team = data.teams.find((team: any) => team.id === id);
-		// console.log("getTeamInfo", team);
+		const team = data.teams.find((team: any) => team.id == id);
+		console.log("getTeamInfo", team.name);
 		return team;
 	} catch (error) {
 		console.log("getTeamInfo: Error - ", error);
 		return null;
 	}
-}
+};
 
 /**
  * Retrieves gameweek data based on the specified type.
@@ -115,8 +116,8 @@ export const gameweekPlayerDetails = (gameweekData: any, data: any) => {
 // @ts-ignore
 export function calculatePlayerScore(player) {
 	let weightTotalPoints = 5;
-	let weightPointsPerGame = 2.5;
-	let weightForm = 0.5;
+	let weightPointsPerGame = 5.5;
+	let weightForm = 2.5;
 	let weightCleanSheetsPer90 = 0;
 	let weightExpectedGoalsConcededPer90 = 0;
 	let weightBps = 2;
@@ -124,7 +125,7 @@ export function calculatePlayerScore(player) {
 	let weightInfluence = 1.5;
 	let weightValue = 3.5;
 	let weightTransfersIn = 1.5;
-	let weightTransfersOut = 1.5;
+	let weightTransfersOut = -4.5;
 	let weightGoals = 0;
 	let weightAssists = 0;
 	let weightSavesPer90 = 0;
@@ -142,7 +143,7 @@ export function calculatePlayerScore(player) {
 			weightCleanSheetsPer90 = 2.5;
 			weightExpectedGoalsConcededPer90 = 2;
 			weightThreat = 2;
-			weightTransfersOut = -1.5
+
 			break;
 		case 3: // Midfielder
 			weightGoals = 3;
@@ -156,7 +157,6 @@ export function calculatePlayerScore(player) {
 			weightAssists = 2.5;
 			weightThreat = 3;
 			weightExpectedGoalsPer90 = 3;
-			weightTransfersOut = 0.1;
 			weightTransfersIn = 3.0;
 			break;
 	}
@@ -223,6 +223,18 @@ export function getTopPlayers(
 	return scoredPlayers.sort((a, b) => b.score - a.score).slice(0, topN);
 }
 
+export const getPositionName = (position: any) => {
+	const elementTypeMap = {
+		1: "Goalkeeper",
+		2: "Defender",
+		3: "Midfielder",
+		4: "Forward",
+	};
+
+	// @ts-ignore
+	return elementTypeMap[position];
+};
+
 export function getMostSelectedPlayers(players: any[], topN = 5) {
 	return [...players]
 		.sort((a, b) => (b.selected_by_percent || 0) - (a.selected_by_percent || 0))
@@ -241,6 +253,17 @@ export function getMostTransferredOutPlayers(players: any[], topN = 5) {
 		.slice(0, topN);
 }
 
+export async function getPlayerInfoDetails(id: number) {
+	try {
+		const BASE_URL = "https://fantasy.premierleague.com/api/element-summary";
+		const url = `${BASE_URL}/${id}/`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getPlayerInfoDetails:", error);
+		return null;
+	}
+}
 
 // export const consolidateGameweekData = (gameweekData: any, data: any) => {
 // 	try {

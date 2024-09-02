@@ -121,16 +121,7 @@
 		return "Loading...";
 	});
 
-	const elementTypeMap = {
-		1: "Goalkeeper",
-		2: "Defender",
-		3: "Midfielder",
-		4: "Forward",
-	};
-
-	const elementType = computed(
-		() => elementTypeMap[props.player.element_type] || "Unknown"
-	);
+	
 
 	// const playerTeam = computed(() => {
 	//     if (store.teams && props.player) {
