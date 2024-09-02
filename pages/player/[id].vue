@@ -7,7 +7,6 @@
 		class="w-full min-h-screen p-4 bg-gray-100"
 	>
 		<div class="max-w-4xl mx-auto">
-
 			<div class="w-full bg-gray-300 rounded-lg">
 				<PlayerPerformanceCard :player="playerData" />
 			</div>
@@ -35,7 +34,9 @@
 				<h2 class="mb-2 text-2xl font-semibold text-gray-700">
 					Player History
 				</h2>
-				<div class="grid grid-cols-1 gap-2 max-h-[340px] overflow-scroll snap-y scroll-smooth snap-mandatory">
+				<div
+					class="grid grid-cols-1 gap-2 max-h-[340px] overflow-scroll snap-y scroll-smooth snap-mandatory"
+				>
 					<div
 						v-for="history in player.history"
 						:key="history.fixture"
@@ -96,7 +97,103 @@
 				</div>
 			</div>
 
+			<!-- past seasons -->
+			<div class="mt-6">
+				<h2 class="mb-2 text-2xl font-semibold text-gray-700">Past Seasons</h2>
+				<div
+					class="grid grid-cols-1 gap-2 max-h-[340px] overflow-scroll snap-y scroll-smooth snap-mandatory"
+				>
+					<div
+						v-for="season in player.history_past.slice().reverse()"
+						:key="season.season_name"
+						class="p-4 bg-white rounded-lg shadow"
+					>
+						<h3 class="mb-2 text-xl font-semibold uppercase text-slate-500">
+							{{ season.season_name }}
+						</h3>
+						<div class="flex items-start justify-between">
+							<div class="flex items-end justify-between w-full gap-4">
+								<div>
+									<div
+										class="text-xs font-semibold leading-3 text-center uppercase text-slate-500"
+									>
+										Start Cost
+									</div>
+									<div class="text-xl font-bold text-center">
+										{{ season.start_cost }}
+									</div>
+								</div>
+								<div>
+									<div
+										class="text-xs font-semibold leading-3 text-center uppercase text-slate-500"
+									>
+										End Cost
+									</div>
+									<div class="text-xl font-bold text-center">
+										{{ season.end_cost }}
+									</div>
+								</div>
+								<div>
+									<div
+										class="text-xs font-semibold leading-3 text-center uppercase text-slate-500"
+									>
+										Points
+									</div>
+									<div class="text-xl font-bold text-center">
+										{{ season.total_points }}
+									</div>
+								</div>
+								<div>
+									<div
+										class="text-xs font-semibold leading-3 text-center uppercase text-slate-500"
+									>
+										Minutes
+									</div>
+									<div class="text-xl font-bold text-center">
+										{{ season.minutes }}
+									</div>
+								</div>
+								<div>
+									<div
+										class="text-xs font-semibold leading-3 text-center uppercase text-slate-500"
+									>
+										Goals
+									</div>
+									<div class="text-xl font-bold text-center">
+										{{ season.goals_scored }}
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- <div>
+							<div class="flex">
+								<div>
+									<div>Assists</div>
+									<div>{{ season.assists }}</div>
+								</div>
+								<div>
+									<div>Clean Sheets</div>
+									<div>{{ season.clean_sheets }}</div>
+								</div>
+								<div>
+									<div>Goals Conceded</div>
+									<div>{{ season.goals_conceded }}</div>
+								</div>
+								<div>
+									<div>Yellow Cards</div>
+									<div>{{ season.yellow_cards }}</div>
+								</div>
+								<div>
+									<div>Red Cards</div>
+									<div>{{ season.red_cards }}</div>
+								</div>
+							</div>
+						</div> -->
+					</div>
+				</div>
+			</div>
 
+			<!-- <pre>{{ player.history_past }}</pre> -->
 		</div>
 	</div>
 </template>

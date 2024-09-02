@@ -32,7 +32,7 @@ export const getTeamInfo = (id: number, data: any) => {
 	if (!id || !data) return;
 	try {
 		const team = data.teams.find((team: any) => team.id == id);
-		console.log("getTeamInfo", team.name);
+		// console.log("getTeamInfo", team.name);
 		return team;
 	} catch (error) {
 		console.log("getTeamInfo: Error - ", error);
