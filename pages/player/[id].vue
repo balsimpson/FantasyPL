@@ -208,18 +208,18 @@
 	const route = useRoute();
 	const id = route.params.id;
 
-	const { data: player } = useLazyFetch(`/api/players/${id}`);
-	const { data: bootstrap } = useLazyFetch("/api/bootstrap-static");
+	const { data: player } = useFetch(`/api/players/${id}`);
+	const { data: bootstrap } = useFetch("/api/bootstrap-static");
 	// const { data: fixtures } = useLazyFetch("/api/fixtures");
 
 	const playerData = computed(() => {
 		if (bootstrap.value) {
-			const player = bootstrap.value.elements.find((player) => player.id == id);
-			player.teamData = bootstrap.value.teams.find(
+			const playerData = bootstrap.value.elements.find((p) => p.id == id);
+			playerData.teamData = bootstrap.value.teams.find(
 				(team) => team.id == player.team
 			);
 
-			return player ? player : "";
+			return playerData ? playerData : "";
 		}
 
 		return null;
