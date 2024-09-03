@@ -126,7 +126,7 @@
 										Start Cost
 									</div>
 									<div class="text-xl font-bold text-center">
-										{{ season.start_cost/10 }}m
+										{{ season.start_cost / 10 }}m
 									</div>
 								</div>
 								<div>
@@ -136,7 +136,7 @@
 										End Cost
 									</div>
 									<div class="text-xl font-bold text-center">
-										{{ season.end_cost/10 }}m
+										{{ season.end_cost / 10 }}m
 									</div>
 								</div>
 								<div>
@@ -214,12 +214,12 @@
 
 	const playerData = computed(() => {
 		if (bootstrap.value) {
-			const playerData = bootstrap.value.elements.find((p) => p.id == id);
-			playerData.teamData = bootstrap.value.teams.find(
+			const player = bootstrap.value.elements.find((player) => player.id == id);
+			player.teamData = bootstrap.value.teams.find(
 				(team) => team.id == player.team
 			);
 
-			return playerData ? playerData : "";
+			return player ? player : "";
 		}
 
 		return null;
