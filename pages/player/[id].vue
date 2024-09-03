@@ -208,9 +208,9 @@
 	const route = useRoute();
 	const id = route.params.id;
 
-	const { data: player } = useFetch(`/api/players/${id}`);
-	const { data: bootstrap } = useFetch("/api/bootstrap-static");
-	const { data: fixtures } = useFetch("/api/fixtures");
+	const { data: player } = useLazyFetch(`/api/players/${id}`);
+	const { data: bootstrap } = useLazyFetch("/api/bootstrap-static");
+	// const { data: fixtures } = useLazyFetch("/api/fixtures");
 
 	const playerData = computed(() => {
 		if (bootstrap.value) {
