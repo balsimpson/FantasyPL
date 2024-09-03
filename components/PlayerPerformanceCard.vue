@@ -3,9 +3,9 @@
 
 	<div
 		v-if="player"
-		class="flex items-center w-full max-w-xl p-3 mx-auto bg-gray-300 rounded-lg"
+		class="flex flex-col items-center w-full max-w-xl p-3 mx-auto bg-gray-300 rounded-lg sm:flex-row"
 	>
-		<div class="z-10 flex-grow">
+		<div class="z-10 flex-grow w-full sm:w-auto">
 			<!-- <pre>{{ player }}</pre> -->
 			<div class="flex flex-col order-1 p-3 sm:order-1">
 				<div class="flex items-center justify-between">
@@ -78,16 +78,16 @@
 			</div>
 		</div>
 
-		<div class="relative z-0 flex justify-center">
+		<div class="relative z-0 flex justify-center w-full sm:w-auto">
 			<!-- image -->
 			<img
 				:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
-				class="object-cover w-64 h-auto sm:z-20 sm:w-auto"
+				class="object-cover w-auto h-44 sm:h-auto sm:z-20 sm:w-auto"
 				:alt="player.web_name"
 			/>
 
 			<div
-				class="absolute bottom-0 z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2"
+				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg -bottom-4 sm:bottom-0 text-slate-800 bg-slate-100/95 right-2 left-2"
 			>
 				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
 					<div class="text-xs text-right uppercase">
