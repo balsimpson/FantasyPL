@@ -18,8 +18,9 @@ export const getBootstrapStatic = async () => {
  */
 export const getPlayerInfo = (id: number, data: any) => {
 	try {
-		const player = data.elements.find((player: any) => player.id === id);
-		// console.log("getPlayerInfo", player);
+		const player = data.elements.find((player: any) => {
+			return player.id == id
+		});
 		return player;
 	} catch (error) {
 		console.log("getPlayerInfo: Error - ", error);
@@ -30,9 +31,9 @@ export const getPlayerInfo = (id: number, data: any) => {
 // get team info
 export const getTeamInfo = (id: number, data: any) => {
 	if (!id || !data) return;
+	// console.log("getTeamInfo", id, data.teams, data.teams.find((team: any) => team.id == id));
 	try {
 		const team = data.teams.find((team: any) => team.id == id);
-		// console.log("getTeamInfo", team.name);
 		return team;
 	} catch (error) {
 		console.log("getTeamInfo: Error - ", error);
@@ -264,6 +265,54 @@ export async function getPlayerInfoDetails(id: number) {
 		return null;
 	}
 }
+
+export async function getUpcomingFixtures(count: number = 12) {
+	try {
+		const url = "https://fantasy.premierleague.com/api/fixtures";
+		const fixtures: any[] = await $fetch(url);
+
+		const upcomingFixtures = fixtures.filter(fixture => !fixture.finished);
+		return count ? upcomingFixtures.slice(0, count) : upcomingFixtures;
+	} catch (error) {
+		console.error("Error getPlayerInfoDetails:", error);
+		return null;
+	}
+}
+
+export async function getManagerDetails(id: number) {
+	try {
+		const url = `https://fantasy.premierleague.com/api/entry/${id}/`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getManagerDetails:", error);
+		return null;
+	}
+}
+
+export async function getManagerPicks(id: number, gw: number) {
+	try {
+		const url = `https://fantasy.premierleague.com/api/entry/${id}/event/${gw}/picks/`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getManagerPicks:", error);
+		return null;
+	}
+}
+
+export const formatDate = (dateString: string) => {
+	const options = {
+		// year: "numeric",
+		month: "short",
+		day: "numeric",
+		weekday: "short",
+		hour: "numeric",
+		minute: "numeric",
+	};
+	// @ts-ignore
+	return new Date(dateString).toLocaleDateString(undefined, options);
+};
 
 // export const consolidateGameweekData = (gameweekData: any, data: any) => {
 // 	try {

@@ -1,5 +1,5 @@
 <template>
-	<div class="flex space-x-4 overflow-x-auto snap-x scrollbar-hidden">
+	<div class="flex space-x-4 overflow-x-auto snap-x scrollbar-hidden snap-mandatory">
 		<!-- <div class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"> -->
 			<!-- <p>Item 1</p>
 			<img

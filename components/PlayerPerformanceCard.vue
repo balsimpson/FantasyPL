@@ -87,7 +87,7 @@
 			/>
 
 			<div
-				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
+				class="absolute bottom-0 z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2"
 			>
 				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
 					<div class="text-xs text-right uppercase">

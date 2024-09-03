@@ -1,66 +1,62 @@
 <template>
-	<div class="p-4 bg-white rounded-lg shadow snap-start">
-		<div class="flex items-center justify-between">
-			<div>
-				<h3 class="text-sm font-semibold uppercase text-slate-400">
-					{{ fixture.event_name }}
-				</h3>
-
-				<div class="flex">
-					<div class="flex items-center text-gray-600">
-						<div class="font-bold">
-							{{ fixture.is_home ? "Home" : "Away" }}
-							<span class="text-slate-500/70">vs</span>
-						</div>
-
-						<img
-							:src="`https://resources.premierleague.com/premierleague/badges/t${
-								getTeamLogo(fixture.is_home ? fixture.team_a : fixture.team_h)
-									.code
-							}.png`"
-							alt=""
-							class="w-6 ml-1"
-						/>
-						<div class="ml-2 font-bold">
-							{{
-								getTeamLogo(fixture.is_home ? fixture.team_a : fixture.team_h)
-									.name
-							}}
-						</div>
-					</div>
-				</div>
-
-				<!-- <div class="flex items-center">
-								</div> -->
-
-				<!-- <span class="pl-2 text-xl font-bold">
-										
-									</span> -->
-				<!-- </p> -->
-				<!-- <span v-if="bootstrap">{{
-										getTeamInfo(
-											fixture.is_home ? fixture.team_a : fixture.team_h,
-											bootstrap
-										).name
-									}}</span> -->
-				<!-- </p> -->
-				<p class="text-sm uppercase text-slate-400">
-					{{ formatDate(fixture.kickoff_time) }}
-				</p>
+	<!-- <div -->
+	<!-- class="flex items-center justify-center overflow-hidden bg-gray-700 rounded-lg -->
+	<!-- h-44 w-96 shrink-0 snap-start" > -->
+	<!-- <div class="flex items-center justify-center w-full mx-auto gap-x-4">
+			<div class="w-24">
+				<TeamInfo :team="getTeamInfo(fixture.team_a, bootstrap)"/>
+				<div>{{ fixture.team_a_difficulty }}</div>
 			</div>
-			<div class="flex flex-col items-center">
-				<div class="text-xs text-center uppercase text-slate-400">
-					difficulty
-				</div>
-				<div
-					class="flex items-center justify-center w-10 h-10 rounded text-slate-600"
-					:class="[fixture.difficulty ? getColorClass(fixture.difficulty) : '']"
-				>
-					<div class="font-bold">{{ fixture.difficulty }}</div>
-				</div>
+			<div>vs</div>
+			<div class="w-24">
+				<TeamInfo
+					:team="getTeamInfo(fixture.team_h, bootstrap)"
+					alignment="right"
+				/>
+				<div>{{ fixture.team_h_difficulty }}</div>
+			</div>
+		</div>
+
+		<div class="text-center">{{ formatDate(fixture.kickoff_time) }}</div> -->
+
+	<div
+		class="mx-auto overflow-hidden bg-white rounded-lg shadow-lg w-96 shrink-0"
+	>
+		<div class="flex items-center justify-between p-4 bg-gray-800">
+			<div class="flex items-center">
+				<img
+					:src="`https://resources.premierleague.com/premierleague/badges/t${
+						getTeamInfo(fixture.team_h, bootstrap).code
+					}.png`"
+					alt="Team 1 Logo"
+					class="w-12 h-12 mr-4 rounded-full"
+				/>
+				<span class="text-lg font-semibold text-white">{{
+					getTeamInfo(fixture.team_h, bootstrap).name
+				}}</span>
+			</div>
+			<span class="text-sm text-gray-400">VS</span>
+			<div class="flex items-center">
+				<span class="text-lg font-semibold text-white">{{
+					getTeamInfo(fixture.team_a, bootstrap).name
+				}}</span>
+				<img
+					:src="`https://resources.premierleague.com/premierleague/badges/t${
+						getTeamInfo(fixture.team_a, bootstrap).code
+					}.png`"
+					alt="Team 2 Logo"
+					class="w-12 h-12 ml-4 rounded-full"
+				/>
+			</div>
+		</div>
+		<div class="p-4 bg-gray-200">
+			<div class="text-sm text-center text-gray-700">
+				<!-- <p>Match Time:</p> -->
+				<p class="text-xl font-bold">{{ formatDate(fixture.kickoff_time) }}</p>
 			</div>
 		</div>
 	</div>
+	<!-- </div> -->
 </template>
 
 <script setup>
@@ -74,37 +70,4 @@
 			required: true,
 		},
 	});
-
-	const getTeamLogo = (teamId) => {
-		// console.log(bootstrap.value);
-
-		const team = props.bootstrap.teams.find((team) => team.id === teamId);
-		return team ? team : "";
-	};
-
-	const formatDate = (dateString) => {
-		const options = {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-		};
-		return new Date(dateString).toLocaleDateString(undefined, options);
-	};
-
-	const getColorClass = (difficulty) => {
-		switch (difficulty) {
-			case 1:
-				return "bg-green-500";
-			case 2:
-				return "bg-green-300";
-			case 3:
-				return "bg-yellow-300";
-			case 4:
-				return "bg-orange-400";
-			case 5:
-				return "bg-red-500 text-red-50";
-		}
-	};
 </script>

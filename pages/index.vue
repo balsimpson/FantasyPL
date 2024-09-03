@@ -8,15 +8,63 @@
 			Fantasy<span class="text-[#7300c5]">PL</span>
 		</NuxtLink>
 
-		
 		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
-		
 
-		<div class="mt-6 text-2xl text-center"><span class="font-semibold">{{nextGameweek.name}}</span> starts <span class="font-bold text-teal-500">{{ getRemainingTime(nextGameweek.deadline_time) }}</span></div>
+		<div class="mt-6 text-2xl text-center">
+			<span class="font-semibold">{{ nextGameweek.name }}</span> starts
+			<span class="font-bold text-teal-500">{{
+				getRemainingTime(nextGameweek.deadline_time)
+			}}</span>
+		</div>
+
+		<!-- FPL Manager Stats -->
+		<!-- <div class="w-full max-w-xl mx-auto my-6 overflow-hidden bg-white rounded-lg shadow-lg">
+			<div class="p-4 bg-gray-100">
+				<form>
+					<label for="manager-id" class="block mb-2 font-semibold text-gray-700"
+						>View Your FPL Stats</label
+					>
+					<div class="flex items-center">
+						<input
+							type="text"
+							id="manager-id"
+							name="manager-id"
+							placeholder="Enter your Manager ID"
+							class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+						/>
+						<button
+							type="submit"
+							class="p-2 ml-2 text-white bg-purple-700 rounded w-36 hover:bg-purple-800"
+						>
+							View Stats
+						</button>
+						
+					</div>
+				</form>
+			</div>
+		</div> -->
+
+		<!-- <LeagueInfoCard /> -->
 
 		<!-- section to display options when the user picks the position and specifies a budget with a slider -->
 		<RecommendedPlayers />
 		<!-- </div> -->
+
+		<!-- upcoming fixtures -->
+		<div v-if="fixtures && fixtures.length" class="space-y-2">
+			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+				Upcoming
+			</h1>
+			<AppCarousel class="snap-x snap-mandatory">
+				<FixtureCard
+					v-for="fixture in fixtures"
+					:key="fixture.id"
+					:fixture="fixture"
+					:bootstrap="bootstrap"
+					class="snap-start"
+				/>
+			</AppCarousel>
+		</div>
 
 		<div v-if="bootstrap && bootstrap.elements" class="mt-12 space-y-12">
 			<!-- Most Selected -->
@@ -173,6 +221,7 @@
 
 	const allPlayers = useState("allPlayers", () => []);
 	const allTeams = useState("allTeams", () => []);
+	const allFixtures = useState("allFixtures", () => []);
 
 	// const { data: bootstrap, error } = useFetch("/api/bootstrap-static");
 	// if (error.value) {
@@ -184,6 +233,10 @@
 	);
 	allPlayers.value = bootstrap.value.elements;
 	allTeams.value = bootstrap.value.teams;
+
+	const { data: fixtures } = await useAsyncData("fixtures", () =>
+		$fetch("/api/fixtures")
+	);
 
 	const currentGameweek = computed(() => {
 		if (bootstrap.value && bootstrap.value.events) {
@@ -205,11 +258,17 @@
 
 				currentWeek.mostCaptained = `${most_captained.first_name} ${most_captained.second_name}`;
 
-				currentWeek.mostCaptainedTeam = getTeamInfo(most_captained_team, bootstrap.value);
-				
+				currentWeek.mostCaptainedTeam = getTeamInfo(
+					most_captained_team,
+					bootstrap.value
+				);
+
 				currentWeek.mostViceCaptained = `${most_vice_captained.first_name} ${most_vice_captained.second_name}`;
-				currentWeek.mostViceCaptainedTeam = getTeamInfo(most_vice_captained_team, bootstrap.value);
-				
+				currentWeek.mostViceCaptainedTeam = getTeamInfo(
+					most_vice_captained_team,
+					bootstrap.value
+				);
+
 				return currentWeek;
 			}
 		}
@@ -217,9 +276,7 @@
 
 	const nextGameweek = computed(() => {
 		if (bootstrap.value && bootstrap.value.events) {
-			return bootstrap.value.events.find(
-				(event) => event.is_next
-			);
+			return bootstrap.value.events.find((event) => event.is_next);
 		}
 	});
 
@@ -243,7 +300,6 @@
 		}
 		return [];
 	});
-
 </script>
 
 <style>

@@ -1,12 +1,18 @@
 <template>
 	<!-- <div>Player {{ id }}</div> -->
 	<!-- <pre>{{ bootstrap.teams }}</pre> -->
-
 	<div
 		v-if="player && player.fixtures && bootstrap"
 		class="w-full min-h-screen p-4 bg-gray-100"
 	>
-		<div class="max-w-4xl mx-auto">
+		<NuxtLink
+			to="/"
+			class="flex items-center text-2xl font-extrabold tracking-tight text-[#4B0082] transition duration-200 ease-in-out hover:text-gray-600"
+		>
+			<!-- <img src="/favicon.ico" alt="" class="w-8 pr-2" /> -->
+			Fantasy<span class="text-[#7300c5]">PL</span>
+		</NuxtLink>
+		<div class="max-w-4xl mx-auto mt-6">
 			<div class="w-full bg-gray-300 rounded-lg">
 				<PlayerPerformanceCard :player="playerData" />
 			</div>
@@ -20,7 +26,7 @@
 				<div
 					class="grid grid-cols-1 gap-2 max-h-[340px] overflow-scroll snap-y scroll-smooth snap-mandatory"
 				>
-					<FixtureCard
+					<PlayerFixtureCard
 						v-for="fixture in player.fixtures"
 						:key="fixture.id"
 						:fixture="fixture"
@@ -120,7 +126,7 @@
 										Start Cost
 									</div>
 									<div class="text-xl font-bold text-center">
-										{{ season.start_cost }}
+										{{ season.start_cost/10 }}m
 									</div>
 								</div>
 								<div>
@@ -130,7 +136,7 @@
 										End Cost
 									</div>
 									<div class="text-xl font-bold text-center">
-										{{ season.end_cost }}
+										{{ season.end_cost/10 }}m
 									</div>
 								</div>
 								<div>
@@ -204,6 +210,7 @@
 
 	const { data: player } = useFetch(`/api/players/${id}`);
 	const { data: bootstrap } = useFetch("/api/bootstrap-static");
+	const { data: fixtures } = useFetch("/api/fixtures");
 
 	const playerData = computed(() => {
 		if (bootstrap.value) {
@@ -217,27 +224,4 @@
 
 		return null;
 	});
-
-	const getPlayerData = (playerId) => {
-		try {
-			const player = bootstrap.value.elements.find(
-				(player) => player.id == playerId
-			);
-
-			return player ? player : "";
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
-	const formatDate = (dateString) => {
-		const options = {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-		};
-		return new Date(dateString).toLocaleDateString(undefined, options);
-	};
 </script>

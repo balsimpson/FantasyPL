@@ -90,15 +90,4 @@
 		},
 	});
 
-	const formatDate = (dateString) => {
-		if (!dateString) return "TBA";
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-GB", {
-			day: "numeric",
-			month: "short",
-			year: "numeric",
-		});
-	};
-
-	
 </script>
