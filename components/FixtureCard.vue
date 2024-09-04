@@ -20,7 +20,7 @@
 		<div class="text-center">{{ formatDate(fixture.kickoff_time) }}</div> -->
 
 	<div
-		class="mx-auto overflow-hidden bg-white rounded-lg shadow-lg w-96 shrink-0"
+		class="w-full max-w-sm mx-auto overflow-hidden bg-gray-200 rounded-lg shrink-0"
 	>
 		<div class="flex items-center justify-between p-4 bg-gray-800">
 			<div class="flex items-center">
@@ -49,7 +49,7 @@
 				/>
 			</div>
 		</div>
-		<div class="p-4 bg-gray-200">
+		<div class="p-4 bg-gray-300">
 			<div class="text-sm text-center text-gray-700">
 				<!-- <p>Match Time:</p> -->
 				<p class="text-xl font-bold">{{ formatDate(fixture.kickoff_time) }}</p>

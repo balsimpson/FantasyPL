@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col overflow-hidden ">
+	<div class="relative flex flex-col overflow-hidden">
 		<NuxtLink :to="'/player/' + player.id">
 			<!-- content -->
 			<div class="z-10 flex-grow">
@@ -73,53 +73,53 @@
 				</div>
 			</div>
 
-			<div class="relative z-0 flex justify-center">
+			<div class="z-0 flex justify-center drop-shadow-lg">
 				<!-- image -->
 				<img
 					:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
-					class="object-cover w-64 h-auto sm:z-20 sm:w-auto"
+					class="object-cover w-64 h-auto sm:z-20 sm:w-auto "
 					:alt="player.web_name"
 				/>
 
-				<div
-					class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
-				>
-					<div class="flex pb-1 border-b border-slate-300 justify-evenly">
-						<div class="text-xs text-right uppercase">
-							<div class="opacity-50">Points</div>
-							<div class="font-semibold lowercase">
-								{{ player.event_points }}
-							</div>
-						</div>
-
-						<div class="text-xs text-left uppercase">
-							<div class="opacity-50">Goals</div>
-							<div class="font-semibold lowercase">
-								{{ player.goals_scored }}
-							</div>
+			</div>
+			<div
+				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
+			>
+				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
+					<div class="text-xs text-right uppercase">
+						<div class="opacity-50">Points</div>
+						<div class="font-semibold lowercase">
+							{{ player.event_points }}
 						</div>
 					</div>
-					<div class="flex justify-between pt-1">
-						<div class="text-xs text-left uppercase">
-							<div class="opacity-50">Played</div>
-							<div class="font-semibold lowercase">
-								{{ player.minutes }} min
-							</div>
+
+					<div class="text-xs text-left uppercase">
+						<div class="opacity-50">Goals</div>
+						<div class="font-semibold lowercase">
+							{{ player.goals_scored }}
 						</div>
-						<div class="text-xs text-center uppercase">
-							<div class="opacity-50">Form</div>
-							<div
-								class="font-semibold lowercase"
-								:class="['form-value', getFormCategory(player.form)]"
-							>
-								{{ player.form }}
-							</div>
+					</div>
+				</div>
+				<div class="flex justify-between pt-1">
+					<div class="text-xs text-left uppercase">
+						<div class="opacity-50">Played</div>
+						<div class="font-semibold lowercase">
+							{{ player.minutes }} min
 						</div>
-						<div class="text-xs text-right uppercase">
-							<div class="opacity-50">Selected by</div>
-							<div class="font-semibold lowercase">
-								{{ player.selected_by_percent }}%
-							</div>
+					</div>
+					<div class="text-xs text-center uppercase">
+						<div class="opacity-50">Form</div>
+						<div
+							class="font-semibold lowercase"
+							:class="['form-value', getFormCategory(player.form)]"
+						>
+							{{ player.form }}
+						</div>
+					</div>
+					<div class="text-xs text-right uppercase">
+						<div class="opacity-50">Selected by</div>
+						<div class="font-semibold lowercase">
+							{{ player.selected_by_percent }}%
 						</div>
 					</div>
 				</div>
