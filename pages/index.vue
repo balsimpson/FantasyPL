@@ -1,7 +1,5 @@
 <template>
 	<div class="w-full max-w-5xl p-3 mx-auto">
-		
-
 		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
 
 		<div class="mt-6 text-2xl text-center">
@@ -12,7 +10,9 @@
 		</div>
 
 		<!-- FPL Manager Stats -->
-		<!-- <div class="w-full max-w-xl mx-auto my-6 overflow-hidden bg-white rounded-lg shadow-lg">
+		<div
+			class="w-full max-w-xl mx-auto my-6 overflow-hidden bg-white rounded-lg shadow-lg"
+		>
 			<div class="p-4 bg-gray-100">
 				<form>
 					<label for="manager-id" class="block mb-2 font-semibold text-gray-700"
@@ -20,23 +20,22 @@
 					>
 					<div class="flex items-center">
 						<input
+							v-model="managerID"
 							type="text"
-							id="manager-id"
 							name="manager-id"
 							placeholder="Enter your Manager ID"
 							class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 						<button
-							type="submit"
+							@click.prevent="navigateTo(`/manager/${managerID}`)"
 							class="p-2 ml-2 text-white bg-purple-700 rounded w-36 hover:bg-purple-800"
 						>
 							View Stats
 						</button>
-						
 					</div>
 				</form>
 			</div>
-		</div> -->
+		</div>
 
 		<!-- <LeagueInfoCard /> -->
 
@@ -216,6 +215,8 @@
 	const allPlayers = useState("allPlayers", () => []);
 	const allTeams = useState("allTeams", () => []);
 	const allFixtures = useState("allFixtures", () => []);
+
+	const managerID = ref();
 
 	// const { data: bootstrap, error } = useFetch("/api/bootstrap-static");
 	// if (error.value) {

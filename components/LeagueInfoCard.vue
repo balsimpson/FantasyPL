@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex flex-col overflow-hidden bg-white rounded-lg shadow-lg"
+		class="flex flex-col overflow-hidden bg-white rounded-lg shadow-sm"
 		:style="{ backgroundColor: randomPastelColor }"
 	>
 		<div class="p-4 bg-black/50">

@@ -70,15 +70,20 @@
 						<h2
 							class="text-4xl font-bold tracking-tight text-white sm:text-6xl"
 						>
-							{{ manager.player_first_name }} {{ manager.player_last_name }}
+							{{ managerData.player_first_name }}
+							{{ managerData.player_last_name }}
 						</h2>
-						<pre class="text-white">{{ manager.name }}</pre>
+						<pre class="text-white">{{ managerData.name }}</pre>
 						<p class="mt-1 text-sm leading-8 text-gray-300">
 							Active for
-							<span class="font-bold">{{ manager.years_active }}</span> years
+							<span class="font-bold">{{ managerData.years_active }}</span>
+							years
 						</p>
 					</div>
-					<div class="max-w-2xl mx-auto mt-0 lg:mx-0 lg:max-w-none">
+					<div
+						v-if="managerData && managerData.leagues"
+						class="max-w-2xl mx-auto mt-0 lg:mx-0 lg:max-w-none"
+					>
 						<dl
 							class="grid grid-cols-2 gap-8 mt-2 sm:mt-4 sm:grid-cols-2 lg:grid-cols-4"
 						>
@@ -87,15 +92,18 @@
 								<dd
 									class="text-2xl font-bold leading-9 tracking-tight text-white"
 								>
-									{{ manager.summary_overall_points }}
+									{{ managerData.summary_overall_points }}
 								</dd>
 							</div>
-							<div class="flex flex-col-reverse">
+							<div
+								v-if="managerData.leagues && managerData.leagues.classic"
+								class="flex flex-col-reverse"
+							>
 								<dt class="text-base leading-7 text-gray-300">Leagues</dt>
 								<dd
 									class="text-2xl font-bold leading-9 tracking-tight text-white"
 								>
-									{{ manager.leagues.classic.length }}
+									{{ managerData.leagues.classic.length }}
 								</dd>
 							</div>
 							<div class="flex flex-col-reverse">
@@ -104,7 +112,9 @@
 									class="text-2xl font-bold leading-9 tracking-tight text-white"
 								>
 									{{
-										new Intl.NumberFormat().format(manager.summary_overall_rank)
+										new Intl.NumberFormat().format(
+											managerData.summary_overall_rank
+										)
 									}}
 								</dd>
 							</div>
@@ -114,7 +124,9 @@
 									class="text-2xl font-bold leading-9 tracking-tight text-white"
 								>
 									{{
-										new Intl.NumberFormat().format(manager.summary_event_rank)
+										new Intl.NumberFormat().format(
+											managerData.summary_event_rank
+										)
 									}}
 								</dd>
 							</div>
@@ -124,10 +136,13 @@
 			</div>
 		</div>
 
-		<div v-if="manager && manager.leagues" class="my-6">
+		<div v-if="managerData && managerData.leagues" class="my-6">
+			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+				Classic Leagues
+			</h1>
 			<AppCarousel class="w-full max-w-5xl mx-auto">
 				<LeagueInfoCard
-					v-for="league in manager.leagues.classic"
+					v-for="league in managerData?.leagues.classic"
 					:key="league.id"
 					class="w-full max-w-md shrink-0 snap-start"
 					:league="league"
@@ -139,47 +154,48 @@
 			class="max-w-5xl pb-12 mx-auto overflow-hidden rounded-lg shadow-lg bg-gray-50"
 		>
 			<!-- <div class="p-4 bg-gray-800">
-				<h2 class="text-lg font-semibold text-white">Manager Picks</h2>
+				<h2 class="text-lg font-semibold text-white">ManagerData Picks</h2>
 				<p class="text-sm text-gray-400">Gameweek 3</p>
 			</div> -->
-			<div class="max-w-2xl px-3 py-6 mx-auto text-center">
-				<h2 class="text-base font-semibold leading-7 text-indigo-600">
-					GAMEWEEK 3
-				</h2>
+			<div
+				v-if="managerData && managerData.player_first_name"
+				class="max-w-2xl px-3 py-6 mx-auto text-center"
+			>
 				<p
 					class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
 				>
-					Sam's picks
+					{{ managerData.player_first_name }}'s picks
 				</p>
+				<h2 class="text-base font-semibold leading-7 text-indigo-600">
+					GAMEWEEK {{ managerData.current_event }}
+				</h2>
 
 				<div class="flex">
 					<div class="flex flex-col max-w-xs mx-auto gap-y-0">
-						<dt class="text-base leading-5 text-gray-600">
-							Total points
-						</dt>
+						<dt class="text-base leading-5 text-gray-600">Total points</dt>
 						<dd
-							class="order-first text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl"
+							class="order-first text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl"
 						>
-							44 million
+							{{ teamPoints }}
 						</dd>
 					</div>
 
 					<div class="flex flex-col max-w-xs mx-auto gap-y-0">
-						<dt class="text-base leading-5 text-gray-600">
-							Team Cost
-						</dt>
+						<dt class="text-base leading-5 text-gray-600">Team Cost</dt>
 						<dd
-							class="order-first text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl"
+							class="order-first text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl"
 						>
-							44 million
+							{{ teamCost / 10 }}m
 						</dd>
 					</div>
 				</div>
+
+				<!-- <pre>{{ managerData }}</pre> -->
 			</div>
 			<div class="p-4 bg-gray-50">
 				<div
 					v-if="picks && picks.length > 0"
-					class="flex flex-col gap-4 text-gray-700 gap-y-12"
+					class="flex flex-col gap-4 text-gray-700 gap-y-6 sm:gap-y-8"
 				>
 					<div>
 						<div
@@ -278,8 +294,13 @@
 	const startingXI = ref([]);
 	const groupedByType = ref();
 
-	const { data: manager } = useLazyFetch(`/api/managers/${id}`);
+	const managerData = useState("manager", () => []);
+
+	const { data: manager } = useFetch(`/api/managers/${id}`);
 	const { data: bootstrap } = useLazyFetch(`/api/bootstrap-static`);
+
+	const teamCost = ref(0);
+	const teamPoints = ref(0);
 
 	watchEffect(async () => {
 		if (manager.value && bootstrap.value) {
@@ -310,6 +331,18 @@
 				acc[element_type].push(player);
 				return acc;
 			}, {});
+
+			teamCost.value = startingXI.value.reduce((total, pick) => {
+				const element = getPlayerInfo(pick.element.id, bootstrap.value);
+				return total + element.now_cost; // Assuming 'cost' is the property for player cost
+			}, 0);
+
+			teamPoints.value = startingXI.value.reduce((total, pick) => {
+				const element = getPlayerInfo(pick.element.id, bootstrap.value);
+				return total + element.total_points; // Assuming 'cost' is the property for player cost
+			}, 0);
+
+			managerData.value = manager.value;
 		}
 	});
 </script>
