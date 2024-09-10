@@ -2,38 +2,46 @@
 	<div class="w-full max-w-5xl p-3 mx-auto">
 		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
 
-		<div class="mt-6 text-2xl text-center">
-			<span class="font-semibold">{{ nextGameweek.name }}</span> starts
-			<span class="font-bold text-teal-500">{{
-				getRemainingTime(nextGameweek.deadline_time)
-			}}</span>
-		</div>
+		<div class="flex flex-col mt-3 bg-indigo-200 md:flex-row md:items-center sm:gap-x-4 rounded-xl">
+			<div class="p-4 ">
+				<div class="text-2xl text-center ">
+					<span class="font-semibold "><span class="text-purple-600">{{ nextGameweek.name }}</span> deadline</span>
+				</div>
+				<CountdownTimer :targetDate="nextGameweek.deadline_time" />
+			</div>
 
-		<!-- FPL Manager Stats -->
-		<div
-			class="w-full max-w-xl mx-auto my-6 overflow-hidden bg-white rounded-lg shadow-lg"
-		>
-			<div class="p-4 bg-gray-100">
-				<form>
-					<label for="manager-id" class="block mb-2 font-semibold text-gray-700"
-						>View Your FPL Stats</label
-					>
-					<div class="flex items-center">
-						<input
-							v-model="managerID"
-							type="text"
-							name="manager-id"
-							placeholder="Enter your Manager ID"
-							class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-						<button
-							@click.prevent="navigateTo(`/manager/${managerID}`)"
-							class="p-2 ml-2 text-white bg-purple-700 rounded w-36 hover:bg-purple-800"
-						>
-							View Stats
-						</button>
+			<!-- FPL Manager Stats -->
+			<div class="w-full mx-auto overflow-hidden rounded-xl">
+				<div class="p-4">
+					<div class="sm:max-w-lg">
+						<h1 class="text-4xl font-bold tracking-tight text-gray-900 ">Check Manager Stats</h1>
+						<p class="text-xl text-gray-500">
+							Check on yours or your friend's stats easily, including team and leagues.
+						</p>
 					</div>
-				</form>
+
+					<form>
+						<div class="flex mt-1 gap-x-4">
+							<label for="manager-id" class="sr-only">Manager ID</label>
+							<input
+								v-model="managerID"
+								id="manager-id"
+								autocomplete="true"
+								class="min-w-0 flex-auto rounded-md border px-3.5 py-2 shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+								placeholder="Enter Manager ID"
+							/>
+							<button
+								@click.prevent="navigateTo(`/manager/${managerID}`)"
+								class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+								:class="[
+									managerID ? 'opacity-100' : 'opacity-50 pointer-events-none',
+								]"
+							>
+								View Stats
+							</button>
+						</div>
+					</form>
+				</div>
 			</div>
 		</div>
 
@@ -49,7 +57,7 @@
 				Upcoming
 			</h1>
 			<AppCarousel class="snap-x snap-mandatory">
-				<FixtureCard
+				<LazyFixtureCard
 					v-for="fixture in fixtures"
 					:key="fixture.id"
 					:fixture="fixture"
@@ -216,20 +224,20 @@
 	const allTeams = useState("allTeams", () => []);
 	const allFixtures = useState("allFixtures", () => []);
 
-	const managerID = ref();
+	const managerID = ref(null);
 
 	// const { data: bootstrap, error } = useFetch("/api/bootstrap-static");
 	// if (error.value) {
 	// 	console.error("Failed to fetch bootstrap data:", error.value);
 	// }
 
-	const { data: bootstrap, error } = await useAsyncData("bootstrap", () =>
+	const { data: bootstrap, error } = await useLazyAsyncData("bootstrap", () =>
 		$fetch("/api/bootstrap-static")
 	);
 	allPlayers.value = bootstrap.value.elements;
 	allTeams.value = bootstrap.value.teams;
 
-	const { data: fixtures } = await useAsyncData("fixtures", () =>
+	const { data: fixtures } = await useLazyAsyncData("fixtures", () =>
 		$fetch("/api/fixtures")
 	);
 
@@ -294,6 +302,14 @@
 			return getMostTransferredOutPlayers(bootstrap.value.elements, 20);
 		}
 		return [];
+	});
+
+	onMounted(() => {
+		const savedManagerId = localStorage.getItem("savedManagerId") ?? "";
+
+		if (savedManagerId) {
+			managerID.value = savedManagerId;
+		}
 	});
 </script>
 

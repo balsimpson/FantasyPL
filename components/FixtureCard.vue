@@ -31,15 +31,31 @@
 					alt="Team 1 Logo"
 					class="w-12 h-12 mr-4 rounded-full"
 				/>
-				<span class="text-lg font-semibold text-white">{{
+				<!-- <span class="text-lg font-semibold text-white">{{
 					getTeamInfo(fixture.team_h, bootstrap).name
-				}}</span>
+				}}</span> -->
+				<span class="text-lg font-semibold text-white">
+					<span class="hidden md:inline">{{
+						getTeamInfo(fixture.team_h, bootstrap).name
+					}}</span>
+					<span class="inline md:hidden">{{
+						getTeamInfo(fixture.team_h, bootstrap).short_name
+					}}</span>
+				</span>
 			</div>
 			<span class="text-sm text-gray-400">VS</span>
 			<div class="flex items-center">
-				<span class="text-lg font-semibold text-white">{{
+				<!-- <span class="text-lg font-semibold text-white">{{
 					getTeamInfo(fixture.team_a, bootstrap).name
-				}}</span>
+				}}</span> -->
+				<span class="text-lg font-semibold text-white">
+					<span class="hidden md:inline">{{
+						getTeamInfo(fixture.team_a, bootstrap).name
+					}}</span>
+					<span class="inline md:hidden">{{
+						getTeamInfo(fixture.team_a, bootstrap).short_name
+					}}</span>
+				</span>
 				<img
 					:src="`https://resources.premierleague.com/premierleague/badges/t${
 						getTeamInfo(fixture.team_a, bootstrap).code

@@ -286,7 +286,7 @@ export async function getManagerDetails(id: number) {
 		return response;
 	} catch (error) {
 		console.error("Error getManagerDetails:", error);
-		return null;
+		return error;
 	}
 }
 
@@ -297,6 +297,17 @@ export async function getManagerPicks(id: number, gw: number) {
 		return response;
 	} catch (error) {
 		console.error("Error getManagerPicks:", error);
+		return null;
+	}
+}
+
+export async function getPlayerPredictions() {
+	try {
+		const url = `https://www.fantasyfootballhub.co.uk/player-data/player-data.json`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getPlayerPredictions:", error);
 		return null;
 	}
 }

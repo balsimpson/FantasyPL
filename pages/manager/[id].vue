@@ -1,6 +1,30 @@
 <template>
-	<div class="p-3">
+	<main
+		v-if="error"
+		class="grid min-h-full px-6 py-24 place-items-center sm:py-32 lg:px-8"
+	>
+		<div class="text-center">
+			<p class="text-base font-semibold text-indigo-600">{{ id }}</p>
+			<h1
+				class="mt-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl"
+			>
+				Manager not found
+			</h1>
+			<p class="mt-6 text-base leading-7 text-gray-600">
+				Sorry, we couldn’t find the manager page you’re looking for.
+			</p>
+			<div class="flex items-center justify-center mt-10 gap-x-6">
+				<NuxtLink
+					to="/"
+					class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+					>Go back home</NuxtLink
+				>
+			</div>
+		</div>
+	</main>
+	<div v-else class="p-3">
 		<div
+			v-if="managerData"
 			class="max-w-4xl mx-auto overflow-hidden bg-white rounded-lg shadow-lg"
 		>
 			<div class="relative py-6 overflow-hidden bg-gray-900 isolate sm:py-12">
@@ -95,6 +119,7 @@
 									{{ managerData.summary_overall_points }}
 								</dd>
 							</div>
+
 							<div
 								v-if="managerData.leagues && managerData.leagues.classic"
 								class="flex flex-col-reverse"
@@ -172,7 +197,7 @@
 
 				<div class="flex">
 					<div class="flex flex-col max-w-xs mx-auto gap-y-0">
-						<dt class="text-base leading-5 text-gray-600">Total points</dt>
+						<dt class="text-base leading-5 text-gray-600">Team points</dt>
 						<dd
 							class="order-first text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl"
 						>
@@ -203,6 +228,7 @@
 						>
 							Forwards
 						</div>
+						<!-- <pre>{{ groupedByType.Midfielder }}</pre> -->
 						<div
 							v-if="groupedByType && groupedByType.Forward"
 							class="flex flex-wrap items-start justify-center w-full gap-x-6"
@@ -296,7 +322,7 @@
 
 	const managerData = useState("manager", () => []);
 
-	const { data: manager } = useFetch(`/api/managers/${id}`);
+	const { data: manager, error } = useFetch(`/api/managers/${id}`);
 	const { data: bootstrap } = useLazyFetch(`/api/bootstrap-static`);
 
 	const teamCost = ref(0);
@@ -343,6 +369,8 @@
 			}, 0);
 
 			managerData.value = manager.value;
+
+			localStorage.setItem("savedManagerId", id);
 		}
 	});
 </script>

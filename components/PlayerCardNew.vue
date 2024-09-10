@@ -76,7 +76,7 @@
 			<div class="z-0 flex justify-center drop-shadow-lg">
 				<!-- image -->
 				<img
-					:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
+					:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.code}.png`"
 					class="object-cover w-64 h-auto sm:z-20 sm:w-auto "
 					:alt="player.web_name"
 				/>

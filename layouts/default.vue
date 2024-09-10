@@ -1,5 +1,5 @@
 <template>
-	<div class="h-auto min-h-screen bg-gradient-to-br from-gray-50 to-gray-300">
+	<div class="h-auto min-h-screen bg-gradient-to-tl from-gray-50 to-gray-300">
 		<div class="flex flex-col max-w-4xl mx-auto">
 			<nav class="px-4 py-4">
 				<NuxtLink
