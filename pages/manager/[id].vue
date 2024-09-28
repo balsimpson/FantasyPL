@@ -191,7 +191,10 @@
 				>
 					{{ managerData.player_first_name }}'s picks
 				</p>
-				<h2 class="text-base font-semibold leading-7 text-indigo-600">
+				<h4 class="text-xs font-light">
+					With predicted points for the next 5 weeks
+				</h4>
+				<h2 class="mt-4 text-base font-semibold leading-7 text-indigo-600">
 					GAMEWEEK {{ managerData.current_event }}
 				</h2>
 
@@ -215,12 +218,12 @@
 					</div>
 				</div>
 
-				<!-- <pre>{{ managerData }}</pre> -->
+				<!-- <pre>{{ picks[0] }}</pre> -->
 			</div>
 			<div class="p-4 bg-gray-50">
 				<div
 					v-if="picks && picks.length > 0"
-					class="flex flex-col gap-4 text-gray-700 gap-y-6 sm:gap-y-8"
+					class="flex flex-col gap-4 text-gray-700 gap-y-12 sm:gap-y-16"
 				>
 					<div>
 						<div
@@ -231,8 +234,9 @@
 						<!-- <pre>{{ groupedByType.Midfielder }}</pre> -->
 						<div
 							v-if="groupedByType && groupedByType.Forward"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6"
+							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
 						>
+						
 							<PlayerCardPick
 								:pick="pick"
 								v-for="pick in groupedByType.Forward"
@@ -249,7 +253,7 @@
 						</div>
 						<div
 							v-if="groupedByType && groupedByType.Midfielder"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6"
+							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
 						>
 							<PlayerCardPick
 								:pick="pick"
@@ -267,7 +271,7 @@
 						</div>
 						<div
 							v-if="groupedByType && groupedByType.Defender"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6"
+							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
 						>
 							<PlayerCardPick
 								:pick="pick"
@@ -284,7 +288,7 @@
 						</div>
 						<div
 							v-if="groupedByType && groupedByType.Goalkeeper"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6"
+							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
 						>
 							<PlayerCardPick
 								:pick="pick"
@@ -301,8 +305,9 @@
 						</div>
 						<div
 							v-if="bench"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6"
+							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
 						>
+						<!-- <pre>{{ bench }}</pre> -->
 							<PlayerCardPick :pick="pick" v-for="pick in bench" :key="pick" />
 						</div>
 					</div>
@@ -324,6 +329,7 @@
 
 	const { data: manager, error } = useFetch(`/api/managers/${id}`);
 	const { data: bootstrap } = useLazyFetch(`/api/bootstrap-static`);
+	const { data: predictions } = useLazyFetch(`/api/predictions`);
 
 	const teamCost = ref(0);
 	const teamPoints = ref(0);
@@ -338,7 +344,10 @@
 				const element = getPlayerInfo(pick.element, bootstrap.value);
 				pick.element = element;
 				pick.element_type = getPositionName(element.element_type);
-
+				pick.predictions = getPredictionsOfPlayer(
+					predictions.value,
+					pick.element.code
+				);
 				return pick;
 			});
 

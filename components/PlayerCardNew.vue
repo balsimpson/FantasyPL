@@ -1,5 +1,5 @@
 <template>
-	<div class="relative flex flex-col overflow-hidden">
+	<div class="relative flex flex-col overflow-hidden group">
 		<NuxtLink :to="'/player/' + player.id">
 			<!-- content -->
 			<div class="z-10 flex-grow">
@@ -9,8 +9,12 @@
 						<h2 class="w-full text-2xl font-bold leading-5">
 							{{ player.web_name }}
 						</h2>
-						<div class="text-4xl font-black text-slate-500">
-							{{ player.now_cost / 10 }}<span class="text-slate-400">m</span>
+						<div>
+							
+
+							<div class="text-4xl font-black text-slate-500">
+								{{ player.now_cost / 10 }}<span class="text-slate-400">m</span>
+							</div>
 						</div>
 					</div>
 					<div class="flex items-center justify-between mb-3 leading-3">
@@ -77,10 +81,9 @@
 				<!-- image -->
 				<img
 					:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.code}.png`"
-					class="object-cover w-64 h-auto sm:z-20 sm:w-auto "
+					class="object-cover w-64 h-auto transition-transform duration-300 sm:z-20 sm:w-auto group-hover:scale-105"
 					:alt="player.web_name"
 				/>
-
 			</div>
 			<div
 				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
@@ -103,9 +106,7 @@
 				<div class="flex justify-between pt-1">
 					<div class="text-xs text-left uppercase">
 						<div class="opacity-50">Played</div>
-						<div class="font-semibold lowercase">
-							{{ player.minutes }} min
-						</div>
+						<div class="font-semibold lowercase">{{ player.minutes }} min</div>
 					</div>
 					<div class="text-xs text-center uppercase">
 						<div class="opacity-50">Form</div>

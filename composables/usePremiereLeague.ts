@@ -19,7 +19,7 @@ export const getBootstrapStatic = async () => {
 export const getPlayerInfo = (id: number, data: any) => {
 	try {
 		const player = data.elements.find((player: any) => {
-			return player.id == id
+			return player.id == id;
 		});
 		return player;
 	} catch (error) {
@@ -271,7 +271,7 @@ export async function getUpcomingFixtures(count: number = 12) {
 		const url = "https://fantasy.premierleague.com/api/fixtures";
 		const fixtures: any[] = await $fetch(url);
 
-		const upcomingFixtures = fixtures.filter(fixture => !fixture.finished);
+		const upcomingFixtures = fixtures.filter((fixture) => !fixture.finished);
 		return count ? upcomingFixtures.slice(0, count) : upcomingFixtures;
 	} catch (error) {
 		console.error("Error getPlayerInfoDetails:", error);
@@ -311,6 +311,28 @@ export async function getPlayerPredictions() {
 		return null;
 	}
 }
+
+// export const getPlayerByCode = (players: [], code: number) => {
+// 	// @ts-ignore
+// 	return players.find((player) => player.code === code);
+// };
+
+export const getPredictionsOfPlayer = (players: [], code: number) => {
+	let weeks = 5
+	// @ts-ignore
+	let player = players.find((p) => p.code === code);
+	if (!player) return [];
+	// Slice the predictions array to get the next 'weeks' number of predictions
+	// @ts-ignore
+	const predictions = player.data.predictions.slice(0, weeks);
+
+	// Extract the predicted points for each week
+	return predictions.map((pred: any) => ({
+		gw: pred.gw,
+		opponent: pred.opp[0][1],
+		predicted_pts: pred.predicted_pts,
+	}));
+};
 
 export const formatDate = (dateString: string) => {
 	const options = {

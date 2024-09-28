@@ -1,10 +1,7 @@
 <template>
 	<!-- <div>Player {{ id }}</div> -->
 	<!-- <pre>{{ bootstrap.teams }}</pre> -->
-	<div
-		v-if="player && player.fixtures && bootstrap"
-		class="w-full p-4"
-	>
+	<div v-if="player && player.fixtures && bootstrap" class="w-full p-4">
 		<div class="max-w-4xl mx-auto mt-6">
 			<div class="w-full bg-gray-300 rounded-lg">
 				<PlayerPerformanceCard :player="playerData" />

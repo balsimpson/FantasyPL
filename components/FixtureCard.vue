@@ -29,11 +29,13 @@
 						getTeamInfo(fixture.team_h, bootstrap).code
 					}.png`"
 					alt="Team 1 Logo"
-					class="w-12 h-12 mr-4 rounded-full"
+					class="w-12 h-12 mr-4 shrink-0"
 				/>
 				<!-- <span class="text-lg font-semibold text-white">{{
 					getTeamInfo(fixture.team_h, bootstrap).name
 				}}</span> -->
+
+				
 				<span class="text-lg font-semibold text-white">
 					<span class="hidden md:inline">{{
 						getTeamInfo(fixture.team_h, bootstrap).name
@@ -61,7 +63,7 @@
 						getTeamInfo(fixture.team_a, bootstrap).code
 					}.png`"
 					alt="Team 2 Logo"
-					class="w-12 h-12 ml-4 rounded-full"
+					class="w-12 h-12 ml-4 shrink-0"
 				/>
 			</div>
 		</div>
