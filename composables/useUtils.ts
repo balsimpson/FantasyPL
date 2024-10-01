@@ -60,3 +60,14 @@ export function getRemainingTime(deadlineISOString: string) {
 		return rtf.format(minutes, "minute");
 	}
 }
+
+export async function getSubscriberCount() {
+	try {
+		const url = `https://api.socialcounts.org/youtube-live-subscriber-count/UCJL0GOmCjqNXCJXF4x7nyZA`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getSubscriberCount:", error);
+		return null;
+	}
+}

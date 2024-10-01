@@ -24,7 +24,7 @@
 					<p class="text-6xl font-bold">{{ player.minutes }} min</p>
 				</div>
 				<div class="text-right">
-					<p class="text-5xl">GAMEWEEK 4</p>
+					<p class="text-5xl">GAMEWEEK {{ gameweek.id }}</p>
 					<p class="pt-8 font-bold text-8xl">
 						{{ player.now_cost / 10 }}<span class="opacity-50">m</span>
 					</p>
@@ -123,7 +123,7 @@
 </template>
 
 <script setup>
-	const props = defineProps(["player", "team", "upcoming"]);
+	const props = defineProps(["player", "team", "upcoming", "gameweek"]);
 
 	const totalTransfers = computed(
 		() => props.player.transfers_in_event + props.player.transfers_out_event

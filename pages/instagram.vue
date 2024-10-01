@@ -59,6 +59,7 @@
 			:player="selectedPlayerData"
 			:team="getTeamInfo(selectedPlayerData.team, bootstrap).name"
 			:upcoming="player?.fixtures.slice(0, 5)"
+			:gameweek="currentGameWeek"
 			:key="selectedPlayerData.web_name"
 			ref="playerCard"
 			id="my-node"
@@ -279,7 +280,7 @@
 		// 	saveAs(canvas.toDataURL(), "my-node.png");
 		// });
 
-		html2canvas(document.getElementById("my-node"), { useCORS: true }).then(
+		html2canvas(document.getElementById("'my-node"), { useCORS: true }).then(
 			function (canvas) {
 				saveAs(canvas.toDataURL(), "my-node.png");
 			}

@@ -312,6 +312,17 @@ export async function getPlayerPredictions() {
 	}
 }
 
+export async function getTeamOfTheWeek(gw: string) {
+	try {
+		const url = `https://fantasy.premierleague.com/api/dream-team/${gw}/`;
+		const response = await $fetch(url);
+		return response;
+	} catch (error) {
+		console.error("Error getTeamOfTheWeek:", error);
+		return null;
+	}
+}
+
 // export const getPlayerByCode = (players: [], code: number) => {
 // 	// @ts-ignore
 // 	return players.find((player) => player.code === code);
