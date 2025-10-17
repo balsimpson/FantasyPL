@@ -1,17 +1,20 @@
 <template>
 	<div
-		class="w-[1024px] h-[1024px] bg-gray-200 overflow-hidden bg-gradient-to-tr from-gray-200 text-gray-800 to-gray-300 relative"
+		class="w-[1080px] h-[1080px]  border border-black overflow-hidden bg-gradient-to-tr from-gray-200 text-gray-800 to-gray-500 relative"
 	>
-		<div class="flex items-center justify-between h-full gap-4">
-			<!-- Player 1 image on the left -->
-			<div class="relative w-1/2 h-full overflow-hidden">
-				<div class="p-5 text-left">
+		<!-- Background container to prevent artifacts -->
+		<div class="absolute inset-0 text-gray-800 bg-gray-200 bg-gradient-to-t from-gray-200 to-gray-500"></div>
+		
+		<div class="flex relative z-10 gap-4 justify-between items-center h-full">
+			<!-- Player 1 section -->
+			<div class="relative w-1/2 h-full">
+				<div class="relative z-20 p-5 text-left">
 					<h2 class="text-6xl font-bold">{{ player1.web_name }}</h2>
 					<div class="flex items-center mt-6 space-x-2">
 						<img
 							:src="`https://resources.premierleague.com/premierleague/badges/t${player1.team_code}.png`"
 							:alt="player1.web_name"
-							class="w-24 mr-3"
+							class="mr-3 w-24"
 						/>
 						<div>
 							<p class="text-3xl">{{ team1.name }}</p>
@@ -19,19 +22,21 @@
 						</div>
 					</div>
 				</div>
-				<div class="absolute left-[-78%] bottom-0 h-[800px]">
+				<!-- Player 1 image positioned without negative margins -->
+				<div class="absolute -left-36 -bottom-8 h-[800px] w-[740px] overflow-hidden flex items-end justify-start">
 					<img
 						:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player1.code}.png`"
 						alt=""
-						class="object-cover w-full h-full shadow-sm"
+						class="block object-contain w-auto max-w-full h-full drop-shadow-[4px_8px_6px_rgba(0,0,0,0.4)]"
 					/>
 				</div>
 			</div>
 
-			<div class="relative w-1/2 h-full overflow-hidden">
-				<div class="p-5 text-right">
+			<!-- Player 2 section -->
+			<div class="relative w-1/2 h-full">
+				<div class="relative z-20 p-5 text-right">
 					<h2 class="text-6xl font-bold">{{ player2.web_name }}</h2>
-					<div class="flex items-center justify-end mt-6 space-x-2">
+					<div class="flex justify-end items-center mt-6 space-x-2">
 						<div class="pr-3">
 							<p class="text-3xl">{{ team2.name }}</p>
 							<p class="text-4xl font-bold">{{ elementType2 }}</p>
@@ -43,20 +48,21 @@
 						/>
 					</div>
 				</div>
-				<div class="absolute right-[-80%] bottom-0 h-[800px]">
+				<!-- Player 2 image positioned without negative margins -->
+				<div class="absolute -right-30 -bottom-10 h-[800px] w-[740px] overflow-hidden flex items-end justify-end">
 					<img
 						:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player2.code}.png`"
 						alt=""
-						class="object-cover w-full h-full shadow-sm"
+						class="block object-contain w-auto max-w-full h-full drop-shadow-[-4px_8px_6px_rgba(0,0,0,0.4)]"
 					/>
 				</div>
 			</div>
 		</div>
 
-		<div class="absolute left-0 right-0 top-[30%]">
+		<div class="absolute left-0 right-0 top-[30%] z-30 bg-transparent">
 			<div>
 				<h2 class="text-4xl font-bold text-center">Cost</h2>
-				<div class="flex items-center justify-center space-x-4">
+				<div class="flex justify-center items-center space-x-4">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -81,7 +87,7 @@
 			</div>
 			<div>
 				<h2 class="pt-6 text-4xl font-bold text-center">Played</h2>
-				<div class="flex items-center justify-center space-x-4">
+				<div class="flex justify-center items-center space-x-4">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -107,11 +113,11 @@
 			</div>
 			<div>
 				<h2 class="pt-6 text-4xl font-bold text-center">Form</h2>
-				<div class="flex items-center justify-center space-x-12">
+				<div class="flex justify-center items-center space-x-12">
 					<p
 						class="text-6xl font-bold"
 						:class="[
-							player1.form < player2.form ? 'text-pink-600' : 'text-teal-500',
+							Number(player1.form) <= Number(player2.form) ? 'text-pink-600' : 'text-teal-500',
 						]"
 					>
 						{{ player1.form }} <span class="opacity-50"></span>
@@ -119,7 +125,7 @@
 					<p
 						class="text-6xl font-bold"
 						:class="[
-							player2.form < player1.form ? 'text-pink-600' : 'text-teal-500',
+							Number(player2.form) <= Number(player1.form) ? 'text-pink-600' : 'text-teal-500',
 						]"
 					>
 						{{ player2.form }}
@@ -128,7 +134,7 @@
 			</div>
 			<div>
 				<h2 class="pt-6 text-4xl font-bold text-center">Points</h2>
-				<div class="flex items-center justify-center space-x-12">
+				<div class="flex justify-center items-center space-x-12">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -153,7 +159,7 @@
 			</div>
 			<div>
 				<h2 class="pt-6 text-4xl font-bold text-center">Selected by</h2>
-				<div class="flex items-center justify-center space-x-4">
+				<div class="flex justify-center items-center space-x-4">
 					<p
 						class="text-6xl font-bold"
 						:class="[

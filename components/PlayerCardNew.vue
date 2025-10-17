@@ -1,11 +1,11 @@
 <template>
-	<div class="relative flex flex-col overflow-hidden group">
+	<div class="flex overflow-hidden relative flex-col group">
 		<NuxtLink :to="'/player/' + player.id">
 			<!-- content -->
 			<div class="z-10 flex-grow">
 				<!-- <pre>{{ player }}</pre> -->
 				<div class="flex flex-col order-1 p-3 sm:order-1">
-					<div class="flex items-center justify-between">
+					<div class="flex justify-between items-center">
 						<h2 class="w-full text-2xl font-bold leading-5">
 							{{ player.web_name }}
 						</h2>
@@ -17,13 +17,16 @@
 							</div>
 						</div>
 					</div>
-					<div class="flex items-center justify-between mb-3 leading-3">
+
+
+					
+					<div class="flex justify-between items-center mb-3 leading-3">
 						<!-- cards issued -->
 						<div class="flex items-center">
 							<img
 								:src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
 								alt=""
-								class="w-8 pr-1 sm:z-0 sm:top-1 sm:right-1 bottom-1"
+								class="bottom-1 pr-1 w-8 sm:z-0 sm:top-1 sm:right-1"
 							/>
 
 							<div class="pr-3 leading-5">
@@ -38,7 +41,7 @@
 							<div class="flex items-center">
 								<div
 									v-if="player.yellow_cards > 0"
-									class="w-4 h-6 mr-1 bg-yellow-400"
+									class="mr-1 w-4 h-6 bg-yellow-400"
 									:title="`${player.yellow_cards} Yellow Card${
 										player.yellow_cards > 1 ? 's' : ''
 									}`"
@@ -77,18 +80,27 @@
 				</div>
 			</div>
 
-			<div class="z-0 flex justify-center drop-shadow-lg">
+			<div class="flex z-0 justify-center drop-shadow-lg">
+
+				
 				<!-- image -->
-				<img
-					:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.code}.png`"
+				<!-- <img
+					:src="`https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`"
 					class="object-cover w-64 h-auto transition-transform duration-300 sm:z-20 sm:w-auto group-hover:scale-105"
 					:alt="player.web_name"
-				/>
+					@error="console.log('error')"
+				/> -->
+				<img
+  :src="`https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`"
+  :alt="player.web_name"
+  class="object-cover w-64 h-auto transition-transform duration-300 sm:z-20 sm:w-auto group-hover:scale-105"
+  @error="(e) => { e.target.onerror = null; e.target.src = '/fallback.png' }"
+/>
 			</div>
 			<div
-				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95 right-2 left-2 bottom-2"
+				class="absolute right-2 bottom-2 left-2 z-30 px-4 py-2 rounded-lg shadow-lg text-slate-800 bg-slate-100/95"
 			>
-				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
+				<div class="flex justify-evenly pb-1 border-b border-slate-300">
 					<div class="text-xs text-right uppercase">
 						<div class="opacity-50">Points</div>
 						<div class="font-semibold lowercase">

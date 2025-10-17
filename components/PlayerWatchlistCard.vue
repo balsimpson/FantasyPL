@@ -1,5 +1,90 @@
 <template>
 	<div>{{ playerData }}</div>
+	<div class="grid max-w-4xl grid-cols-1 gap-6 p-4 mx-auto md:grid-cols-2">
+		<!-- Player Info Card -->
+		<div class="flex flex-col items-center p-6 bg-white rounded-lg shadow-md">
+			<img
+				:src="`/images/${player.photo}`"
+				alt="Player photo"
+				class="w-24 h-24 mb-4 rounded-full"
+			/>
+			<h2 class="text-lg font-bold">
+				{{ player.first_name }} {{ player.second_name }}
+			</h2>
+			<p class="text-gray-500">{{ player.teamData.name }}</p>
+			<p class="text-sm text-green-600">
+				Status: {{ player.status === "a" ? "Available" : "Unavailable" }}
+			</p>
+			<p class="text-sm">Price: £{{ (player.now_cost / 10).toFixed(1) }}m</p>
+		</div>
+
+		<!-- Performance Card -->
+		<div class="p-6 bg-white rounded-lg shadow-md">
+			<h3 class="mb-2 text-lg font-bold">Performance</h3>
+			<ul class="space-y-1 text-gray-700">
+				<li>Points Per Game: {{ player.points_per_game }}</li>
+				<li>Total Points: {{ player.total_points }}</li>
+				<li>Goals Scored: {{ player.goals_scored }}</li>
+				<li>Assists: {{ player.assists }}</li>
+				<li>Minutes Played: {{ player.minutes }}</li>
+			</ul>
+		</div>
+
+		<!-- Stats Card -->
+		<div class="p-6 bg-white rounded-lg shadow-md">
+			<h3 class="mb-2 text-lg font-bold">Statistics</h3>
+			<ul class="space-y-1 text-gray-700">
+				<li>Expected Goals (xG): {{ player.expected_goals }}</li>
+				<li>Expected Assists (xA): {{ player.expected_assists }}</li>
+				<li>Threat: {{ player.threat }}</li>
+				<li>Creativity: {{ player.creativity }}</li>
+				<li>Influence: {{ player.influence }}</li>
+			</ul>
+		</div>
+
+		<!-- Transfers Card -->
+		<div class="p-6 bg-white rounded-lg shadow-md">
+			<h3 class="mb-2 text-lg font-bold">Transfers</h3>
+			<ul class="space-y-1 text-gray-700">
+				<li>Transfers In: {{ player.transfers_in }}</li>
+				<li>Transfers Out: {{ player.transfers_out }}</li>
+				<li>Selected By: {{ player.selected_by_percent }}%</li>
+			</ul>
+		</div>
+
+
+		<div class="relative">
+			<span
+				role="progressbar"
+				class="block bg-gray-200 rounded-full bg-gradient-to-r from-red-600 to-teal-600"
+			>
+				<span
+					class="relative flex items-center justify-end h-6"
+					:style="{ width: player.threat + '%' }"
+				>
+					<span class="font-bold text-white">{{ player.threat }}</span>
+					<!-- Inverted Triangle Indicator -->
+					<span
+						class="absolute top-[-22px]"
+						
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+							class="w-4 rotate-90 stroke-current shrink-0 h-7"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</span>
+				</span>
+			</span>
+		</div>
+	</div>
 
 	<div
 		v-if="playerData"
@@ -34,7 +119,9 @@
 							</div>
 						</div>
 					</div>
-					<section v-if="playerData.yellow_cards > 0 || playerData.red_cards > 0">
+					<section
+						v-if="playerData.yellow_cards > 0 || playerData.red_cards > 0"
+					>
 						<!-- <div class="mt-2 text-sm font-semibold">Cards</div> -->
 						<div class="flex items-center">
 							<div v-if="playerData.yellow_cards > 0" class="flex items-center">
@@ -136,7 +223,9 @@
 				<div class="flex justify-between pt-1">
 					<div class="text-xs text-left uppercase">
 						<div class="opacity-50">Played</div>
-						<div class="font-semibold lowercase">{{ playerData.minutes }} min</div>
+						<div class="font-semibold lowercase">
+							{{ playerData.minutes }} min
+						</div>
 					</div>
 					<!-- <div class="text-xs text-center uppercase">
 							<div class="opacity-50">Form</div>
@@ -156,28 +245,6 @@
 				</div>
 			</div>
 		</div>
-
-		<!-- <div class="flex items-center max-w-2xl mx-auto">
-			<div>
-				<img
-					:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
-					class="object-cover h-auto sm:z-20"
-				/>
-			</div>
-			<div class="ml-3">
-				<div class="text-2xl font-bold leading-6">
-					{{ player.first_name }} {{ player.second_name }}
-				</div>
-				<div>{{ player.teamData.name }}</div>
-				<div>{{ getPositionName(player.element_type) }}</div>
-				<div>{{ player.minutes }} minutes</div>
-				<div>{{ player.total_points }} points</div>
-				<div>{{ player.transfers_in_event }} In</div>
-				<div>{{ player.transfers_out_event }} Out</div>
-				<div>{{ player.value_season }} Value</div>
-				<div>#{{ player.ict_index_rank }}</div>
-			</div>
-		</div> -->
 	</div>
 </template>
 
@@ -225,13 +292,15 @@
 	};
 
 	const playerData = computed(() => {
-		if (bootstrap.value) {
-			const selectedPlayer = bootstrap.value.elements.find((player) => player.id == id);
-			props.player.teamData = bootstrap.value.teams.find(
+		if (props.bootstrap) {
+			const selectedPlayer = props.bootstrap.elements.find(
+				(p) => p.code == props.player.code
+			);
+			props.player.teamData = props.bootstrap.teams.find(
 				(team) => team.id == props.player.team
 			);
 
-			return player ? player : "";
+			return selectedPlayer ? selectedPlayer : "";
 		}
 
 		return null;

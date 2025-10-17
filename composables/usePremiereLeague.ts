@@ -21,6 +21,7 @@ export const getPlayerInfo = (id: number, data: any) => {
 		const player = data.elements.find((player: any) => {
 			return player.id == id;
 		});
+		console.log("getPlayerInfo", player);
 		return player;
 	} catch (error) {
 		console.log("getPlayerInfo: Error - ", error);
@@ -118,14 +119,14 @@ export const gameweekPlayerDetails = (gameweekData: any, data: any) => {
 export function calculatePlayerScore(player) {
 	let weightTotalPoints = 5;
 	let weightPointsPerGame = 5.5;
-	let weightForm = 2.5;
+	let weightForm = 9.5;
 	let weightCleanSheetsPer90 = 0;
 	let weightExpectedGoalsConcededPer90 = 0;
 	let weightBps = 2;
 	let weightThreat = 0;
 	let weightInfluence = 1.5;
 	let weightValue = 3.5;
-	let weightTransfersIn = 1.5;
+	let weightTransfersIn = 5.5;
 	let weightTransfersOut = -4.5;
 	let weightGoals = 0;
 	let weightAssists = 0;
@@ -158,7 +159,6 @@ export function calculatePlayerScore(player) {
 			weightAssists = 2.5;
 			weightThreat = 3;
 			weightExpectedGoalsPer90 = 3;
-			weightTransfersIn = 3.0;
 			break;
 	}
 
