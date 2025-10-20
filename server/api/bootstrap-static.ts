@@ -1,4 +1,4 @@
-import { getBootstrapStatic } from "~~/composables/usePremiereLeague";
+import { getBootstrapStatic, gameweekPlayerDetails } from "~~/composables/usePremiereLeague";
 
 export default defineEventHandler(async (event) => {
 	try {

@@ -31,6 +31,7 @@ export const getPlayerInfo = (id: number, data: any) => {
 
 // get team info
 export const getTeamInfo = (id: number, data: any) => {
+	console.log(data)
 	if (!id || !data) return;
 	// console.log("getTeamInfo", id, data.teams, data.teams.find((team: any) => team.id == id));
 	try {

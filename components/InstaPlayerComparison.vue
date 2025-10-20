@@ -1,14 +1,14 @@
 <template>
 	<div
-		class="w-[1080px] h-[1080px]  border border-black overflow-hidden bg-gradient-to-tr from-gray-200 text-gray-800 to-gray-500 relative"
+		class="w-[1080px] h-[1080px]  border border-black overflow-hidden bg-gradient-to-b from-gray-200 text-gray-800 to-gray-400 relative"
 	>
 		<!-- Background container to prevent artifacts -->
-		<div class="absolute inset-0 text-gray-800 bg-gray-200 bg-gradient-to-t from-gray-200 to-gray-500"></div>
+		<!-- <div class="absolute inset-0 text-gray-800 bg-gray-200 bg-gradient-to-t from-gray-200 to-gray-400"></div> -->
 		
 		<div class="flex relative z-10 gap-4 justify-between items-center h-full">
 			<!-- Player 1 section -->
 			<div class="relative w-1/2 h-full">
-				<div class="relative z-20 p-5 text-left">
+				<div class="relative z-50 p-5 text-left">
 					<h2 class="text-6xl font-bold">{{ player1.web_name }}</h2>
 					<div class="flex items-center mt-6 space-x-2">
 						<img
@@ -23,7 +23,7 @@
 					</div>
 				</div>
 				<!-- Player 1 image positioned without negative margins -->
-				<div class="absolute -left-36 -bottom-8 h-[800px] w-[740px] overflow-hidden flex items-end justify-start">
+				<div class="absolute -left-56 -bottom-8 h-[800px] w-[740px] overflow-hidden flex items-end justify-start">
 					<img
 						:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player1.code}.png`"
 						alt=""
@@ -49,20 +49,20 @@
 					</div>
 				</div>
 				<!-- Player 2 image positioned without negative margins -->
-				<div class="absolute -right-30 -bottom-10 h-[800px] w-[740px] overflow-hidden flex items-end justify-end">
+				<div class="absolute -right-30 -bottom-10 h-[800px] w-[740px] overflow-hidden flex items-end justify-end z-50">
 					<img
 						:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player2.code}.png`"
 						alt=""
-						class="block object-contain w-auto max-w-full h-full drop-shadow-[-4px_8px_6px_rgba(0,0,0,0.4)]"
+						class="block object-contain w-auto max-w-full h-full drop-shadow-[-4px_8px_6px_rgba(0,0,0,0.4)] z-30"
 					/>
 				</div>
 			</div>
 		</div>
 
-		<div class="absolute left-0 right-0 top-[30%] z-30 bg-transparent">
-			<div>
+		<div class="absolute left-0 right-0 top-[20%] z-20  max-w-md mx-auto space-y-4">
+			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
 				<h2 class="text-4xl font-bold text-center">Cost</h2>
-				<div class="flex justify-center items-center space-x-4">
+				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -85,9 +85,9 @@
 					</p>
 				</div>
 			</div>
-			<div>
-				<h2 class="pt-6 text-4xl font-bold text-center">Played</h2>
-				<div class="flex justify-center items-center space-x-4">
+			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+				<h2 class="pb-2 text-4xl font-bold text-center">Played</h2>
+				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -111,9 +111,9 @@
 					</p>
 				</div>
 			</div>
-			<div>
-				<h2 class="pt-6 text-4xl font-bold text-center">Form</h2>
-				<div class="flex justify-center items-center space-x-12">
+			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+				<h2 class="pb-2 text-4xl font-bold text-center">Form</h2>
+				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -132,9 +132,9 @@
 					</p>
 				</div>
 			</div>
-			<div>
-				<h2 class="pt-6 text-4xl font-bold text-center">Points</h2>
-				<div class="flex justify-center items-center space-x-12">
+			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+				<h2 class="pb-2 text-4xl font-bold text-center">Points</h2>
+				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -157,33 +157,31 @@
 					</p>
 				</div>
 			</div>
-			<div>
-				<h2 class="pt-6 text-4xl font-bold text-center">Selected by</h2>
-				<div class="flex justify-center items-center space-x-4">
+			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+				<h2 class="pb-2 text-4xl font-bold text-center">Selected by</h2>
+				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
-							Number(player1.selected_by_percent).toFixed(0) <
-							Number(player2.selected_by_percent).toFixed(0)
+							Number(player1.selected_by_percent) < Number(player2.selected_by_percent)
 								? 'text-pink-500'
 								: 'text-teal-500',
 						]"
 					>
-						{{ Number(player1.selected_by_percent).toFixed(0)
-						}}<span class="opacity-50"></span>
+						{{ Number(player1.selected_by_percent).toFixed(0) }}
+						<span class="opacity-50"></span>
 					</p>
 					<span class="text-6xl opacity-50">%</span>
 					<p
 						class="text-6xl font-bold"
 						:class="[
-							Number(player2.selected_by_percent).toFixed(0) <
-							Number(player1.selected_by_percent).toFixed(0)
+							Number(player2.selected_by_percent) < Number(player1.selected_by_percent)
 								? 'text-pink-500'
 								: 'text-teal-500',
 						]"
 					>
-						{{ Number(player2.selected_by_percent).toFixed(0)
-						}}<span class="opacity-50"></span>
+						{{ Number(player2.selected_by_percent).toFixed(0) }}
+						<span class="opacity-50"></span>
 					</p>
 				</div>
 			</div>

@@ -1,5 +1,5 @@
 <template>
-	<div class="px-2 mx-auto max-w-2xl">
+	<div class="px-2 mx-auto max-w-3xl">
 		<div class="flex gap-x-3 items-center">
 			<div>
 				<h2 class="text-xl font-semibold">Most Transferred In</h2>
@@ -31,9 +31,13 @@
 			</div>
 		</div>
 
-		<InstaPlayer v-if="selectedPlayerData" :player="selectedPlayerData"
-			:team="getTeamInfo(selectedPlayerData.team, bootstrap).name" :upcoming="player?.fixtures.slice(0, 5)"
-			:gameweek="currentGameWeek" :key="selectedPlayerData.web_name" ref="playerCard" id="my-node" />
+		<div class="flex flex-col mx-auto w-full">
+
+			<InstaPlayer v-if="selectedPlayerData" :player="selectedPlayerData"
+				:team="getTeamInfo(selectedPlayerData.team, bootstrap).name" :upcoming="player?.fixtures.slice(0, 5)"
+				:gameweek="currentGameWeek" :key="selectedPlayerData.web_name" ref="playerCard" id="my-node" />
+		</div>
+
 
 		<div class="mt-12">
 			<div class="flex gap-x-3 items-center">
@@ -65,7 +69,7 @@
 				<InstaPlayerComparison id="comparison-node" v-if="selectedPlayer1 && selectedPlayer2"
 					:player1="mostTransferredIn[selectedPlayer1]" :player2="mostTransferredOut[selectedPlayer2]" :team1="getTeamInfo(mostTransferredIn[selectedPlayer1].team, bootstrap)
 						" :team2="getTeamInfo(mostTransferredOut[selectedPlayer2].team, bootstrap)
-						" />
+							" />
 			</div>
 		</div>
 
@@ -78,6 +82,7 @@
 
 		<!-- Download Buttons -->
 		<div class="flex gap-4 mt-8">
+			<CloudinaryUploadJs />
 			<button @click="downloadImage" class="px-4 py-2 text-white bg-blue-500 rounded">
 				Download Player Card
 			</button>
@@ -119,14 +124,6 @@ const getInstaCaption = async (playerData) => {
 	});
 
 	console.log("caption", caption.value);
-};
-
-const setPlayerForComparison = () => {
-	console.log("selectedPlayer1", selectedPlayer1.value);
-	console.log("selectedPlayer2", selectedPlayer2.value);
-	// Increment the key to force a redraw
-	player.value = selectedPlayer1.value;
-	canvasKey.value++;
 };
 
 const selectedTransferIn = ref();
@@ -216,32 +213,112 @@ watchEffect(async () => {
 const downloadImage = async () => {
 	let captureEl = document.querySelector("#my-node");
 
+	if (!captureEl) {
+		console.error("Player card element not found");
+		return;
+	}
+
+	// Store original styles to restore later
+	const originalStyles = {
+		width: captureEl.style.width,
+		height: captureEl.style.height,
+		transform: captureEl.style.transform,
+		position: captureEl.style.position,
+		top: captureEl.style.top,
+		left: captureEl.style.left,
+		overflow: captureEl.style.overflow,
+	};
+
 	try {
-		// Perform capture using html-to-image
-		const dataUrl = await toPng(captureEl, {
-			canvasWidth: 1080,
-			canvasHeight: 1080,
-			useCORS: false, // CORS issues are bypassed by data URLs for mobile, and handled by preload for desktop
-			allowTaint: true, // Allow taint as a fallback, especially useful for complex scenarios
-			backgroundColor: '#000000',
-			style: {
-				'transform': 'none',
-				'overflow': 'visible'
-			},
-			filter: (node) => {
-				if (node.tagName === 'IMG') {
-					// Further debug here to see what img src is being processed
-					// if (node.src && node.src.startsWith('data:')) {
-					//   console.log('📷 Capturing DATA URL image:', node.src.substring(0, 50) + '...');
-					// } else {
-					console.log('📷 Capturing image:', node.src);
-					// }
+		// Apply exact Instagram dimensions
+		captureEl.style.width = '1080px';
+		captureEl.style.height = '1080px';
+		captureEl.style.transform = 'none';
+		captureEl.style.position = 'absolute';
+		captureEl.style.top = '0';
+		captureEl.style.left = '0';
+		captureEl.style.overflow = 'hidden';
+
+		// First, convert external images to use our proxy
+		await convertExternalImagesToProxy(captureEl);
+
+		// Wait a bit more to ensure DOM is fully updated
+		await new Promise(resolve => setTimeout(resolve, 200));
+
+		// Try html2canvas first as it handles dimensions better
+		let dataUrl;
+		try {
+			dataUrl = await toPng(captureEl, {
+				canvasWidth: 1080,
+				canvasHeight: 1080,
+				pixelRatio: 1,
+				useCORS: true,
+				allowTaint: false,
+				backgroundColor: '#000000',
+				style: {
+					'transform': 'none',
+					'overflow': 'hidden',
+					'width': '1080px',
+					'height': '1080px',
+					'position': 'absolute',
+					'top': '0',
+					'left': '0'
+				},
+				filter: (node) => {
+					if (node.tagName === 'IMG') {
+						console.log('📷 Capturing image:', node.src);
+					}
+					return true;
 				}
-				return true;
-			}
-		});
+			});
+
+			const blob = await (await fetch(dataUrl)).blob();
+
+			// Use player name (if available) as file name
+			const playerName = selectedPlayerData.value && selectedPlayerData.value.web_name
+				? selectedPlayerData.value.web_name.replace(/\s+/g, "_").toLowerCase()
+				: "player";
+			const fileName = `${playerName}-${Date.now()}.png`;
+
+			const formData = new FormData();
+			formData.append("file", blob, fileName);
+			formData.append("upload_preset", "fpl-preset"); // your unsigned preset name
+			formData.append("folder", "fpl-posts");           // optional
+
+			// Upload to Cloudinary
+			const response = await fetch(
+				"https://api.cloudinary.com/v1_1/tinkr/image/upload",
+				{ method: "POST", body: formData }
+			);
+
+			// Get the public URL
+			const data = await response.json();
+			console.log("✅ Uploaded:", data.secure_url);
+			sendImageToWebhook("title", data.secure_url)
+			return data.secure_url;
+		} catch (html2canvasError) {
+			console.log('failed, :', html2canvasError);
+
+			// Fallback to html-to-image
+
+		}
+
+		// Download the image
+		const link = document.createElement('a');
+		link.download = `player-card-${Date.now()}.png`;
+		link.href = dataUrl;
+		// document.body.appendChild(link);
+		// link.click();
+		// document.body.removeChild(link);
+		
+
 	} catch (error) {
-		console.log(error)
+		console.error("Error capturing player card:", error);
+	} finally {
+		// Always restore original styles
+		Object.keys(originalStyles).forEach(key => {
+			captureEl.style[key] = originalStyles[key];
+		});
 	}
 };
 
@@ -254,12 +331,31 @@ const convertExternalImagesToProxy = async (element) => {
 		const src = img.src || img.getAttribute('src');
 		if (src && src.startsWith('http') && !src.startsWith(window.location.origin)) {
 			const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
-			img.src = proxyUrl;
+
+			// Create a promise that resolves when the image loads
+			const imagePromise = new Promise((resolve, reject) => {
+				const newImg = new Image();
+				newImg.crossOrigin = 'anonymous';
+				newImg.onload = () => {
+					img.src = proxyUrl;
+					resolve();
+				};
+				newImg.onerror = () => {
+					console.warn('Failed to load image:', proxyUrl);
+					resolve(); // Continue even if image fails to load
+				};
+				newImg.src = proxyUrl;
+			});
+
+			promises.push(imagePromise);
 		}
 	});
 
-	// Wait a bit for images to load
-	await new Promise(resolve => setTimeout(resolve, 1000));
+	// Wait for all images to load
+	await Promise.all(promises);
+
+	// Additional wait to ensure DOM is updated
+	await new Promise(resolve => setTimeout(resolve, 500));
 };
 
 // Helper function to apply Instagram-optimized styles
@@ -412,35 +508,20 @@ const downloadComparisonImage = async () => {
 	}
 };
 
-// const downloadImage = async () => {
-// 	// let img = await domtoimage.toBlob(document.getElementById("my-node"));
-// 	// let res = window.saveAs(img, "my-node.png")
-// 	// console.log("img", img);
-
-// 	nextTick(() => {
-// 		// console.log("downloadImage");
-// 		let node = document.getElementById("my-node")
-
-// 		// 	.then(function (blob) {
-// 		// 		window.saveAs(blob, "my-node.png");
-// 		// 	});
-
-// 		// domtoimage
-// 		// 	.toPng(node)
-// 		// 	.then(function (dataUrl) {
-// 		// 		var img = new Image();
-// 		// 		img.src = dataUrl;
-// 		// 		// document.body.appendChild(img);
-// 		// 	})
-// 		// 	.catch(function (error) {
-// 		// 		console.error("oops, something went wrong!", error);
-// 		// 	});
-
-// 		domtoimage
-// 			.toBlob(document.getElementById("my-node"))
-// 			.then(function (blob) {
-// 				window.saveAs(blob, "my-node.png");
-// 			});
-// 	});
-// };
+async function sendImageToWebhook(caption, image_url) {
+	const webhookUrl = "https://hook.eu1.make.com/15kni6u5dcurk4qljf5s1xmki6duo3e9";
+	try {
+		const params = new URLSearchParams({ caption, image_url }).toString();
+		let url = `${webhookUrl}?${params}`
+		console.log(url);
+		
+		const response = await $fetch(url, {
+			method: "GET",
+		});
+		alert('Sent to make.com!');
+	} catch (error) {
+		console.log(error);
+		alert('Error sending data');
+	}
+}
 </script>
