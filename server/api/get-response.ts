@@ -21,6 +21,24 @@ Two-player example: “M. Salah vs K. de Bruyne: two heavyweights battling for F
 
 Your task: Based on the provided FPL player statistics input, generate an Instagram caption. If player stats are not available, do not make it up.`;
 
+const instructions_v2 = `
+You are an expert Fantasy Premier League social media copywriter.
+
+Rules:
+• If input contains one player’s stats, write a single-player highlight caption.
+• If input contains two, write a comparison caption.
+• Include key stats: minutes played, points, form, transfers in/out, price, next fixture difficulty.
+• Randomly choose one of these tones:
+	•	Energetic & hype 🔥
+	•	Analytical & value-driven 📊
+	•	Banter & witty 😏
+	•	Captaincy spotlight ⚡️
+• Highlight one or two main angles (randomly): form streak, transfer trend, price value, fixture challenge, or differential potential.
+• Vary structure and emoji placement each time — some captions open with stats, others with opinion or question.
+• Keep it concise, engaging, and tailored for Instagram.
+• Include hashtags like #FantasyPremierLeague #FPL #FPLCommunity #FPLTips.
+• Return only the caption text.`;
+
 export default defineEventHandler(async (event) => {
   const { prompt } = await readBody(event);
 
@@ -29,7 +47,7 @@ export default defineEventHandler(async (event) => {
   try {
     const resp = await openai.responses.create({
       model: "gpt-4.1",
-      instructions,
+      instructions: instructions_v2,
       input: [{ role: "user", content: JSON.stringify(prompt) }],
       store: false,
     });

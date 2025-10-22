@@ -56,12 +56,7 @@
 		<!-- <LeagueInfoCard /> -->
 
 		<div>
-    <p v-if="pending">Checking…</p>
-    <p v-else-if="error">Failed: {{ error?.statusMessage }}</p>
-    <div v-else>
-      <h3>Working sizes</h3>
-      <ul><li v-for="s in working" :key="s">{{ s }}</li></ul>
-    </div>
+
   </div>
 
 		<!-- section to display options when the user picks the position and specifies a budget with a slider -->
@@ -333,16 +328,9 @@
 	});
 
 	const playerId = '596047'
-const sizes = ['40x40','80x100','110x140','165x210','220x280','256x256', '300x400']
 
-const { data, pending } = await useFetch('/api/img-size-probe', {
-  params: { playerId, sizes: sizes.join(',') }
-})
 
-const working = computed(() => {
-  const r = data.value?.results || {}
-  return Object.keys(r).filter(k => r[k])
-})
+
 </script>
 
 <style>

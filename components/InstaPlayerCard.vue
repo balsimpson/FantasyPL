@@ -1,7 +1,7 @@
 <template>
 	<div :id="props.id">
 		<div
-			class="w-[1080px] h-[1080px] bg-gray-200 border border-black overflow-hidden bg-gradient-to-br from-gray-100 text-gray-800 to-gray-300 relative" 
+			class="w-[1080px] h-[1350px]  bg-gray-200 border border-black overflow-hidden bg-gradient-to-br from-gray-100 text-gray-800 to-gray-300 relative" 
 		>
 		<div class="flex absolute justify-between px-10 pt-10 w-full">
 			<!-- Player Info -->

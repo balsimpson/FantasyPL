@@ -67,6 +67,8 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
 			OPENAI_KEY: process.env.OPENAI_API_KEY,
+			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
+			MAKE_WEBHOOK_URL: process.env.MAKE_WEBHOOK_URL,
 		},
 	},
 });

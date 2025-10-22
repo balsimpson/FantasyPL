@@ -1,50 +1,40 @@
 <template>
-  <div class="p-4 mx-auto max-w-3xl">
+  <div class="p-4 mx-auto max-w-7xl">
     <div>Players</div>
 
     <AppCarousel>
-      <SchedulerPlayerCard
-        v-for="item in getTopPlayers(data.players)"
-        :key="item"
-        :player="item"
-        :data="data.teams"
+      <SchedulerPlayerCard v-for="item in recommendedPlayersNew" :key="item" :player="item" :data="data.teams"
         class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
-        @selected="getPreview($event)"
-        />
+        @selected="getPreview($event)" />
     </AppCarousel>
 
+    <div class="flex flex-col justify-center items-center">
+      <button v-if="selectedPlayerData" @click="schedulePost"
+        class="px-4 py-2 mx-auto mt-6 w-full max-w-md text-white bg-blue-500 rounded">
+        Schedule Insta Post
+      </button>
 
-    
-
-    <div>
-
-        <h2 class="mt-6 font-bold">Caption</h2>
-        <div class="p-4 bg-blue-100 rounded-lg min-h-44">
-           {{ caption }}
-        </div>
-        
-        <div class="flex overflow-scroll flex-col mx-auto w-full">
-          <InstaPlayerCard
-            v-if="selectedPlayerData"
-            :player="selectedPlayerData"
-            :team="getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''"
-            :upcoming="player?.fixtures.slice(0, 5)"
-            :gameweek="data.currentGameweek"
-            :key="selectedPlayerData.web_name"
-            ref="playerCard"
-            id="my-node"
-          />
-        </div>
+      <h2 class="mt-6 font-bold">Caption</h2>
+      <div class="p-4 w-full bg-blue-100 rounded-lg min-h-44">
+        {{ caption }}
+      </div>
+<!-- class="mx-auto w-full max-w-2xl md:max-w-3xl" -->
+      <div class="flex overflow-x-auto w-full">
+        <InstaPlayerCard v-if="selectedPlayerData" :player="selectedPlayerData" :team="getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''
+          " :upcoming="player?.fixtures.slice(0, 5)" :gameweek="data.currentGameweek"
+          :key="selectedPlayerData.web_name" ref="playerCard" id="my-node"
+           />
+      </div>
     </div>
-
-    <pre>{{ data.teams.length }}</pre>
   </div>
 </template>
 
 <script setup>
+import { toPng } from "html-to-image";
 definePageMeta({
   layout: false,
 });
+
 const { data } = await useLazyAsyncData("bootstrap", () =>
   $fetch("/api/players/get-all")
 );
@@ -54,43 +44,55 @@ const caption = ref("");
 const selectedPlayerData = ref();
 const teams = ref([])
 
-const getPreview = async(playerData) => {
-    // console.log("playerData", playerData)
-    selectedPlayerData.value = playerData
-    // console.log(playerData.value)
-    let currentPlayer = extractPlayerSummary(playerData)
-    console.log("playerData", currentPlayer)
-    caption.value = await getInstaCaption(playerData) || ""
-    console.log("caption", caption.value)
+const recommendedPlayersNew = computed(() => {
+		console.log(data.value.players)
+		// let filteredPlayers = data.value.filter(
+		// 	(player) =>
+		// 		player.element_type == selectedPosition.value &&
+		// 		player.now_cost <= selectedBudget.value * 10
+		// );
+		return computeScores(data.value.players)
+
+
+	})
+
+const getPreview = async (playerData) => {
+  // console.log("playerData", playerData)
+  selectedPlayerData.value = playerData
+  // console.log(playerData.value)
+  let currentPlayer = extractPlayerSummary(playerData)
+  console.log("playerData", currentPlayer)
+  caption.value = await getInstaCaption(playerData) || ""
+  console.log("caption", caption.value)
 }
 
 const getTeamInfo = (id, teamsData) => {
 
-	if (!id || !teamsData) return;
+  if (!id || !teamsData) return;
 
-    const teams = toRaw(unref(teamsData));
-    // console.log("team:", teams);
-	try {
-		const team = teams.find((t) => t.code == id);        
-		return team;
-	} catch (error) {
-		console.log("getTeamInfo: Error - ", error);
-		return null;
-	}
+  const teams = toRaw(unref(teamsData));
+  // console.log("team:", teams);
+  try {
+    const team = teams.find((t) => t.code == id);
+    return team;
+  } catch (error) {
+    console.log("getTeamInfo: Error - ", error);
+    return null;
+  }
 };
 
 function extractPlayerSummary(player) {
   if (!player) return null;
-    const team = getTeamInfo(player.team_code, data.value.teams)
-    
+  const team = getTeamInfo(player.team_code, data.value.teams)
+
   return {
     // Basic Info
     id: player.id,
     name: player.web_name,
     full_name: player.first_name + " " + player.second_name,
-    team: team?.name || "", 
+    team: team?.name || "",
     position: player.__pos || '',
-    
+
     // FPL Core
     total_points: player.total_points,
     event_points: player.event_points,
@@ -115,7 +117,7 @@ function extractPlayerSummary(player) {
     ownership_percent: player.selected_by_percent,
     transfers_in_event: player.transfers_in_event,
     transfers_out_event: player.transfers_out_event,
-    
+
     // Misc
     status: player.status, // 'a' = available, 'i' = injured, etc.
     // chance_of_playing_next_round: player.chance_of_playing_next_round,
@@ -123,23 +125,112 @@ function extractPlayerSummary(player) {
 }
 
 const getInstaCaption = async (playerData) => {
-    const res = await $fetch('/api/get-response', {
-        method: 'POST',
-        body: JSON.stringify({ prompt: playerData }),
-        headers: { 'Content-Type': 'application/json' }
-    });
-    console.log("caption", res);
-    return res.output;
+  player.value = await $fetch(`/api/players/${playerData.id}`);
+  playerData.upcoming = player?.value.fixtures.slice(0, 5)
+  const res = await $fetch('/api/get-response', {
+    method: 'POST',
+    body: JSON.stringify({ prompt: playerData }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  console.log("caption", res);
+  return res.output;
 };
 
-watchEffect(async () => {
-	if (selectedPlayerData.value) {
-		console.log("id", selectedPlayerData.value.id);
+const schedulePost = async () => {
+  let captureEl = document.querySelector("#my-node");
 
-		let playerId = selectedPlayerData.value.id;
-		player.value = await $fetch(`/api/players/${playerId}`);
-        teams.value = data.value.teams
-	}
+  if (!captureEl) {
+    console.error("Player card element not found");
+    return;
+  }
+
+  const playerName = selectedPlayerData.value && selectedPlayerData.value.web_name
+    ? selectedPlayerData.value.web_name.replace(/\s+/g, "_").toLowerCase()
+    : "player";
+  const fileName = `${playerName}-${Date.now()}.png`;
+
+  const blob = await convertImage(captureEl)
+  const public_url = await uploadToCloudinary(blob, fileName)
+
+  const res = sendImageToWebhook(caption.value, public_url)
+
+  return res
+}
+
+const convertImage = async (elementToCapture) => {
+  // First, convert external images to use our proxy
+  await convertExternalImagesToProxy(elementToCapture);
+
+  // Wait a bit more to ensure DOM is fully updated
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  let dataUrl;
+  try {
+    dataUrl = await toPng(elementToCapture, {
+      canvasWidth: 1080,
+      canvasHeight: 1080,
+      pixelRatio: 1,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#000000',
+      style: {
+        'transform': 'none',
+        'overflow': 'hidden',
+        'width': '1080px',
+        'height': '1080px',
+        'position': 'absolute',
+        'top': '0',
+        'left': '0'
+      },
+      filter: (node) => {
+        if (node.tagName === 'IMG') {
+          console.log('📷 Capturing image:', node.src);
+        }
+        return true;
+      }
+    });
+  } catch (error) {
+    console.error("convert image:", error)
+  }
+
+  const blob = await (await fetch(dataUrl)).blob();
+  return blob;
+}
+
+const uploadToCloudinary = async (blobData, fileName) => {
+  const url = useRuntimeConfig().public.CLOUDINARY_UPLOAD_URL;
+  console.log("url", url);
+
+  const formData = new FormData();
+  formData.append("file", blobData, fileName);
+  formData.append("upload_preset", "fpl-preset"); // your unsigned preset name
+  formData.append("folder", "fpl-posts");           // optional
+
+  try {
+    // Upload to Cloudinary
+    const response = await fetch(url,
+      { method: "POST", body: formData }
+    );
+
+    // Get the public URL
+    const data = await response.json();
+
+    console.log("cloudinary", data)
+    return data.secure_url;
+  } catch (error) {
+    console.error(error)
+    return error
+  }
+}
+
+watchEffect(async () => {
+  if (selectedPlayerData.value) {
+    console.log("id", selectedPlayerData.value.id);
+
+    let playerId = selectedPlayerData.value.id;
+    player.value = await $fetch(`/api/players/${playerId}`);
+    teams.value = data.value.teams
+  }
 });
 
 // FPL ranking + comparison pairs
@@ -540,4 +631,58 @@ const getTopPlayers = (players, opts = {}) => {
 
 //   return { top10: top10, pairs: slimPairs };
 // }
+
+async function sendImageToWebhook(caption, image_url) {
+  const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
+
+  try {
+    const params = new URLSearchParams({ caption, image_url }).toString();
+    let url = `${webhookUrl}?${params}`
+    // console.log(url);
+
+    const response = await $fetch(url, {
+      method: "GET",
+    });
+    alert('Sent to make.com!');
+  } catch (error) {
+    console.log(error);
+    alert('Error sending data');
+  }
+}
+
+// Helper function to convert external image URLs to use our proxy
+const convertExternalImagesToProxy = async (element) => {
+  const images = element.querySelectorAll('img');
+  const promises = [];
+
+  images.forEach((img) => {
+    const src = img.src || img.getAttribute('src');
+    if (src && src.startsWith('http') && !src.startsWith(window.location.origin)) {
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+
+      // Create a promise that resolves when the image loads
+      const imagePromise = new Promise((resolve, reject) => {
+        const newImg = new Image();
+        newImg.crossOrigin = 'anonymous';
+        newImg.onload = () => {
+          img.src = proxyUrl;
+          resolve();
+        };
+        newImg.onerror = () => {
+          console.warn('Failed to load image:', proxyUrl);
+          resolve(); // Continue even if image fails to load
+        };
+        newImg.src = proxyUrl;
+      });
+
+      promises.push(imagePromise);
+    }
+  });
+
+  // Wait for all images to load
+  await Promise.all(promises);
+
+  // Additional wait to ensure DOM is updated
+  await new Promise(resolve => setTimeout(resolve, 500));
+};
 </script>

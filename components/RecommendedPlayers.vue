@@ -1,11 +1,11 @@
 <template>
-	<div class="w-full mx-auto my-6">
+	<div class="mx-auto my-6 w-full">
 		<h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
 			<span class="text-[#7300c5]">{{ recommendedPlayers.length }}</span>
 			recommendations
 		</h1>
 		<div
-			class="flex flex-col items-center justify-between p-3 mb-3 border rounded-lg sm:flex-row gap-x-3 bg-slate-100"
+			class="flex flex-col gap-x-3 justify-between items-center p-3 mb-3 rounded-lg border sm:flex-row bg-slate-100"
 		>
 			<div v-if="allPlayers && allPlayers.length" class="mb-4">
 				<div class="w-44">
@@ -17,7 +17,7 @@
 					<select
 						v-model="selectedPosition"
 						id="position-select"
-						class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+						class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="">Choose a position</option>
 						<option value="4">Forward</option>
@@ -53,11 +53,11 @@
 		<div v-if="recommendedPlayers && recommendedPlayers.length > 0">
 			<AppCarousel>
 				<LazyPlayerCardNew
-					v-for="item in recommendedPlayers"
+					v-for="item in recommendedPlayersNew"
 					:key="item"
 					:player="item"
 					:data="allTeams"
-					class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
+					class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
 				/>
 			</AppCarousel>
 		</div>
@@ -94,4 +94,18 @@
 			.sort((a, b) => b.score - a.score)
 			.slice(0, MAX_OPTIONS);
 	});
+	
+
+	const recommendedPlayersNew = computed(() => {
+		
+		let filteredPlayers = allPlayers.value.filter(
+			(player) =>
+				player.element_type == selectedPosition.value &&
+				player.now_cost <= selectedBudget.value * 10
+		);
+		return computeScores(filteredPlayers)
+
+
+	})
+
 </script>
