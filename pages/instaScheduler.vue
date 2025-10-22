@@ -1,29 +1,108 @@
 <template>
   <div class="p-4 mx-auto max-w-7xl">
+
+
+    <div class="mb-6 space-y-4">
+      <!-- Search and filters -->
+      <div class="flex flex-wrap gap-4">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search players..."
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <select
+          v-model="selectedPosition"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Positions</option>
+          <option value="GK">Goalkeeper</option>
+          <option value="DEF">Defender</option>
+          <option value="MID">Midfielder</option>
+          <option value="FWD">Forward</option>
+        </select>
+
+        <select
+          v-model="sortBy"
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="score">Sort by Score</option>
+          <option value="form">Sort by Form</option>
+          <option value="cost">Sort by Price</option>
+        </select>
+      </div>
+    </div>
+
     <div>Players</div>
 
     <AppCarousel>
-      <SchedulerPlayerCard v-for="item in recommendedPlayersNew" :key="item" :player="item" :data="data.teams"
-        class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
-        @selected="getPreview($event)" />
+      <SchedulerPlayerCard
+        v-for="item in recommendedPlayersNew"
+        :key="item"
+        :player="item"
+        :data="data.teams"
+        class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
+        @selected="getPreview($event)"
+      />
     </AppCarousel>
 
-    <div class="flex flex-col justify-center items-center">
-      <button v-if="selectedPlayerData" @click="schedulePost"
-        class="px-4 py-2 mx-auto mt-6 w-full max-w-md text-white bg-blue-500 rounded">
-        Schedule Insta Post
+    <div class="flex flex-col items-center justify-center">
+      <button
+        v-if="selectedPlayerData"
+        @click="schedulePost"
+        :disabled="isPosting"
+        class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
+      >
+        {{ postButtonText }}
+        <div
+          v-if="isPosting"
+          class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
+        >
+          <div
+            class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
+          ></div>
+        </div>
       </button>
 
+      <!-- Status Message -->
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform -translate-y-2 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform -translate-y-2 opacity-0"
+      >
+        <div
+          v-if="statusMessage"
+          :class="[
+            'fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white max-w-sm',
+            statusMessage.type === 'error' ? 'bg-red-500' : 'bg-green-500',
+          ]"
+        >
+          {{ statusMessage.text }}
+        </div>
+      </Transition>
+
       <h2 class="mt-6 font-bold">Caption</h2>
-      <div class="p-4 w-full bg-blue-100 rounded-lg min-h-44">
+      <div class="w-full p-4 bg-blue-100 rounded-lg min-h-44">
         {{ caption }}
       </div>
-<!-- class="mx-auto w-full max-w-2xl md:max-w-3xl" -->
-      <div class="flex overflow-x-auto w-full">
-        <InstaPlayerCard v-if="selectedPlayerData" :player="selectedPlayerData" :team="getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''
-          " :upcoming="player?.fixtures.slice(0, 5)" :gameweek="data.currentGameweek"
-          :key="selectedPlayerData.web_name" ref="playerCard" id="my-node"
-           />
+      <!-- class="w-full max-w-2xl mx-auto md:max-w-3xl" -->
+      <div class="flex w-full overflow-x-auto">
+        <InstaPlayerCard
+          v-if="selectedPlayerData"
+          :player="selectedPlayerData"
+          :team="
+            getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''
+          "
+          :upcoming="player?.fixtures.slice(0, 5)"
+          :gameweek="data.currentGameweek"
+          :key="selectedPlayerData.web_name"
+          ref="playerCard"
+          id="my-node"
+        />
       </div>
     </div>
   </div>
@@ -42,32 +121,84 @@ const { data } = await useLazyAsyncData("bootstrap", () =>
 const player = ref(null);
 const caption = ref("");
 const selectedPlayerData = ref();
-const teams = ref([])
+const teams = ref([]);
+
+const searchQuery = ref("");
+const selectedPosition = ref("");
+const sortBy = ref("score");
 
 const recommendedPlayersNew = computed(() => {
-		console.log(data.value.players)
-		// let filteredPlayers = data.value.filter(
-		// 	(player) =>
-		// 		player.element_type == selectedPosition.value &&
-		// 		player.now_cost <= selectedBudget.value * 10
-		// );
-		return computeScores(data.value.players)
+  if (!data.value?.players) return [];
 
+  let filteredPlayers = data.value.players;
 
-	})
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filteredPlayers = filteredPlayers.filter(
+      (player) =>
+        player.web_name.toLowerCase().includes(query) ||
+        player.first_name.toLowerCase().includes(query) ||
+        player.second_name.toLowerCase().includes(query)
+    );
+  }
+
+  // Apply position filter
+  if (selectedPosition.value) {
+    filteredPlayers = filteredPlayers.filter((player) => {
+      const pos = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" }[
+        player.element_type
+      ];
+      return pos === selectedPosition.value;
+    });
+  }
+
+  // Compute scores
+  let scoredPlayers = computeScores(filteredPlayers);
+
+  // Apply sorting
+  switch (sortBy.value) {
+    case "form":
+      scoredPlayers.sort((a, b) => Number(b.form) - Number(a.form));
+      break;
+    case "cost":
+      scoredPlayers.sort((a, b) => Number(b.now_cost) - Number(a.now_cost));
+      break;
+    case "score":
+    default:
+      // Already sorted by score from computeScores
+      break;
+  }
+
+  return scoredPlayers;
+});
 
 const getPreview = async (playerData) => {
-  // console.log("playerData", playerData)
-  selectedPlayerData.value = playerData
-  // console.log(playerData.value)
-  let currentPlayer = extractPlayerSummary(playerData)
-  console.log("playerData", currentPlayer)
-  caption.value = await getInstaCaption(playerData) || ""
-  console.log("caption", caption.value)
-}
+  // Clear any existing cache first
+  await clearBrowserCache();
+
+  selectedPlayerData.value = playerData;
+  let currentPlayer = extractPlayerSummary(playerData);
+  console.log("playerData", currentPlayer);
+
+  // Reset the player card to ensure clean state
+  await nextTick();
+
+  caption.value = (await getInstaCaption(playerData)) || "";
+
+  // Force a fresh load of images
+  await nextTick();
+  const previewEl = document.querySelector("#my-node");
+  if (previewEl) {
+    const images = previewEl.getElementsByTagName("img");
+    for (let img of images) {
+      const currentSrc = img.src;
+      img.src = currentSrc + "?t=" + Date.now();
+    }
+  }
+};
 
 const getTeamInfo = (id, teamsData) => {
-
   if (!id || !teamsData) return;
 
   const teams = toRaw(unref(teamsData));
@@ -83,7 +214,7 @@ const getTeamInfo = (id, teamsData) => {
 
 function extractPlayerSummary(player) {
   if (!player) return null;
-  const team = getTeamInfo(player.team_code, data.value.teams)
+  const team = getTeamInfo(player.team_code, data.value.teams);
 
   return {
     // Basic Info
@@ -91,7 +222,7 @@ function extractPlayerSummary(player) {
     name: player.web_name,
     full_name: player.first_name + " " + player.second_name,
     team: team?.name || "",
-    position: player.__pos || '',
+    position: player.__pos || "",
 
     // FPL Core
     total_points: player.total_points,
@@ -126,76 +257,167 @@ function extractPlayerSummary(player) {
 
 const getInstaCaption = async (playerData) => {
   player.value = await $fetch(`/api/players/${playerData.id}`);
-  playerData.upcoming = player?.value.fixtures.slice(0, 5)
-  const res = await $fetch('/api/get-response', {
-    method: 'POST',
+  playerData.upcoming = player?.value.fixtures.slice(0, 5);
+  const res = await $fetch("/api/get-response", {
+    method: "POST",
     body: JSON.stringify({ prompt: playerData }),
-    headers: { 'Content-Type': 'application/json' }
+    headers: { "Content-Type": "application/json" },
   });
   console.log("caption", res);
   return res.output;
+};
+
+const isPosting = ref(false);
+const postButtonText = ref("Schedule Insta Post");
+const statusMessage = ref(null);
+
+const showMessage = (text, type = "success") => {
+  statusMessage.value = { text, type };
+  setTimeout(() => {
+    statusMessage.value = null;
+  }, 3000);
+};
+
+const clearBrowserCache = async () => {
+  if ("caches" in window) {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    } catch (err) {
+      console.error("Error clearing cache:", err);
+    }
+  }
 };
 
 const schedulePost = async () => {
   let captureEl = document.querySelector("#my-node");
 
   if (!captureEl) {
-    console.error("Player card element not found");
+    showMessage("Player card element not found", "error");
     return;
   }
 
-  const playerName = selectedPlayerData.value && selectedPlayerData.value.web_name
-    ? selectedPlayerData.value.web_name.replace(/\s+/g, "_").toLowerCase()
-    : "player";
-  const fileName = `${playerName}-${Date.now()}.png`;
+  try {
+    isPosting.value = true;
+    postButtonText.value = "Converting Image...";
 
-  const blob = await convertImage(captureEl)
-  const public_url = await uploadToCloudinary(blob, fileName)
+    // Clear any existing cache first
+    await clearBrowserCache();
 
-  const res = sendImageToWebhook(caption.value, public_url)
+    // Force reload images
+    const images = captureEl.getElementsByTagName("img");
+    for (let img of images) {
+      const currentSrc = img.src;
+      img.src = currentSrc + "?t=" + Date.now();
+    }
 
-  return res
-}
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const playerName = selectedPlayerData.value?.web_name
+      ? selectedPlayerData.value.web_name.replace(/\s+/g, "_").toLowerCase()
+      : "player";
+    const fileName = `${playerName}-${Date.now()}.png`;
+
+    const blob = await convertImage(captureEl);
+    if (!blob) {
+      throw new Error("Failed to generate image");
+    }
+
+    postButtonText.value = "Uploading to Cloudinary...";
+    const public_url = await uploadToCloudinary(blob, fileName);
+
+    postButtonText.value = "Scheduling Post...";
+    await sendImageToWebhook(caption.value, public_url);
+
+    showMessage("Post scheduled successfully!");
+
+    // Clear cache again after successful post
+    await clearBrowserCache();
+  } catch (error) {
+    console.error("Schedule post error:", error);
+    showMessage(error.message || "Failed to schedule post", "error");
+  } finally {
+    isPosting.value = false;
+    postButtonText.value = "Schedule Insta Post";
+  }
+};
+
+// Update sendImageToWebhook to remove alert
+const sendImageToWebhook = async (caption, image_url) => {
+  const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
+
+  try {
+    const params = new URLSearchParams({ caption, image_url }).toString();
+    let url = `${webhookUrl}?${params}`;
+    await $fetch(url, { method: "GET" });
+  } catch (error) {
+    console.log(error);
+    throw new Error("Failed to send to make.com");
+  }
+};
 
 const convertImage = async (elementToCapture) => {
-  // First, convert external images to use our proxy
-  await convertExternalImagesToProxy(elementToCapture);
-
-  // Wait a bit more to ensure DOM is fully updated
-  await new Promise(resolve => setTimeout(resolve, 200));
-
-  let dataUrl;
   try {
-    dataUrl = await toPng(elementToCapture, {
+    // Add cache busting to image URLs
+    const images = elementToCapture.getElementsByTagName("img");
+    const imagePromises = Array.from(images).map((img) => {
+      if (img.complete) return Promise.resolve();
+      img.src = img.src + "?t=" + Date.now();
+      return new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+    });
+
+    await Promise.all(imagePromises);
+
+    // Then convert external images to proxy
+    await convertExternalImagesToProxy(elementToCapture);
+
+    // Additional safety delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const dataUrl = await toPng(elementToCapture, {
       canvasWidth: 1080,
       canvasHeight: 1080,
-      pixelRatio: 1,
+      pixelRatio: 2,
+      cacheBust: true,
       useCORS: true,
       allowTaint: false,
-      backgroundColor: '#000000',
+      backgroundColor: "#000000",
       style: {
-        'transform': 'none',
-        'overflow': 'hidden',
-        'width': '1080px',
-        'height': '1080px',
-        'position': 'absolute',
-        'top': '0',
-        'left': '0'
+        transform: "none",
+        overflow: "hidden",
+        width: "1080px",
+        height: "1080px",
+        position: "absolute",
+        top: "0",
+        left: "0",
       },
       filter: (node) => {
-        if (node.tagName === 'IMG') {
-          console.log('📷 Capturing image:', node.src);
+        if (node.tagName === "IMG") {
+          console.log("📷 Capturing image:", node.src);
+          // Ensure image is loaded
+          if (!node.complete) {
+            console.warn("Image not loaded:", node.src);
+          }
         }
         return true;
-      }
+      },
+      cacheBust: true, // Add cache busting to prevent image caching issues
     });
-  } catch (error) {
-    console.error("convert image:", error)
-  }
 
-  const blob = await (await fetch(dataUrl)).blob();
-  return blob;
-}
+    if (!dataUrl) {
+      throw new Error("Failed to generate image data URL");
+    }
+
+    const blob = await fetch(dataUrl).then((r) => r.blob());
+    return blob;
+  } catch (error) {
+    console.error("Convert image error:", error);
+    return null;
+  }
+};
 
 const uploadToCloudinary = async (blobData, fileName) => {
   const url = useRuntimeConfig().public.CLOUDINARY_UPLOAD_URL;
@@ -204,24 +426,22 @@ const uploadToCloudinary = async (blobData, fileName) => {
   const formData = new FormData();
   formData.append("file", blobData, fileName);
   formData.append("upload_preset", "fpl-preset"); // your unsigned preset name
-  formData.append("folder", "fpl-posts");           // optional
+  formData.append("folder", "fpl-posts"); // optional
 
   try {
     // Upload to Cloudinary
-    const response = await fetch(url,
-      { method: "POST", body: formData }
-    );
+    const response = await fetch(url, { method: "POST", body: formData });
 
     // Get the public URL
     const data = await response.json();
 
-    console.log("cloudinary", data)
+    console.log("cloudinary", data);
     return data.secure_url;
   } catch (error) {
-    console.error(error)
-    return error
+    console.error(error);
+    return error;
   }
-}
+};
 
 watchEffect(async () => {
   if (selectedPlayerData.value) {
@@ -229,7 +449,7 @@ watchEffect(async () => {
 
     let playerId = selectedPlayerData.value.id;
     player.value = await $fetch(`/api/players/${playerId}`);
-    teams.value = data.value.teams
+    teams.value = data.value.teams;
   }
 });
 
@@ -632,44 +852,45 @@ const getTopPlayers = (players, opts = {}) => {
 //   return { top10: top10, pairs: slimPairs };
 // }
 
-async function sendImageToWebhook(caption, image_url) {
-  const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
+// async function sendImageToWebhook(caption, image_url) {
+//   const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
 
-  try {
-    const params = new URLSearchParams({ caption, image_url }).toString();
-    let url = `${webhookUrl}?${params}`
-    // console.log(url);
-
-    const response = await $fetch(url, {
-      method: "GET",
-    });
-    alert('Sent to make.com!');
-  } catch (error) {
-    console.log(error);
-    alert('Error sending data');
-  }
-}
+//   try {
+//     const params = new URLSearchParams({ caption, image_url }).toString();
+//     let url = `${webhookUrl}?${params}`;
+//     await $fetch(url, {
+//       method: "GET",
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     throw new Error("Failed to send to make.com");
+//   }
+// }
 
 // Helper function to convert external image URLs to use our proxy
 const convertExternalImagesToProxy = async (element) => {
-  const images = element.querySelectorAll('img');
+  const images = element.querySelectorAll("img");
   const promises = [];
 
   images.forEach((img) => {
-    const src = img.src || img.getAttribute('src');
-    if (src && src.startsWith('http') && !src.startsWith(window.location.origin)) {
+    const src = img.src || img.getAttribute("src");
+    if (
+      src &&
+      src.startsWith("http") &&
+      !src.startsWith(window.location.origin)
+    ) {
       const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
 
       // Create a promise that resolves when the image loads
       const imagePromise = new Promise((resolve, reject) => {
         const newImg = new Image();
-        newImg.crossOrigin = 'anonymous';
+        newImg.crossOrigin = "anonymous";
         newImg.onload = () => {
           img.src = proxyUrl;
           resolve();
         };
         newImg.onerror = () => {
-          console.warn('Failed to load image:', proxyUrl);
+          console.warn("Failed to load image:", proxyUrl);
           resolve(); // Continue even if image fails to load
         };
         newImg.src = proxyUrl;
@@ -683,6 +904,6 @@ const convertExternalImagesToProxy = async (element) => {
   await Promise.all(promises);
 
   // Additional wait to ensure DOM is updated
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 };
 </script>
