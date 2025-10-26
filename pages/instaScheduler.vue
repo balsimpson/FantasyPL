@@ -327,7 +327,8 @@ const schedulePost = async () => {
     const public_url = await uploadToCloudinary(blob, fileName);
 
     postButtonText.value = "Scheduling Post...";
-    await sendImageToWebhook(caption.value, public_url);
+    const res = await sendImageToWebhook(caption.value, public_url);
+    console.log("res", res);
 
     showMessage("Post scheduled successfully!");
 
@@ -349,7 +350,7 @@ const sendImageToWebhook = async (caption, image_url) => {
   try {
     const params = new URLSearchParams({ caption, image_url }).toString();
     let url = `${webhookUrl}?${params}`;
-    await $fetch(url, { method: "GET" });
+    return await $fetch(url, { method: "GET" });
   } catch (error) {
     console.log(error);
     throw new Error("Failed to send to make.com");

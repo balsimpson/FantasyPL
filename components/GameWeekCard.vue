@@ -1,96 +1,155 @@
 <template>
-	<div
-		class="p-6 mx-auto mt-6 bg-gradient-to-br bg-[#4B0082] from-[#4B0082] to-[#7300c5] rounded-lg shadow-lg"
-	>
-		<div class="flex flex-col items-center justify-center mb-4">
-			<h2 class="pr-3 text-2xl font-bold text-purple-200">
-				{{ gameweek.name }}
-			</h2>
+  <section
+    class="p-5 mx-4 mt-6 bg-gradient-to-br from-[#4B0082] to-[#7300c5] rounded-lg shadow-lg"
+  >
+    <div class="grid items-center grid-cols-1 gap-6 md:grid-cols-3">
+      <!-- Left player -->
+      <div class="flex items-center justify-center md:justify-start">
+        <div class="relative w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44">
+          <img
+            :src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${gameweek.mostCaptainedPlayerCode}.png`"
+            :alt="`Most captained player: ${gameweek.mostCaptained}`"
+            class="object-contain w-full h-full rounded-md"
+            loading="lazy"
+            @error="(e) => handleImageError(e, gameweek.mostCaptainedPlayerCode)"
+          />
 
-			<span
-				v-if="gameweek.is_previous"
-				class="px-3 py-1 text-sm font-semibold text-red-800 bg-red-100 rounded-full"
-				>Previous</span
-			>
-			<span
-				v-if="gameweek.is_current"
-				class="px-3 py-1 text-sm font-semibold text-teal-800 bg-teal-200 rounded-full"
-				>Current</span
-			>
-			<span
-				v-if="gameweek.is_next"
-				class="px-3 py-1 text-sm font-semibold text-orange-800 bg-orange-100 rounded-full"
-				>Next</span
-			>
-		</div>
-		<div class="flex items-center justify-between max-w-md mx-auto mb-6">
-			<div class="">
-				<h3 class="text-xs uppercase text-slate-200">Transfers</h3>
-				<div class="text-sm font-semibold text-slate-200">
-					{{ shortenNumber(gameweek.transfers_made) }}
-				</div>
-			</div>
-			<div class="text-right">
-				<h3 class="text-xs uppercase text-slate-200">Deadline</h3>
-				<div class="text-sm font-semibold text-slate-200">
-					{{ getRemainingTime(gameweek.deadline_time) }}
-				</div>
-			</div>
-		</div>
+          <div class="absolute inset-0 flex items-end justify-center pointer-events-none">
+            <div class="px-3 py-2 mb-2 text-center rounded-lg bg-white/80 backdrop-blur-sm">
+              <div class="text-xs font-semibold sm:text-sm text-slate-700">Most Captained</div>
+              <div class="text-base font-bold leading-tight sm:text-xl text-slate-900">
+                {{ gameweek.mostCaptained }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-		<!-- {{ gameweek.mostCaptainedTeam }} -->
+      <!-- Center content -->
+      <div class="text-center">
+        <div class="flex flex-col items-center justify-center space-y-2">
+          <h2 class="text-lg font-extrabold tracking-tight text-purple-100 md:text-2xl lg:text-3xl">
+            {{ gameweek.name }}
+          </h2>
+          <span
+            v-if="gameweek.is_current"
+            class="px-3 py-1 text-xs font-semibold text-teal-800 bg-teal-200 rounded-full md:text-sm"
+          >
+            Current
+          </span>
+        </div>
 
-		<div
-			class="flex flex-col items-start justify-between space-y-8 text-purple-200 md:space-y-0 md:flex-row md:gap-x-12"
-		>
-			<div class="flex justify-between w-full max-w-md mx-auto">
-				<div class="leading-5">
-					<h3 class="text-xs uppercase text-slate-200">Most Captained</h3>
-					<div class="font-semibold">
-						{{ gameweek.mostCaptained }}
-					</div>
-					<div class="italic text-slate-300">
-						{{ gameweek.mostCaptainedTeam.name }}
-					</div>
-				</div>
+        <div class="mt-4">
+          <h3 class="text-sm tracking-wide uppercase md:text-lg text-slate-200">Transfers</h3>
+          <div class="mt-1 text-2xl font-semibold md:text-3xl text-slate-100">
+            {{ shortenNumber(gameweek.transfers_made) }}
+          </div>
+        </div>
 
-				<div class="leading-5 text-right">
-					<h3 class="text-xs uppercase text-slate-200">Most Vice Captained</h3>
-					<div class="font-semibold">
-						{{ gameweek.mostViceCaptained }}
-					</div>
-					<div class="italic text-slate-300">
-						{{ gameweek.mostViceCaptainedTeam.name }}
-					</div>
-				</div>
-			</div>
-		</div>
+        <div class="mt-4">
+          <h3 class="text-sm tracking-wide uppercase md:text-lg text-slate-200">Deadline</h3>
+          <div class="mt-1 text-2xl font-semibold md:text-3xl text-slate-100">
+            {{ getRemainingTime(gameweek.deadline_time) }}
+          </div>
+        </div>
 
-		<div
-			v-if="gameweek.chip_plays && gameweek.chip_plays.length > 0"
-			class="w-full max-w-md mx-auto mt-4 md:max-w-md"
-		>
-			<h3 class="mb-2 text-lg font-semibold text-center text-purple-300">
-				Chip Usage
-			</h3>
-			<div class="flex flex-wrap justify-center gap-2">
-				<span
-					v-for="chip in gameweek.chip_plays"
-					:key="chip.chip_name"
-					class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded"
-				>
-					{{ chip.chip_name }}: {{ shortenNumber(chip.num_played) }}
-				</span>
-			</div>
-		</div>
-	</div>
+        <!-- Chip usage (centered, wraps) -->
+        <div
+          v-if="gameweek.chip_plays && gameweek.chip_plays.length"
+          class="max-w-md mx-auto mt-4"
+        >
+          <h4 class="mb-2 text-sm font-semibold text-center text-purple-200">Chip Usage</h4>
+          <div class="flex flex-wrap justify-center gap-2">
+            <span
+              v-for="chip in gameweek.chip_plays"
+              :key="chip.chip_name"
+              class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded"
+            >
+              {{ chip.chip_name }}: {{ shortenNumber(chip.num_played) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right player (vice) -->
+      <div class="flex items-center justify-center md:justify-end">
+        <div class="relative w-28 h-28 md:w-36 md:h-36 lg:w-44 lg:h-44">
+          <img
+            :src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${gameweek.mostViceCaptainedPlayerCode}.png`"
+            :alt="`Most vice-captained player: ${gameweek.mostViceCaptained}`"
+            class="object-contain w-full h-full rounded-md"
+            loading="lazy"
+            @error="(e) => handleImageError(e, gameweek.mostViceCaptainedPlayerCode)"
+          />
+
+          <div class="absolute inset-0 flex items-end justify-center pointer-events-none">
+            <div class="px-3 py-2 mb-2 text-center rounded-lg bg-white/80 backdrop-blur-sm">
+              <div class="text-sm font-semibold text-slate-700">Most Vice Captained</div>
+              <div class="text-lg font-bold leading-tight md:text-2xl text-slate-900">
+                {{ gameweek.mostViceCaptained }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
-	const props = defineProps({
-		gameweek: {
-			type: Object,
-			required: true,
-		},
-	});
+const props = defineProps({
+  gameweek: {
+    type: Object,
+    required: true,
+  },
+});
+
+/**
+ * Fallback handler keeps logic out of template and allows reuse.
+ * When remote 250x250 fails, try the smaller 110x140 and slightly scale.
+ */
+function handleImageError(e, code) {
+  const img = e.target;
+  img.onerror = null;
+  img.src = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`;
+  // keep image contained but visually stronger on small fallback
+  img.style.transform = "scale(1.6)";
+  img.style.objectFit = "contain";
+}
+
+/**
+ * Simple helpers — replace with your existing utilities if present.
+ */
+function shortenNumber(n) {
+  if (n === null || n === undefined) return "-";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
+  return String(n);
+}
+
+function getRemainingTime(deadline) {
+  // if you already have a humanized function, use that.
+  if (!deadline) return "-";
+  const now = Date.now();
+  const then = new Date(deadline).getTime();
+  if (isNaN(then)) return deadline;
+  const diff = then - now;
+  if (diff <= 0) return "Passed";
+  const hrs = Math.floor(diff / (1000 * 60 * 60));
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hrs > 24) {
+    const days = Math.floor(hrs / 24);
+    return `${days}d ${hrs % 24}h`;
+  }
+  return `${hrs}h ${mins}m`;
+}
 </script>
+
+<style scoped>
+/* tiny visual tweak for stronger drop shadow if you want */
+img {
+  filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.45));
+  transform-origin: center;
+  transition: transform 160ms ease;
+}
+</style>

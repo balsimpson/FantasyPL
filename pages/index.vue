@@ -1,5 +1,5 @@
 <template>
-	<div class="p-3 mx-auto w-full max-w-7xl">
+	<div class="w-full p-3 mx-auto max-w-7xl">
 		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
 
 		<div
@@ -16,7 +16,7 @@
 			</div>
 
 			<!-- FPL Manager Stats -->
-			<div class="overflow-hidden mx-auto w-full rounded-xl">
+			<div class="w-full mx-auto overflow-hidden rounded-xl">
 				<div class="p-4">
 					<div class="sm:max-w-lg">
 						<h1 class="text-4xl font-bold tracking-tight text-gray-900">
@@ -29,7 +29,7 @@
 					</div>
 
 					<form>
-						<div class="flex gap-x-4 mt-1">
+						<div class="flex mt-1 gap-x-4">
 							<label for="manager-id" class="sr-only">Manager ID</label>
 							<input
 								v-model="managerID"
@@ -81,8 +81,8 @@
 
 		<div v-if="bootstrap && bootstrap.elements" class="mt-12 space-y-12">
 			<!-- Most Selected -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-6 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-6">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -99,13 +99,13 @@
 						:key="item.id"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Most Transferred In -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-6 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-6">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -122,13 +122,13 @@
 						:key="item.id"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Most Transferred Out -->
-			<div class="mt-4 w-full max-w-7xl">
-				<div class="mb-6 max-w-3xl">
+			<div class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-6">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -145,13 +145,13 @@
 						:key="item.id"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Top Forwards -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-2 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-2">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -164,13 +164,13 @@
 						:key="item"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Top Midfielders -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-2 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-2">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -183,13 +183,13 @@
 						:key="item"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Top Defenders -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-2 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-2">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -202,13 +202,13 @@
 						:key="item"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
 			<!-- Top Goalkeepers -->
-			<div v-if="bootstrap && bootstrap.elements" class="mt-4 w-full max-w-7xl">
-				<div class="mb-2 max-w-3xl">
+			<div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
+				<div class="max-w-3xl mb-2">
 					<h1
 						class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 					>
@@ -221,7 +221,7 @@
 						:key="item"
 						:player="item"
 						:data="bootstrap.teams"
-						class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+						class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
 					/>
 				</AppCarousel>
 			</div>
@@ -283,6 +283,12 @@
 					most_vice_captained_team,
 					bootstrap.value
 				);
+
+				// Add player and team codes for images
+				currentWeek.mostCaptainedPlayerCode = most_captained.code;
+				currentWeek.mostCaptainedTeamCode = currentWeek.mostCaptainedTeam.code;
+				currentWeek.mostViceCaptainedPlayerCode = most_vice_captained.code;
+				currentWeek.mostViceCaptainedTeamCode = currentWeek.mostViceCaptainedTeam.code;
 
 				return currentWeek;
 			}
