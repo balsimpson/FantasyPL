@@ -1,7 +1,5 @@
 <template>
   <div class="p-4 mx-auto max-w-7xl">
-
-
     <div class="mb-6 space-y-4">
       <!-- Search and filters -->
       <div class="flex flex-wrap gap-4">
@@ -105,6 +103,13 @@
         />
       </div>
     </div>
+
+
+    <div v-if="data">
+      <InstaPlayerComparison :player1="selectPairsOnly(data.players).FWD[2].a" :player2="selectPairsOnly(data.players).FWD[2].b" :data="data"/>
+    </div>
+    <!-- <pre v-if="data">iyuiyui{{ data }}</pre> -->
+    <!-- <pre>{{ data.teams }}</pre> -->
   </div>
 </template>
 
@@ -256,15 +261,19 @@ function extractPlayerSummary(player) {
 }
 
 const getInstaCaption = async (playerData) => {
-  player.value = await $fetch(`/api/players/${playerData.id}`);
-  playerData.upcoming = player?.value.fixtures.slice(0, 5);
-  const res = await $fetch("/api/get-response", {
-    method: "POST",
-    body: JSON.stringify({ prompt: playerData }),
-    headers: { "Content-Type": "application/json" },
-  });
-  console.log("caption", res);
-  return res.output;
+  try {
+    player.value = await $fetch(`/api/players/${playerData.id}`);
+    playerData.upcoming = player?.value.fixtures.slice(0, 5);
+    const res = await $fetch("/api/get-response", {
+      method: "POST",
+      body: JSON.stringify({ prompt: playerData }),
+      headers: { "Content-Type": "application/json" },
+    });
+    console.log("caption", res);
+    return res.output;
+  } catch (error) {
+    console.log("getInstaCaption: Error - ", error);
+  }
 };
 
 const isPosting = ref(false);
@@ -453,6 +462,211 @@ watchEffect(async () => {
     teams.value = data.value.teams;
   }
 });
+
+// Usage: const pairs = selectPairsOnly(playersArray, { minMinutes: 270, minChance: 75, costBand: 1, maxPairsPerPos: 4 });
+
+function selectPairsOnly(players, opts = {}) {
+  const cfg = {
+    minMinutes: 270,
+    minChance: 75,
+    costBand: 1,
+    maxPairsPerPos: 4,
+    ...opts,
+  };
+
+  const pos = (p) =>
+    ({ 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" }[p.element_type] || "MID");
+  const num = (v) =>
+    v == null || v === "" ? 0 : typeof v === "number" ? v : parseFloat(v);
+  const inv = (v) => 1 - v;
+
+  const fieldsByPos = {
+    PAIRS_FWD: [
+      "goals_scored",
+      "assists",
+      "expected_goals",
+      "expected_goal_involvements",
+      "form",
+      "now_cost",
+    ],
+    PAIRS_MID: [
+      "goals_scored",
+      "assists",
+      "expected_goal_involvements",
+      "creativity",
+      "form",
+      "now_cost",
+    ],
+    PAIRS_DEF: [
+      "clean_sheets",
+      "tackles",
+      "clearances_blocks_interceptions",
+      "threat",
+      "form",
+      "now_cost",
+    ],
+    PAIRS_GK: [
+      "clean_sheets",
+      "saves",
+      "goals_conceded_per_90",
+      "form",
+      "now_cost",
+    ],
+  };
+
+  // Filter availability / minutes
+  const pool = players.filter(
+    (p) =>
+      p &&
+      p.status === "a" &&
+      num(p.minutes) >= cfg.minMinutes &&
+      (p.chance_of_playing_next_round == null ||
+        num(p.chance_of_playing_next_round) >= cfg.minChance)
+  );
+
+  // Build normalization ranges per metric (min-max) from pool
+  const allFields = new Set();
+  Object.values(fieldsByPos)
+    .flat()
+    .forEach((f) => allFields.add(f));
+  allFields.add("selected_by_percent");
+  const ranges = {};
+  for (const f of allFields) {
+    const arr = pool.map((p) => num(p[f]));
+    const min = Math.min(...arr);
+    const max = Math.max(...arr);
+    ranges[f] = { min, span: max - min || 1 };
+  }
+  const norm = (f, v) => (num(v) - ranges[f].min) / ranges[f].span;
+
+  // Vector for pair comparison
+  function vecForPairs(p) {
+    const position = pos(p);
+    const key = {
+      FWD: "PAIRS_FWD",
+      MID: "PAIRS_MID",
+      DEF: "PAIRS_DEF",
+      GK: "PAIRS_GK",
+    }[position];
+    const ks = fieldsByPos[key];
+    return ks.map((k) =>
+      k === "goals_conceded_per_90" ? inv(norm(k, p[k])) : norm(k, p[k])
+    );
+  }
+
+  // group by position
+  const scored = pool.map((p) => ({
+    ...p,
+    __pos: pos(p),
+    __cost: num(p.now_cost),
+  }));
+  const byPos = {
+    FWD: scored.filter((p) => p.__pos === "FWD"),
+    MID: scored.filter((p) => p.__pos === "MID"),
+    DEF: scored.filter((p) => p.__pos === "DEF"),
+    GK: scored.filter((p) => p.__pos === "GK"),
+  };
+
+  function cosineDist(a, b) {
+    let dot = 0,
+      na = 0,
+      nb = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      na += a[i] * a[i];
+      nb += b[i] * b[i];
+    }
+    const denom = Math.sqrt(na) * Math.sqrt(nb) || 1;
+    return 1 - dot / denom;
+  }
+
+  function contrastFactor(p, q) {
+    const keys = [
+      "goals_scored",
+      "assists",
+      "expected_goal_involvements",
+      "tackles",
+      "clean_sheets",
+      "saves",
+      "threat",
+      "creativity",
+    ];
+    let c = 0;
+    for (const k of keys) {
+      if (!(k in p) || !(k in q)) continue;
+      const diff = Math.abs(norm(k, p[k]) - norm(k, q[k]));
+      c = Math.max(c, diff);
+    }
+    return c;
+  }
+
+  function makePairs(list) {
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i],
+          b = list[j];
+        if (Math.abs(a.__cost - b.__cost) > cfg.costBand) continue;
+        const va = vecForPairs(a),
+          vb = vecForPairs(b);
+        const dist = cosineDist(va, vb);
+        const availability =
+          Math.min(
+            a.chance_of_playing_next_round ?? 100,
+            b.chance_of_playing_next_round ?? 100
+          ) / 100;
+        const contrast = contrastFactor(a, b);
+        const ownershipGap =
+          Math.abs(num(a.selected_by_percent) - num(b.selected_by_percent)) /
+          100;
+        const pairScore =
+          (1 - dist) * (0.6 * contrast + 0.4 * ownershipGap) * availability;
+        out.push({ a, b, dist, contrast, ownershipGap, pairScore });
+      }
+    }
+    out.sort((x, y) => y.pairScore - x.pairScore);
+    return out.slice(0, cfg.maxPairsPerPos);
+  }
+
+  const pairsRaw = {
+    FWD: makePairs(byPos.FWD),
+    MID: makePairs(byPos.MID),
+    DEF: makePairs(byPos.DEF),
+    GK: makePairs(byPos.GK),
+  };
+
+  // Slim payload
+  const pairs = Object.fromEntries(
+    Object.entries(pairsRaw).map(([k, arr]) => [
+      k,
+      arr.map(({ a, b, pairScore, contrast, ownershipGap }) => ({
+        // a: {
+        //   id: a.id,
+        //   name: a.web_name,
+        //   cost: a.__cost,
+        //   sel: num(a.selected_by_percent),
+        //   ppg: num(a.points_per_game),
+        //   form: num(a.form),
+        // },
+        // b: {
+        //   id: b.id,
+        //   name: b.web_name,
+        //   cost: b.__cost,
+        //   sel: num(b.selected_by_percent),
+        //   ppg: num(b.points_per_game),
+        //   form: num(b.form),
+        // },
+        a: a,
+        b: b,
+        pairScore: +pairScore.toFixed(4),
+        contrast: +contrast.toFixed(3),
+        ownershipGap: +ownershipGap.toFixed(3),
+      })),
+    ])
+  );
+
+  return pairs;
+}
 
 // FPL ranking + comparison pairs
 // Usage: const { top10, pairs } = selectTopAndPairs(playersArray, { topN: 10 });

@@ -1,24 +1,27 @@
 <template>
 	<div class="w-full p-3 mx-auto max-w-7xl">
-		<GameWeekCard v-if="bootstrap" :gameweek="currentGameweek" />
+		<GameWeekCardNew v-if="bootstrap" :gameweek="currentGameweek" />
 
-		<div
-			class="flex flex-col mt-3 bg-indigo-200 rounded-xl md:flex-row md:items-center sm:gap-x-4"
+		<div  v-if="bootstrap" 
+			class="flex flex-col items-center justify-center mt-3 bg-indigo-200 rounded-xl md:flex-row md:items-center sm:gap-x-4"
 		>
-			<div class="p-4">
-				<div class="text-2xl text-center">
+			<div class="w-full p-4">
+				<div class="pb-3 text-2xl leading-5 text-center">
 					<span class="font-semibold"
-						><span class="text-purple-600">{{ nextGameweek.name }}</span>
-						deadline</span
-					>
+						>
+						<span class="text-purple-600">{{ nextGameweek.name }}</span>
+						<span class="font-bold uppercase">
+							deadline
+						</span>
+						</span>
 				</div>
 				<CountdownTimer :targetDate="nextGameweek.deadline_time" />
 			</div>
 
 			<!-- FPL Manager Stats -->
 			<div class="w-full mx-auto overflow-hidden rounded-xl">
-				<div class="p-4">
-					<div class="sm:max-w-lg">
+				<div class="w-full p-4 mx-auto text-center md:text-left">
+					<div class="mx-auto sm:max-w-lg md:mx-0">
 						<h1 class="text-4xl font-bold tracking-tight text-gray-900">
 							Check Manager Stats
 						</h1>
@@ -28,14 +31,14 @@
 						</p>
 					</div>
 
-					<form>
-						<div class="flex mt-1 gap-x-4">
+					<form class="">
+						<div class="flex justify-center mt-1 gap-x-4 md:justify-normal">
 							<label for="manager-id" class="sr-only">Manager ID</label>
 							<input
 								v-model="managerID"
 								id="manager-id"
 								autocomplete="true"
-								class="flex-auto px-3.5 py-2 min-w-0 rounded-md border ring-1 ring-inset shadow-sm ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+								class="flex-auto px-3.5 py-2 min-w-0 rounded-md border ring-1 ring-inset shadow-sm ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 max-w-md"
 								placeholder="Enter Manager ID"
 							/>
 							<button
@@ -60,7 +63,7 @@
   </div>
 
 		<!-- section to display options when the user picks the position and specifies a budget with a slider -->
-		<RecommendedPlayers />
+		<!-- <RecommendedPlayers /> -->
 		<!-- </div> -->
 
 		<!-- upcoming fixtures -->
@@ -329,8 +332,10 @@
 			managerID.value = savedManagerId;
 		}
 
-		allPlayers.value = bootstrap.value.elements;
-		allTeams.value = bootstrap.value.teams;
+		if (bootstrap.value) {
+			allPlayers.value = bootstrap.value.elements;
+			allTeams.value = bootstrap.value.teams;
+		}
 	});
 
 	const playerId = '596047'

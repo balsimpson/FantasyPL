@@ -5,7 +5,7 @@
     <div class="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-16">
       <div class="flex flex-wrap items-baseline justify-center">
         <span class="mt-2 text-sm font-light text-gray-500">
-          Copyright © FPL Insights - 2024
+          Copyright © FPL Insights - 2025
         </span>
       </div>
     </div>

@@ -36,7 +36,15 @@ Rules:
 • Highlight one or two main angles (randomly): form streak, transfer trend, price value, fixture challenge, or differential potential.
 • Vary structure and emoji placement each time — some captions open with stats, others with opinion or question.
 • Keep it concise, engaging, and tailored for Instagram.
-• Include hashtags like #FantasyPremierLeague #FPL #FPLCommunity #FPLTips.
+• Use 2–3 from each relevant category below for hashtags (randomly chosen):
+  - Core FPL tags: #FPL #FantasyPremierLeague #FPLCommunity #FPLTips  
+  - Gameweek tags: #GameweekXX #FPLGWXX #FPLCaptain #FPLTeam  
+  - Club/player tags: use team name or player-specific ones (e.g., #Liverpool #Salah #ManCity #Haaland)  
+  • Contextual tags (optional):  
+  - For good form: #OnFire 🔥 #InForm #HotStreak  
+  - For bargains: #Differential #FPLBargain #HiddenGem  
+  - For tough fixtures: #FixtureChallenge #RiskReward #FPLWatchlist  
+  - For transfers: #FPLTransfers #FPLIN #FPLOUT  
 • Return only the caption text.`;
 
 export default defineEventHandler(async (event) => {

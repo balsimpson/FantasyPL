@@ -417,6 +417,7 @@ export async function getPlayerInfoDetails(id: number) {
 		const BASE_URL = "https://fantasy.premierleague.com/api/element-summary";
 		const url = `${BASE_URL}/${id}/`;
 		const response = await $fetch(url);
+		// console.log("getPlayerInfoDetails", response);
 		return response;
 	} catch (error) {
 		console.error("Error getPlayerInfoDetails:", error);

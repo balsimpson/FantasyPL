@@ -1,118 +1,15 @@
 <template>
-	<div>{{ playerData }}</div>
-
 	<div
-		v-if="playerData"
+		
 		class="flex flex-col items-center w-full max-w-xl p-3 mx-auto bg-gray-300 rounded-lg sm:flex-row"
 	>
-		<div class="z-10 flex-grow w-full sm:w-auto">
-			<!-- <pre>{{ playerData }}</pre> -->
-			<div class="flex flex-col order-1 p-3 sm:order-1">
-				<div class="flex items-center justify-between">
-					<h2 class="w-full text-2xl font-bold leading-5">
-						{{ playerData.first_name }} {{ playerData.second_name }}
-					</h2>
-					<div class="text-4xl font-black text-slate-500">
-						{{ playerData.now_cost / 10 }}<span class="text-slate-400">m</span>
-					</div>
-				</div>
-				<div class="flex items-center justify-between mb-3 leading-3">
-					<!-- cards issued -->
-					<div class="flex items-center">
-						<img
-							:src="`https://resources.premierleague.com/premierleague/badges/t${playerData.team_code}.png`"
-							alt=""
-							class="w-8 pr-1 sm:z-0 sm:top-1 sm:right-1 bottom-1"
-						/>
-
-						<div class="pr-3 leading-5">
-							<div class="text-sm font-semibold">
-								{{ playerData.teamData.name }}
-							</div>
-							<div class="text-xs uppercase text-slate-500">
-								{{ elementType }}
-							</div>
-						</div>
-					</div>
-					<section v-if="playerData.yellow_cards > 0 || playerData.red_cards > 0">
-						<!-- <div class="mt-2 text-sm font-semibold">Cards</div> -->
-						<div class="flex items-center">
-							<div v-if="playerData.yellow_cards > 0" class="flex items-center">
-								<div v-for="item in playerData.yellow_cards" :key="item">
-									<div
-										class="w-4 h-6 mr-1 bg-yellow-400"
-										:title="`${playerData.yellow_cards} Yellow Card${
-											playerData.yellow_cards > 1 ? 's' : ''
-										}`"
-									></div>
-								</div>
-							</div>
-							<div v-if="playerData.red_cards > 0" class="flex items-center">
-								<div v-for="item in playerData.red_cards" :key="item">
-									<div
-										class="w-4 h-6 mr-1 bg-yellow-400"
-										:title="`${playerData.red_cards} Yellow Card${
-											playerData.red_cards > 1 ? 's' : ''
-										}`"
-									></div>
-								</div>
-							</div>
-						</div>
-					</section>
-				</div>
-
-				<!-- transfers -->
-				<div class="w-full">
-					<ComparisonBar
-						:comparison="{
-							label: 'Transfers',
-							homeWidth: inPercentage,
-							homeTitle: 'In',
-							homeValue: shortenNumber(playerData.transfers_in_event),
-							awayWidth: outPercentage,
-							awayTitle: 'Out',
-							awayValue: shortenNumber(playerData.transfers_out_event),
-						}"
-					/>
-
-					<button
-						@click.prevent="addToWatchlist(playerData)"
-						class="flex items-center justify-center w-full px-8 py-3 mt-2 text-base font-medium text-white bg-purple-600 border border-transparent rounded-md sm:mt-10 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke-width="1.5"
-							stroke="currentColor"
-							class="size-6"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-							/>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-							/>
-						</svg>
-
-						<span class="pl-2">{{
-							isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"
-						}}</span>
-					</button>
-				</div>
-			</div>
-		</div>
 
 		<div class="relative z-0 flex justify-center w-full sm:w-auto">
 			<!-- image -->
 			<img
-				:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${playerData.code}.png`"
+				:src="`https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`"
 				class="object-cover w-auto h-44 sm:h-auto sm:z-20 sm:w-auto"
-				:alt="playerData.web_name"
+				:alt="player.web_name"
 			/>
 
 			<div
@@ -122,62 +19,116 @@
 					<div class="text-xs text-right uppercase">
 						<div class="opacity-50">Points</div>
 						<div class="font-semibold lowercase">
-							{{ playerData.total_points }}
+							{{ player.total_points }}
 						</div>
 					</div>
 
 					<div class="text-xs text-left uppercase">
 						<div class="opacity-50">Goals</div>
 						<div class="font-semibold lowercase">
-							{{ playerData.goals_scored }}
+							{{ player.goals_scored }}
 						</div>
 					</div>
 				</div>
 				<div class="flex justify-between pt-1">
 					<div class="text-xs text-left uppercase">
 						<div class="opacity-50">Played</div>
-						<div class="font-semibold lowercase">{{ playerData.minutes }} min</div>
+						<div class="font-semibold lowercase">{{ player.minutes }} min</div>
 					</div>
-					<!-- <div class="text-xs text-center uppercase">
+					<div class="text-xs text-center uppercase">
 							<div class="opacity-50">Form</div>
 							<div
 								class="font-semibold lowercase"
-								:class="['form-value', getFormCategory(player.form)]"
+								:class="['form-value']"
 							>
 								{{ player.form }}
 							</div>
-						</div> -->
+						</div>
 					<div class="text-xs text-right uppercase">
 						<div class="opacity-50">Selected by</div>
 						<div class="font-semibold lowercase">
-							{{ playerData.selected_by_percent }}%
+							{{ player.selected_by_percent }}%
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<!-- <div class="flex items-center max-w-2xl mx-auto">
-			<div>
-				<img
-					:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`"
-					class="object-cover h-auto sm:z-20"
-				/>
-			</div>
+		<div class="flex items-center max-w-2xl mx-auto mt-5">
 			<div class="ml-3">
 				<div class="text-2xl font-bold leading-6">
-					{{ player.first_name }} {{ player.second_name }}
+					{{ playerFullName }}
 				</div>
-				<div>{{ player.teamData.name }}</div>
-				<div>{{ getPositionName(player.element_type) }}</div>
-				<div>{{ player.minutes }} minutes</div>
-				<div>{{ player.total_points }} points</div>
-				<div>{{ player.transfers_in_event }} In</div>
-				<div>{{ player.transfers_out_event }} Out</div>
-				<div>{{ player.value_season }} Value</div>
-				<div>#{{ player.ict_index_rank }}</div>
+
+
+									<div class="flex items-center justify-between my-3 leading-3">
+						<!-- cards issued -->
+						<div class="flex items-center">
+							<img
+								:src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
+								alt=""
+								class="w-12 pr-1 bottom-1 sm:z-0 sm:top-1 sm:right-1"
+							/>
+
+							<div class="pr-3 leading-5">
+								<div class="text-sm font-semibold">{{ player.teamData?.name || 'N/A' }}</div>
+								<div class="text-xs uppercase text-slate-500">
+									{{ elementType }}
+								</div>
+							</div>
+						</div>
+						<section v-if="player.yellow_cards > 0 || player.red_cards > 0">
+							<!-- <div class="mt-2 text-sm font-semibold">Cards</div> -->
+							<div class="flex items-center">
+								<div
+									v-if="player.yellow_cards > 0"
+									class="w-4 h-6 mr-1 bg-yellow-400"
+									:title="`${player.yellow_cards} Yellow Card${
+										player.yellow_cards > 1 ? 's' : ''
+									}`"
+								/>
+								<div
+									v-if="player.red_cards > 0"
+									class="w-4 h-6 bg-red-600 rounded-[2px]"
+									:title="`${player.red_cards} Red Card${
+										player.red_cards > 1 ? 's' : ''
+									}`"
+								/>
+								<span
+									v-if="player.yellow_cards === 0 && player.red_cards === 0"
+									class="text-sm"
+								>
+									None
+								</span>
+							</div>
+						</section>
+					</div>
+
+				
+				<div class="w-full mb-3">
+						<ComparisonBar
+							:comparison="{
+								label: 'Transfers',
+								homeWidth: inPercentage,
+								homeTitle: 'In',
+								homeValue: shortenNumber(player.transfers_in_event),
+								awayWidth: outPercentage,
+								awayTitle: 'Out',
+								awayValue: shortenNumber(player.transfers_out_event),
+							}"
+						/>
+					</div>
+
+				<div class="flex justify-between">
+					<span>Season Value:</span>
+					<span class="font-semibold">{{ player.value_season }}</span>
+				</div>
+				<div class="flex justify-between">
+					<span>ICT Index Rank:</span>
+					<span class="font-semibold">#{{ player.ict_index_rank }}</span>
+				</div>
 			</div>
-		</div> -->
+		</div>
 	</div>
 </template>
 
@@ -227,27 +178,15 @@
 	const playerData = computed(() => {
 		if (bootstrap.value) {
 			const selectedPlayer = bootstrap.value.elements.find((player) => player.id == id);
-			props.player.teamData = bootstrap.value.teams.find(
-				(team) => team.id == props.player.team
-			);
+			
 
-			return player ? player : "";
+			return selectedPlayer ? selectedPlayer : "No player data";
 		}
 
 		return null;
 	});
 
 	onMounted(() => {
-		const savedList = localStorage.getItem("savedWatchlist") ?? "";
-		let list = JSON.parse(savedList);
-		console.log(list.length);
-
-		if (savedList) {
-			savedWatchlist.value = list;
-			if (savedWatchlist.value.includes(props.player.code)) {
-				isOnWatchlist.value = true;
-			}
-		}
 	});
 
 	const elementTypeMap = {
@@ -259,5 +198,9 @@
 
 	const elementType = computed(
 		() => elementTypeMap[props.player.element_type] || "Unknown"
+	);
+
+	const playerFullName = computed(
+		() => `${props.player.first_name} ${props.player.second_name}`
 	);
 </script>

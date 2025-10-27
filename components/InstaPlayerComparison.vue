@@ -5,19 +5,19 @@
 		<!-- Background container to prevent artifacts -->
 		<!-- <div class="absolute inset-0 text-gray-800 bg-gray-200 bg-gradient-to-t from-gray-200 to-gray-400"></div> -->
 		
-		<div class="flex relative z-10 gap-4 justify-between items-center h-full">
+		<div class="relative z-10 flex items-center justify-between h-full gap-4 px-16 pt-16">
 			<!-- Player 1 section -->
 			<div class="relative w-1/2 h-full">
-				<div class="relative z-50 p-5 text-left">
+				<div class="relative z-50 p-8 text-left">
 					<h2 class="text-6xl font-bold">{{ player1.web_name }}</h2>
 					<div class="flex items-center mt-6 space-x-2">
 						<img
 							:src="`https://resources.premierleague.com/premierleague/badges/t${player1.team_code}.png`"
 							:alt="player1.web_name"
-							class="mr-3 w-24"
+							class="w-24 mr-3"
 						/>
 						<div>
-							<p class="text-3xl">{{ team1.name }}</p>
+							<p class="text-3xl">{{ teamName1 }}</p>
 							<p class="text-4xl font-bold">{{ elementType1 }}</p>
 						</div>
 					</div>
@@ -36,9 +36,9 @@
 			<div class="relative w-1/2 h-full">
 				<div class="relative z-20 p-5 text-right">
 					<h2 class="text-6xl font-bold">{{ player2.web_name }}</h2>
-					<div class="flex justify-end items-center mt-6 space-x-2">
+					<div class="flex items-center justify-end mt-6 space-x-2">
 						<div class="pr-3">
-							<p class="text-3xl">{{ team2.name }}</p>
+							<p class="text-3xl">{{ teamName2 }}</p>
 							<p class="text-4xl font-bold">{{ elementType2 }}</p>
 						</div>
 						<img
@@ -60,9 +60,9 @@
 		</div>
 
 		<div class="absolute left-0 right-0 top-[20%] z-20  max-w-md mx-auto space-y-4">
-			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+			<div class="p-2 mx-auto rounded-lg w-min bg-white/30">
 				<h2 class="text-4xl font-bold text-center">Cost</h2>
-				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
+				<div class="flex items-center justify-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -85,9 +85,9 @@
 					</p>
 				</div>
 			</div>
-			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+			<div class="p-2 mx-auto rounded-lg w-min bg-white/30">
 				<h2 class="pb-2 text-4xl font-bold text-center">Played</h2>
-				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
+				<div class="flex items-center justify-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -111,9 +111,9 @@
 					</p>
 				</div>
 			</div>
-			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+			<div class="p-2 mx-auto rounded-lg w-min bg-white/30">
 				<h2 class="pb-2 text-4xl font-bold text-center">Form</h2>
-				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
+				<div class="flex items-center justify-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -132,9 +132,9 @@
 					</p>
 				</div>
 			</div>
-			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+			<div class="p-2 mx-auto rounded-lg w-min bg-white/30">
 				<h2 class="pb-2 text-4xl font-bold text-center">Points</h2>
-				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
+				<div class="flex items-center justify-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -157,9 +157,9 @@
 					</p>
 				</div>
 			</div>
-			<div class="p-2 mx-auto w-min rounded-lg bg-white/30">
+			<div class="p-2 mx-auto rounded-lg w-min bg-white/30">
 				<h2 class="pb-2 text-4xl font-bold text-center">Selected by</h2>
-				<div class="flex justify-center items-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
+				<div class="flex items-center justify-center px-4 py-2 mx-auto space-x-4 w-min rounded-xl bg-white/70">
 					<p
 						class="text-6xl font-bold"
 						:class="[
@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-	const props = defineProps(["player1", "player2", "team1", "team2"]);
+	const props = defineProps(["player1", "player2", "data"]);
 
 	const totalTransfers1 = computed(
 		() => props.player1.transfers_in_event + props.player1.transfers_out_event
@@ -198,6 +198,15 @@
 	const totalTransfers2 = computed(
 		() => props.player2.transfers_in_event + props.player2.transfers_out_event
 	);
+
+	const teamName1 = computed(() => {
+		const team = props.data.teams.find((team) => team.id === props.player1.team);
+		return team ? team.name : "Unknown Team";
+	});
+	const teamName2 = computed(() => {
+		const team = props.data.teams.find((team) => team.id === props.player2.team);
+		return team ? team.name : "Unknown Team";
+	});
 
 	const elementTypeMap = {
 		1: "Goalkeeper",
