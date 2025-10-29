@@ -31,7 +31,7 @@
         </select>
       </div>
     </div>
-
+  
     <div>Players</div>
 
     <AppCarousel>
@@ -75,7 +75,7 @@
         <div
           v-if="statusMessage"
           :class="[
-            'fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white max-w-sm',
+            'fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white max-w-sm z-100',
             statusMessage.type === 'error' ? 'bg-red-500' : 'bg-green-500',
           ]"
         >
@@ -105,11 +105,44 @@
     </div>
 
 
-    <div v-if="data">
-      <InstaPlayerComparison :player1="selectPairsOnly(data.players).FWD[2].a" :player2="selectPairsOnly(data.players).FWD[2].b" :data="data"/>
+    <div class="mt-8">
+      <h2 class="text-2xl font-bold">Player Comparisons</h2>
+      <AppCarousel>
+        <SchedulerPlayerComparisonCard
+          v-for="(pair, index) in comparisonPairs"
+          :key="index"
+          :player1="pair.a"
+          :player2="pair.b"
+          :data="data"
+          class="flex-shrink-0 w-[42rem] h-96 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
+          @selected="getComparisonPreview(pair)"
+        />
+      </AppCarousel>
     </div>
-    <!-- <pre v-if="data">iyuiyui{{ data }}</pre> -->
-    <!-- <pre>{{ data.teams }}</pre> -->
+
+    <div class="flex flex-col items-center justify-center">
+        <button
+            v-if="selectedComparisonData"
+            @click="scheduleComparisonPost"
+            :disabled="isComparisonPosting"
+            class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
+        >
+            {{ postComparisonButtonText }}
+            <div
+            v-if="isComparisonPosting"
+            class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
+            >
+            <div
+                class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
+            ></div>
+            </div>
+        </button>
+
+        <div v-if="selectedComparisonData" class="w-full overflow-x-auto">
+            <InstaPlayerComparison :player1="selectedComparisonData.a" :player2="selectedComparisonData.b" :data="data" id="player-comparison"/>
+        </div>
+    </div>
+
   </div>
 </template>
 
@@ -126,6 +159,7 @@ const { data } = await useLazyAsyncData("bootstrap", () =>
 const player = ref(null);
 const caption = ref("");
 const selectedPlayerData = ref();
+const selectedComparisonData = ref();
 const teams = ref([]);
 
 const searchQuery = ref("");
@@ -178,10 +212,18 @@ const recommendedPlayersNew = computed(() => {
   return scoredPlayers;
 });
 
+const comparisonPairs = computed(() => {
+  if (!data.value?.players) return [];
+  const pairsByPosition = selectPairsOnly(data.value.players);
+  // Flatten the pairs from all positions into a single array
+  return Object.values(pairsByPosition).flat();
+});
+
 const getPreview = async (playerData) => {
   // Clear any existing cache first
   await clearBrowserCache();
 
+  selectedComparisonData.value = null;
   selectedPlayerData.value = playerData;
   let currentPlayer = extractPlayerSummary(playerData);
   console.log("playerData", currentPlayer);
@@ -194,6 +236,31 @@ const getPreview = async (playerData) => {
   // Force a fresh load of images
   await nextTick();
   const previewEl = document.querySelector("#my-node");
+  if (previewEl) {
+    const images = previewEl.getElementsByTagName("img");
+    for (let img of images) {
+      const currentSrc = img.src;
+      img.src = currentSrc + "?t=" + Date.now();
+    }
+  }
+};
+
+const getComparisonPreview = async (pair) => {
+  // Clear any existing cache first
+  await clearBrowserCache();
+
+  selectedPlayerData.value = null;
+  selectedComparisonData.value = pair;
+  console.log("pair", pair);
+
+  // Reset the player card to ensure clean state
+  await nextTick();
+
+  caption.value = (await getInstaComparisonCaption(pair)) || "";
+
+  // Force a fresh load of images
+  await nextTick();
+  const previewEl = document.querySelector("#player-comparison");
   if (previewEl) {
     const images = previewEl.getElementsByTagName("img");
     for (let img of images) {
@@ -276,8 +343,24 @@ const getInstaCaption = async (playerData) => {
   }
 };
 
+const getInstaComparisonCaption = async (pair) => {
+  try {
+    const res = await $fetch("/api/get-response", {
+      method: "POST",
+      body: JSON.stringify({ prompt: `Write an instagram caption comparing two football players for fantasy football. Player 1: ${pair.a.web_name}. Player 2: ${pair.b.web_name}. Here is the data for player 1: ${JSON.stringify(extractPlayerSummary(pair.a))}. Here is the data for player 2: ${JSON.stringify(extractPlayerSummary(pair.b))}` }),
+      headers: { "Content-Type": "application/json" },
+    });
+    console.log("caption", res);
+    return res.output;
+  } catch (error) {
+    console.log("getInstaComparisonCaption: Error - ", error);
+  }
+};
+
 const isPosting = ref(false);
+const isComparisonPosting = ref(false);
 const postButtonText = ref("Schedule Insta Post");
+const postComparisonButtonText = ref("Schedule ComparisonInsta Post");
 const statusMessage = ref(null);
 
 const showMessage = (text, type = "success") => {
@@ -352,6 +435,60 @@ const schedulePost = async () => {
   }
 };
 
+const scheduleComparisonPost = async () => {
+  let captureEl = document.querySelector("#player-comparison");
+
+  if (!captureEl) {
+    showMessage("Player card element not found", "error");
+    return;
+  }
+
+  try {
+    isComparisonPosting.value = true;
+    postComparisonButtonText.value = "Converting Image...";
+
+    // Clear any existing cache first
+    await clearBrowserCache();
+
+    // Force reload images
+    const images = captureEl.getElementsByTagName("img");
+    for (let img of images) {
+      const currentSrc = img.src;
+      img.src = currentSrc + "?t=" + Date.now();
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const comparisonName = selectedComparisonData.value?.a.web_name && selectedComparisonData.value?.b.web_name
+      ? `${selectedComparisonData.value.a.web_name}_vs_${selectedComparisonData.value.b.web_name}`.replace(/\s+/g, "_").toLowerCase()
+      : "comparison";
+    const fileName = `${comparisonName}-${Date.now()}.png`;
+
+    const blob = await convertImage(captureEl);
+    if (!blob) {
+      throw new Error("Failed to generate image");
+    }
+
+    postComparisonButtonText.value = "Uploading to Cloudinary...";
+    const public_url = await uploadToCloudinary(blob, fileName);
+
+    postComparisonButtonText.value = "Scheduling Post...";
+    const res = await sendImageToWebhook(caption.value, public_url);
+    console.log("res", res);
+
+    showMessage("Post scheduled successfully!");
+
+    // Clear cache again after successful post
+    await clearBrowserCache();
+  } catch (error) {
+    console.error("Schedule post error:", error);
+    showMessage(error.message || "Failed to schedule post", "error");
+  } finally {
+    isComparisonPosting.value = false;
+    postComparisonButtonText.value = "Schedule Comparison Insta Post";
+  }
+};
+
 // Update sendImageToWebhook to remove alert
 const sendImageToWebhook = async (caption, image_url) => {
   const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
@@ -414,6 +551,9 @@ const convertImage = async (elementToCapture) => {
         }
         return true;
       },
+      fetchRequest: {
+        cache: 'no-store'
+      },
       cacheBust: true, // Add cache busting to prevent image caching issues
     });
 
@@ -469,8 +609,19 @@ function selectPairsOnly(players, opts = {}) {
   const cfg = {
     minMinutes: 270,
     minChance: 75,
-    costBand: 1,
+    costBand: 1, // absolute band in price units (change to percent if you prefer)
     maxPairsPerPos: 4,
+    allowSameTeam: false,
+    preferComplementary: false, // if true, reward contrast more; if false, reward similarity more
+    weights: {
+      similarity: 0.35,
+      contrast: 0.25,
+      individualQuality: 0.25, // average of forms/ppg
+      ownershipGap: 0.10,
+      availability: 0.05,
+    },
+    winsorPct: 0.02, // clip extremes at 2%
+    minRangeSpanFallback: 1,
     ...opts,
   };
 
@@ -481,40 +632,13 @@ function selectPairsOnly(players, opts = {}) {
   const inv = (v) => 1 - v;
 
   const fieldsByPos = {
-    PAIRS_FWD: [
-      "goals_scored",
-      "assists",
-      "expected_goals",
-      "expected_goal_involvements",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_MID: [
-      "goals_scored",
-      "assists",
-      "expected_goal_involvements",
-      "creativity",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_DEF: [
-      "clean_sheets",
-      "tackles",
-      "clearances_blocks_interceptions",
-      "threat",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_GK: [
-      "clean_sheets",
-      "saves",
-      "goals_conceded_per_90",
-      "form",
-      "now_cost",
-    ],
+    PAIRS_FWD: ["goals_scored", "assists", "expected_goals", "expected_goal_involvements", "form", "now_cost", "points_per_game"],
+    PAIRS_MID: ["goals_scored", "assists", "expected_goal_involvements", "creativity", "form", "now_cost", "points_per_game"],
+    PAIRS_DEF: ["clean_sheets", "tackles", "clearances_blocks_interceptions", "threat", "form", "now_cost", "points_per_game"],
+    PAIRS_GK: ["clean_sheets", "saves", "goals_conceded_per_90", "form", "now_cost", "points_per_game"],
   };
 
-  // Filter availability / minutes
+  // 1) availability & minutes filter
   const pool = players.filter(
     (p) =>
       p &&
@@ -524,110 +648,165 @@ function selectPairsOnly(players, opts = {}) {
         num(p.chance_of_playing_next_round) >= cfg.minChance)
   );
 
-  // Build normalization ranges per metric (min-max) from pool
+  // 2) get fields list & compute robust min/max (winsorized)
   const allFields = new Set();
-  Object.values(fieldsByPos)
-    .flat()
-    .forEach((f) => allFields.add(f));
+  Object.values(fieldsByPos).flat().forEach((f) => allFields.add(f));
   allFields.add("selected_by_percent");
+  allFields.add("form");
+  allFields.add("points_per_game");
+
+  // helper to compute winsorized min/max
+  function winsorizeVals(arr, pct) {
+    const sorted = arr.slice().sort((a, b) => a - b);
+    const n = sorted.length;
+    if (n === 0) return { min: 0, max: 1 };
+    const loIdx = Math.floor(n * pct);
+    const hiIdx = Math.ceil(n * (1 - pct)) - 1;
+    const min = sorted[loIdx];
+    const max = sorted[hiIdx];
+    return { min, max };
+  }
+
   const ranges = {};
   for (const f of allFields) {
     const arr = pool.map((p) => num(p[f]));
-    const min = Math.min(...arr);
-    const max = Math.max(...arr);
-    ranges[f] = { min, span: max - min || 1 };
+    const { min, max } = winsorizeVals(arr, cfg.winsorPct);
+    const span = (max - min) || cfg.minRangeSpanFallback;
+    ranges[f] = { min, span };
   }
   const norm = (f, v) => (num(v) - ranges[f].min) / ranges[f].span;
 
-  // Vector for pair comparison
+  // 3) vector builder (mix of metrics + ppg/form)
   function vecForPairs(p) {
     const position = pos(p);
-    const key = {
-      FWD: "PAIRS_FWD",
-      MID: "PAIRS_MID",
-      DEF: "PAIRS_DEF",
-      GK: "PAIRS_GK",
-    }[position];
+    const key = { FWD: "PAIRS_FWD", MID: "PAIRS_MID", DEF: "PAIRS_DEF", GK: "PAIRS_GK" }[position];
     const ks = fieldsByPos[key];
-    return ks.map((k) =>
-      k === "goals_conceded_per_90" ? inv(norm(k, p[k])) : norm(k, p[k])
-    );
+    return ks.map((k) => {
+      if (k === "goals_conceded_per_90") return inv(norm(k, p[k]));
+      return norm(k, p[k]);
+    });
   }
 
-  // group by position
-  const scored = pool.map((p) => ({
-    ...p,
-    __pos: pos(p),
-    __cost: num(p.now_cost),
-  }));
-  const byPos = {
-    FWD: scored.filter((p) => p.__pos === "FWD"),
-    MID: scored.filter((p) => p.__pos === "MID"),
-    DEF: scored.filter((p) => p.__pos === "DEF"),
-    GK: scored.filter((p) => p.__pos === "GK"),
-  };
-
-  function cosineDist(a, b) {
-    let dot = 0,
-      na = 0,
-      nb = 0;
+  // 4) helper distance & similarity
+  function cosineSimilarity(a, b) {
+    let dot = 0, na = 0, nb = 0;
     for (let i = 0; i < a.length; i++) {
       dot += a[i] * b[i];
       na += a[i] * a[i];
       nb += b[i] * b[i];
     }
     const denom = Math.sqrt(na) * Math.sqrt(nb) || 1;
-    return 1 - dot / denom;
+    return dot / denom; // similarity in [-1..1] but mostly [0..1]
   }
+  function cosineDist(a, b) { return 1 - cosineSimilarity(a, b); }
 
+  // 5) contrast factor (complementarity)
+  const contrastKeys = ["goals_scored", "assists", "expected_goal_involvements", "tackles", "clean_sheets", "saves", "threat", "creativity", "points_per_game"];
   function contrastFactor(p, q) {
-    const keys = [
-      "goals_scored",
-      "assists",
-      "expected_goal_involvements",
-      "tackles",
-      "clean_sheets",
-      "saves",
-      "threat",
-      "creativity",
-    ];
-    let c = 0;
-    for (const k of keys) {
+    let maxDiff = 0;
+    for (const k of contrastKeys) {
       if (!(k in p) || !(k in q)) continue;
       const diff = Math.abs(norm(k, p[k]) - norm(k, q[k]));
-      c = Math.max(c, diff);
+      maxDiff = Math.max(maxDiff, diff);
     }
-    return c;
+    return maxDiff; // 0..1
   }
 
+  // 6) build scored lists per pos
+  const scored = pool.map((p) => ({
+    ...p,
+    __pos: pos(p),
+    __cost: num(p.now_cost),
+    __vec: vecForPairs(p),
+    __form: norm("form", p.form || 0),
+    __ppg: norm("points_per_game", p.points_per_game || 0),
+    __sel: num(p.selected_by_percent || 0) / 100,
+  }));
+
+  const byPos = { FWD: [], MID: [], DEF: [], GK: [] };
+  for (const p of scored) byPos[p.__pos].push(p);
+
+  // optional: sort within pos by quality to speed pairing
+  for (const k of Object.keys(byPos)) {
+    byPos[k].sort((a, b) => (b.__form + b.__ppg) - (a.__form + a.__ppg));
+  }
+
+  // 7) scoring function for a pair
+  function scorePair(a, b) {
+    // similarity (higher=closer), contrast (higher=more complementary)
+    const sim = cosineSimilarity(a.__vec, b.__vec); // typo safe check below
+  }
+
+  // 7b) implement makePairs with configurable formula
   function makePairs(list) {
     const out = [];
     for (let i = 0; i < list.length; i++) {
       for (let j = i + 1; j < list.length; j++) {
-        const a = list[i],
-          b = list[j];
-        if (Math.abs(a.__cost - b.__cost) > cfg.costBand) continue;
-        const va = vecForPairs(a),
-          vb = vecForPairs(b);
-        const dist = cosineDist(va, vb);
-        const availability =
-          Math.min(
-            a.chance_of_playing_next_round ?? 100,
-            b.chance_of_playing_next_round ?? 100
-          ) / 100;
+        const a = list[i], b = list[j];
+
+        // cost band (allow relative band based on avg cost if cfg.costBand < 1 treat as fraction)
+        if (cfg.costBand >= 1) {
+          if (Math.abs(a.__cost - b.__cost) > cfg.costBand) continue;
+        } else {
+          const avg = (a.__cost + b.__cost) / 2 || 1;
+          if (Math.abs(a.__cost - b.__cost) / avg > cfg.costBand) continue;
+        }
+
+        // same team penalty / skip
+        if (!cfg.allowSameTeam && a.team && b.team && a.team === b.team) continue;
+
+        const sim = cosineSimilarity(a.__vec, b.__vec);
+        const dist = 1 - sim;
         const contrast = contrastFactor(a, b);
-        const ownershipGap =
-          Math.abs(num(a.selected_by_percent) - num(b.selected_by_percent)) /
-          100;
-        const pairScore =
-          (1 - dist) * (0.6 * contrast + 0.4 * ownershipGap) * availability;
-        out.push({ a, b, dist, contrast, ownershipGap, pairScore });
+        const availability = Math.min(
+          a.chance_of_playing_next_round ?? 100,
+          b.chance_of_playing_next_round ?? 100
+        ) / 100;
+
+        // individual quality = average of normalized form and ppg (you can change weights)
+        const individualQuality = (a.__form + a.__ppg + b.__form + b.__ppg) / 4;
+
+        // ownership gap (big gap -> differential interest)
+        const ownershipGap = Math.abs(a.__sel - b.__sel);
+
+        // choose whether we reward similarity or contrast (complementary)
+        const simComponent = cfg.preferComplementary ? (1 - contrast) : sim;
+        // final composite (tunable weights)
+        const w = cfg.weights;
+        const comp =
+          w.similarity * simComponent +
+          w.contrast * contrast +
+          w.individualQuality * individualQuality +
+          w.ownershipGap * ownershipGap +
+          w.availability * availability;
+
+        out.push({
+          a, b, sim, dist, contrast, ownershipGap, pairScore: comp,
+        });
       }
     }
+
+    // sort & dedupe top results
     out.sort((x, y) => y.pairScore - x.pairScore);
-    return out.slice(0, cfg.maxPairsPerPos);
+
+    // ensure diversity: avoid repeating same player across multiple top pairs if requested
+    const selected = [];
+    const used = new Set();
+    for (const p of out) {
+      if (selected.length >= cfg.maxPairsPerPos) break;
+      const idA = p.a.id ?? p.a.code ?? p.a.web_name;
+      const idB = p.b.id ?? p.b.code ?? p.b.web_name;
+      // crude de-duplication: avoid reusing a player twice in final set
+      if (used.has(idA) || used.has(idB)) continue;
+      selected.push(p);
+      used.add(idA);
+      used.add(idB);
+    }
+
+    return selected;
   }
 
+  // run for each pos
   const pairsRaw = {
     FWD: makePairs(byPos.FWD),
     MID: makePairs(byPos.MID),
@@ -635,31 +814,15 @@ function selectPairsOnly(players, opts = {}) {
     GK: makePairs(byPos.GK),
   };
 
-  // Slim payload
+  // slim payload (keep original objects but add meta)
   const pairs = Object.fromEntries(
     Object.entries(pairsRaw).map(([k, arr]) => [
       k,
-      arr.map(({ a, b, pairScore, contrast, ownershipGap }) => ({
-        // a: {
-        //   id: a.id,
-        //   name: a.web_name,
-        //   cost: a.__cost,
-        //   sel: num(a.selected_by_percent),
-        //   ppg: num(a.points_per_game),
-        //   form: num(a.form),
-        // },
-        // b: {
-        //   id: b.id,
-        //   name: b.web_name,
-        //   cost: b.__cost,
-        //   sel: num(b.selected_by_percent),
-        //   ppg: num(b.points_per_game),
-        //   form: num(b.form),
-        // },
-        a: a,
-        b: b,
+      arr.map(({ a, b, pairScore, contrast, ownershipGap, sim }) => ({
+        a, b,
         pairScore: +pairScore.toFixed(4),
         contrast: +contrast.toFixed(3),
+        sim: +sim.toFixed(3),
         ownershipGap: +ownershipGap.toFixed(3),
       })),
     ])
@@ -667,422 +830,6 @@ function selectPairsOnly(players, opts = {}) {
 
   return pairs;
 }
-
-// FPL ranking + comparison pairs
-// Usage: const { top10, pairs } = selectTopAndPairs(playersArray, { topN: 10 });
-
-const getTopPlayers = (players, opts = {}) => {
-  const cfg = {
-    topN: 10,
-    minMinutes: 270,
-    minChance: 75,
-    lambdaValue: 0.1, // value boost weight
-    costBand: 1, // max cost diff for pairs (FPL units)
-    maxPairsPerPos: 4,
-    ...opts,
-  };
-
-  // -------- helpers --------
-  const pos = (p) =>
-    ({ 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" }[p.element_type] || "MID");
-  const num = (v) =>
-    v == null || v === "" ? 0 : typeof v === "number" ? v : parseFloat(v);
-  const inv = (v) => 1 - v; // for metrics where lower is better
-
-  const fieldsByPos = {
-    FWD: [
-      "goals_scored",
-      "assists",
-      "expected_goals",
-      "expected_goal_involvements",
-      "form",
-      "bonus",
-    ],
-    MID: [
-      "goals_scored",
-      "assists",
-      "expected_goal_involvements",
-      "creativity",
-      "form",
-      "clean_sheets",
-      "bonus",
-    ],
-    DEF: [
-      "clean_sheets",
-      "tackles",
-      "clearances_blocks_interceptions",
-      "threat",
-      "form",
-      "bonus",
-    ],
-    GK: ["clean_sheets", "saves", "goals_conceded_per_90", "form"],
-    VALUE: ["points_per_game", "now_cost"],
-    PAIRS_FWD: [
-      "goals_scored",
-      "assists",
-      "expected_goals",
-      "expected_goal_involvements",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_MID: [
-      "goals_scored",
-      "assists",
-      "expected_goal_involvements",
-      "creativity",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_DEF: [
-      "clean_sheets",
-      "tackles",
-      "clearances_blocks_interceptions",
-      "threat",
-      "form",
-      "now_cost",
-    ],
-    PAIRS_GK: [
-      "clean_sheets",
-      "saves",
-      "goals_conceded_per_90",
-      "form",
-      "now_cost",
-    ],
-  };
-
-  const weights = {
-    FWD: {
-      goals_scored: 0.45,
-      assists: 0.2,
-      expected_goals: 0.15,
-      expected_goal_involvements: 0.1,
-      form: 0.05,
-      bonus: 0.05,
-    },
-    MID: {
-      goals_scored: 0.35,
-      assists: 0.25,
-      expected_goal_involvements: 0.2,
-      creativity: 0.1,
-      form: 0.05,
-      clean_sheets: 0.05,
-    },
-    DEF: {
-      clean_sheets: 0.35,
-      tackles: 0.2,
-      clearances_blocks_interceptions: 0.15,
-      threat: 0.15,
-      form: 0.15,
-      bonus: 0,
-    },
-    GK: { clean_sheets: 0.5, saves: 0.3, form: 0.2 },
-  };
-
-  // Filter availability/ minutes
-  const pool = players.filter(
-    (p) =>
-      p &&
-      p.status === "a" &&
-      num(p.minutes) >= cfg.minMinutes &&
-      (p.chance_of_playing_next_round == null ||
-        num(p.chance_of_playing_next_round) >= cfg.minChance)
-  );
-
-  // Build normalization ranges per metric (min-max)
-  const allFields = new Set([
-    ...fieldsByPos.FWD,
-    ...fieldsByPos.MID,
-    ...fieldsByPos.DEF,
-    ...fieldsByPos.GK,
-    ...fieldsByPos.VALUE,
-    "selected_by_percent",
-  ]);
-  const ranges = {};
-  for (const f of allFields) {
-    let arr = pool.map((p) => num(p[f]));
-    // invert list for conceded per 90 later; keep raw now
-    const min = Math.min(...arr);
-    const max = Math.max(...arr);
-    ranges[f] = { min, max, span: max - min || 1 };
-  }
-
-  const norm = (f, v) => (num(v) - ranges[f].min) / ranges[f].span;
-
-  // Scoring per player
-  function scorePlayer(p) {
-    const position = pos(p);
-    const W = weights[position];
-    let s = 0;
-
-    // normalized metrics (handle inverted ones)
-    const n = (key) =>
-      key === "goals_conceded_per_90"
-        ? inv(norm(key, num(p[key])))
-        : norm(key, num(p[key]));
-
-    for (const k of Object.keys(W)) s += (W[k] || 0) * n(k);
-
-    // availability multiplier
-    const chance =
-      p.chance_of_playing_next_round != null
-        ? num(p.chance_of_playing_next_round) / 100
-        : 1;
-    s *= chance;
-
-    // value boost: points_per_game / now_cost (then min-max via VALUE fields)
-    const vRaw = (num(p.points_per_game) || 0) / (num(p.now_cost) || 1);
-    // rescale value across pool using min-max of vRaw computed on the fly
-    // quick pass: approximate by using normalized PPG minus normalized cost
-    const valueScore = Math.max(
-      0,
-      norm("points_per_game", p.points_per_game) - norm("now_cost", p.now_cost)
-    );
-    s += cfg.lambdaValue * valueScore;
-
-    return s;
-  }
-
-  // Rank
-  const scored = pool.map((p) => ({
-    ...p,
-    __score: scorePlayer(p),
-    __pos: pos(p),
-    __ppg: num(p.points_per_game),
-    __form: num(p.form),
-    __cost: num(p.now_cost),
-  }));
-
-  scored.sort(
-    (a, b) =>
-      b.__score - a.__score ||
-      b.__ppg - a.__ppg ||
-      b.__form - a.__form ||
-      a.__cost - b.__cost
-  );
-
-  const top10 = scored.slice(0, cfg.topN);
-
-  return top10;
-};
-
-// function selectTopAndPairs(players, opts = {}) {
-//   const cfg = {
-//     topN: 10,
-//     minMinutes: 270,
-//     minChance: 75,
-//     lambdaValue: 0.1,           // value boost weight
-//     costBand: 1,                // max cost diff for pairs (FPL units)
-//     maxPairsPerPos: 4,
-//     ...opts,
-//   };
-
-//   // -------- helpers --------
-//   const pos = p => ({1:'GK',2:'DEF',3:'MID',4:'FWD'}[p.element_type] || 'MID');
-//   const num = v => (v == null || v === '' ? 0 : typeof v === 'number' ? v : parseFloat(v));
-//   const inv = v => 1 - v; // for metrics where lower is better
-
-//   const fieldsByPos = {
-//     FWD: ['goals_scored','assists','expected_goals','expected_goal_involvements','form','bonus'],
-//     MID: ['goals_scored','assists','expected_goal_involvements','creativity','form','clean_sheets','bonus'],
-//     DEF: ['clean_sheets','tackles','clearances_blocks_interceptions','threat','form','bonus'],
-//     GK:  ['clean_sheets','saves','goals_conceded_per_90','form'],
-//     VALUE: ['points_per_game','now_cost'],
-//     PAIRS_FWD: ['goals_scored','assists','expected_goals','expected_goal_involvements','form','now_cost'],
-//     PAIRS_MID: ['goals_scored','assists','expected_goal_involvements','creativity','form','now_cost'],
-//     PAIRS_DEF: ['clean_sheets','tackles','clearances_blocks_interceptions','threat','form','now_cost'],
-//     PAIRS_GK:  ['clean_sheets','saves','goals_conceded_per_90','form','now_cost'],
-//   };
-
-//   const weights = {
-//     FWD: { goals_scored:.45, assists:.2, expected_goals:.15, expected_goal_involvements:.1, form:.05, bonus:.05 },
-//     MID: { goals_scored:.35, assists:.25, expected_goal_involvements:.2, creativity:.1, form:.05, clean_sheets:.05 },
-//     DEF: { clean_sheets:.35, tackles:.2, clearances_blocks_interceptions:.15, threat:.15, form:.15, bonus:0 },
-//     GK:  { clean_sheets:.5, saves:.3, form:.2 },
-//   };
-
-//   // Filter availability/ minutes
-//   const pool = players.filter(p =>
-//     p && p.status === 'a' &&
-//     num(p.minutes) >= cfg.minMinutes &&
-//     (p.chance_of_playing_next_round == null || num(p.chance_of_playing_next_round) >= cfg.minChance)
-//   );
-
-//   // Build normalization ranges per metric (min-max)
-//   const allFields = new Set([
-//     ...fieldsByPos.FWD, ...fieldsByPos.MID, ...fieldsByPos.DEF, ...fieldsByPos.GK,
-//     ...fieldsByPos.VALUE, 'selected_by_percent'
-//   ]);
-//   const ranges = {};
-//   for (const f of allFields) {
-//     let arr = pool.map(p => num(p[f]));
-//     // invert list for conceded per 90 later; keep raw now
-//     const min = Math.min(...arr);
-//     const max = Math.max(...arr);
-//     ranges[f] = { min, max, span: max - min || 1 };
-//   }
-
-//   const norm = (f, v) => (num(v) - ranges[f].min) / ranges[f].span;
-
-//   // Scoring per player
-//   function scorePlayer(p) {
-//     const position = pos(p);
-//     const W = weights[position];
-//     let s = 0;
-
-//     // normalized metrics (handle inverted ones)
-//     const n = key => key === 'goals_conceded_per_90'
-//       ? inv(norm(key, num(p[key])))
-//       : norm(key, num(p[key]));
-
-//     for (const k of Object.keys(W)) s += (W[k] || 0) * n(k);
-
-//     // availability multiplier
-//     const chance = p.chance_of_playing_next_round != null ? num(p.chance_of_playing_next_round)/100 : 1;
-//     s *= chance;
-
-//     // value boost: points_per_game / now_cost (then min-max via VALUE fields)
-//     const vRaw = (num(p.points_per_game) || 0) / (num(p.now_cost) || 1);
-//     // rescale value across pool using min-max of vRaw computed on the fly
-//     // quick pass: approximate by using normalized PPG minus normalized cost
-//     const valueScore = Math.max(0, norm('points_per_game', p.points_per_game) - norm('now_cost', p.now_cost));
-//     s += cfg.lambdaValue * valueScore;
-
-//     return s;
-//   }
-
-//   // Rank
-//   const scored = pool.map(p => ({
-//     ...p,
-//     __score: scorePlayer(p),
-//     __pos: pos(p),
-//     __ppg: num(p.points_per_game),
-//     __form: num(p.form),
-//     __cost: num(p.now_cost),
-
-//   }));
-
-//   scored.sort((a,b) =>
-//     b.__score - a.__score ||
-//     b.__ppg - a.__ppg ||
-//     b.__form - a.__form ||
-//     a.__cost - b.__cost
-//   );
-
-//   const top10 = scored.slice(0, cfg.topN);
-// //   console.log(top10);
-
-//   // ---------- pairs ----------
-//   function vecForPairs(p) {
-//     const position = pos(p);
-//     const key = {FWD:'PAIRS_FWD', MID:'PAIRS_MID', DEF:'PAIRS_DEF', GK:'PAIRS_GK'}[position];
-//     const ks = fieldsByPos[key];
-//     return ks.map(k => k === 'goals_conceded_per_90' ? inv(norm(k, p[k])) : norm(k, p[k]));
-//   }
-
-//   const byPos = {
-//     FWD: scored.filter(p => p.__pos==='FWD'),
-//     MID: scored.filter(p => p.__pos==='MID'),
-//     DEF: scored.filter(p => p.__pos==='DEF'),
-//     GK:  scored.filter(p => p.__pos==='GK'),
-//   };
-
-//   function cosineDist(a,b){
-//     let dot=0, na=0, nb=0;
-//     for (let i=0;i<a.length;i++){ dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; }
-//     const denom = Math.sqrt(na)*Math.sqrt(nb) || 1;
-//     return 1 - (dot/denom);
-//   }
-
-//   function contrastFactor(p,q){
-//     const keys = ['goals_scored','assists','expected_goal_involvements','tackles','clean_sheets','saves','threat','creativity'];
-//     let c = 0;
-//     for (const k of keys) {
-//       if (!(k in p) || !(k in q)) continue;
-//       const diff = Math.abs(norm(k, p[k]) - norm(k, q[k]));
-//       c = Math.max(c, diff);
-//     }
-//     return c;
-//   }
-
-//   function makePairs(list){
-//     const out = [];
-//     for (let i=0;i<list.length;i++){
-//       for (let j=i+1;j<list.length;j++){
-//         const a = list[i], b = list[j];
-//         if (Math.abs(a.__cost - b.__cost) > cfg.costBand) continue;
-//         const va = vecForPairs(a), vb = vecForPairs(b);
-//         const dist = cosineDist(va, vb);
-//         const availability = Math.min(
-//           a.chance_of_playing_next_round ?? 100,
-//           b.chance_of_playing_next_round ?? 100
-//         )/100;
-//         const contrast = contrastFactor(a,b);
-//         const ownershipGap = Math.abs(num(a.selected_by_percent) - num(b.selected_by_percent))/100;
-//         const pairScore = (1 - dist) * (0.6*contrast + 0.4*ownershipGap) * availability;
-//         out.push({ a, b, dist, contrast, ownershipGap, pairScore });
-//       }
-//     }
-//     // sort by "similar but contrasting + good availability"
-//     out.sort((x,y) => y.pairScore - x.pairScore);
-//     return out.slice(0, cfg.maxPairsPerPos);
-//   }
-
-//   const pairs = {
-//     FWD: makePairs(byPos.FWD),
-//     MID: makePairs(byPos.MID),
-//     DEF: makePairs(byPos.DEF),
-//     GK:  makePairs(byPos.GK),
-//   };
-
-//   // Minimal payloads for UI
-//   const slimTop = top10.map(p => ({
-//     id: p.id,
-//     name: p.web_name,
-//     team: p.team,
-//     pos: p.__pos,
-//     cost: p.__cost,
-//     score: +p.__score.toFixed(4),
-//     ppg: p.__ppg,
-//     form: p.__form,
-//     sel: num(p.selected_by_percent),
-//     news: p.news,
-//     chance: p.chance_of_playing_next_round,
-//     transfers_in_event: num(p.transfers_in_event),
-//     transfers_out_event: num(p.transfers_out_event),
-//     birth_date: p.birth_date,
-//     yellow_cards: p.yellow_cards,
-//     red_cards: p.red_cards
-//   }));
-
-//   const slimPairs = Object.fromEntries(
-//     Object.entries(pairs).map(([k, arr]) => [k, arr.map(({a,b, pairScore, contrast, ownershipGap}) => ({
-//       a: { id:a.id, name:a.web_name, cost:a.__cost, sel:num(a.selected_by_percent), ppg:a.__ppg, form:a.__form },
-//       b: { id:b.id, name:b.web_name, cost:b.__cost, sel:num(b.selected_by_percent), ppg:b.__ppg, form:b.__form },
-//       pairScore:+pairScore.toFixed(4),
-//       contrast:+contrast.toFixed(3),
-//       ownershipGap:+ownershipGap.toFixed(3)
-//     }))])
-//   );
-
-//   return { top10: top10, pairs: slimPairs };
-// }
-
-// async function sendImageToWebhook(caption, image_url) {
-//   const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
-
-//   try {
-//     const params = new URLSearchParams({ caption, image_url }).toString();
-//     let url = `${webhookUrl}?${params}`;
-//     await $fetch(url, {
-//       method: "GET",
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     throw new Error("Failed to send to make.com");
-//   }
-// }
-
-// Helper function to convert external image URLs to use our proxy
 const convertExternalImagesToProxy = async (element) => {
   const images = element.querySelectorAll("img");
   const promises = [];

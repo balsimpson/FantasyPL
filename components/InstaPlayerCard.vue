@@ -1,7 +1,7 @@
 <template>
   <div :id="props.id">
     <div
-      class="w-[1080px] h-[1080px] aspect-square bg-gray-200  overflow-hidden bg-gradient-to-br from-gray-100 text-gray-800 to-gray-300 relative"
+      class="w-[1080px] h-[1080px] aspect-square bg-gray-200 overflow-hidden bg-gradient-to-br from-gray-100 text-gray-800 to-gray-300 relative"
     >
       <div class="absolute flex justify-between w-full px-20 pt-20">
         <!-- Player Info -->
@@ -90,14 +90,22 @@
         <!-- Image -->
         <!-- style="max-width:1000px; max-height:1000px; width:900px; height:auto;" -->
         <div class="flex items-center justify-center w-full h-full pt-3">
-		<img
-			:src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.code}.png`"
-			alt=""
-			class="object-contain scale-150"
-			style="filter: drop-shadow(0 20px 25px rgba(0,0,0,0.45)); transform-origin: center;"
-			@error="(e) => { e.target.onerror = null; e.target.src = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`; e.target.style.transform = 'scale(2.5)'; }"
-		/>
-        
+          <img
+            :src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.code}.png`"
+            alt=""
+            class="object-contain scale-150"
+            style="
+              filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.45));
+              transform-origin: center;
+            "
+            @error="
+              (e) => {
+                e.target.onerror = null;
+                e.target.src = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`;
+                e.target.style.transform = 'scale(2.5)';
+              }
+            "
+          />
         </div>
 
         <div class="absolute left-0 z-30 w-full bottom-24">
