@@ -63,6 +63,22 @@
         </div>
       </button>
 
+      <button
+        @click="automatePostCreation"
+        :disabled="isAutomating"
+        class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
+      >
+        {{ automateButtonText }}
+        <div
+          v-if="isAutomating"
+          class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
+        >
+          <div
+            class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
+          ></div>
+        </div>
+      </button>
+
       <!-- Status Message -->
       <Transition
         enter-active-class="transition duration-300 ease-out"
@@ -359,8 +375,10 @@ const getInstaComparisonCaption = async (pair) => {
 
 const isPosting = ref(false);
 const isComparisonPosting = ref(false);
+const isAutomating = ref(false);
 const postButtonText = ref("Schedule Insta Post");
 const postComparisonButtonText = ref("Schedule ComparisonInsta Post");
+const automateButtonText = ref("Automate Insta Post");
 const statusMessage = ref(null);
 
 const showMessage = (text, type = "success") => {
@@ -592,6 +610,32 @@ const uploadToCloudinary = async (blobData, fileName) => {
     return error;
   }
 };
+
+const automatePostCreation = async () => {
+  isAutomating.value = true;
+  automateButtonText.value = "Automating...";
+  try {
+    // Select a random player from the recommended players
+    if (!recommendedPlayersNew.value || recommendedPlayersNew.value.length === 0) {
+      showMessage("No players available for automation.", "error");
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * recommendedPlayersNew.value.length);
+    const playerToAutomate = recommendedPlayersNew.value[randomIndex];
+
+    // Trigger the preview and then schedule the post
+    await getPreview(playerToAutomate);
+    await schedulePost();
+    showMessage("Automated post created successfully!");
+  } catch (error) {
+    console.error("Automate post creation error:", error);
+    showMessage(error.message || "Failed to automate post creation", "error");
+  } finally {
+    isAutomating.value = false;
+    automateButtonText.value = "Automate Insta Post";
+  }
+};
+
 
 watchEffect(async () => {
   if (selectedPlayerData.value) {

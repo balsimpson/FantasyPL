@@ -82,14 +82,14 @@
       <!-- Most Selected -->
       <div v-if="bootstrap && bootstrap.elements" class="w-full mt-4 max-w-7xl">
         <div class="mb-6">
-			<div class="flex flex-col sm:flex-row sm:items-end justify-between">
+			<div class="flex flex-col justify-between sm:flex-row sm:items-end">
 				<h1
 				  class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl"
 				>
 				  Most Selected Players
 				</h1>
 
-				<div class="sm:w-64 w-full shrink-0">
+				<div class="w-full sm:w-64 shrink-0">
 				  <label class="text-sm font-medium text-gray-700 shrink-0">Sort by</label>
 				  <select
 					v-model="sortMostSelected"
@@ -307,6 +307,10 @@
 </template>
 
 <script setup>
+definePageMeta({
+  keepalive: true,
+});
+
 // const recommendedPlayers = ref([]);
 
 const allPlayers = useState("allPlayers", () => []);

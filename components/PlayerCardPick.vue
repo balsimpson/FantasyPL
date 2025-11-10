@@ -31,14 +31,14 @@
 						>
 							{{ pick.element.web_name }}
 						</p>
-						<p
+						<div
 							class="absolute top-0 z-0 px-1 py-1 text-xs font-bold text-gray-800 bg-gray-400 rounded-b left-4 right-4"
 						>
 							<!-- <div class="hidden text-xs text-gray-400 sm:visible">Predicted Points</div> -->
 							<div class="flex flex-wrap items-center justify-center mt-2 space-x-1">
 								<div v-for="item in pick.predictions" :key="item" class="px-1 text-xs bg-gray-200 rounded">{{ Math.round(item.predicted_pts.toFixed(1)) }}</div>
 							</div>
-						</p>
+						</div>
 						
 					</div>
 				</div>
@@ -63,8 +63,9 @@
 						<span class="opacity-50">x</span> {{ pick.multiplier }}
 					</div>
 				</div>
+				<!-- https://resources.premierleague.com/premierleague25/photos/players/110x140/470313.png -->
 				<img
-					:src="`https://resources.premierleague.com/premierleague/photos/players/110x140/p${pick.element.code}.png`"
+					:src="`https://resources.premierleague.com/premierleague25/photos/players/110x140/${pick.element.code}.png`"
 					class="object-cover w-full z-70 h-36"
 					:alt="pick.element.web_name"
 				/>

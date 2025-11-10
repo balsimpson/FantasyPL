@@ -25,7 +25,7 @@
 	<div v-else class="p-3">
 		<div
 			v-if="managerData"
-			class="max-w-4xl mx-auto overflow-hidden bg-white rounded-lg shadow-lg"
+			class="mx-auto overflow-hidden bg-white rounded-lg shadow-lg max-w-7xl"
 		>
 			<div class="relative py-6 overflow-hidden bg-gray-900 isolate sm:py-12">
 				<!-- <img
@@ -165,7 +165,7 @@
 			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
 				Classic Leagues
 			</h1>
-			<AppCarousel class="w-full max-w-5xl mx-auto">
+			<AppCarousel class="w-full mx-auto max-w-7xl">
 				<LeagueInfoCard
 					v-for="league in managerData?.leagues.classic"
 					:key="league.id"
@@ -176,7 +176,7 @@
 		</div>
 
 		<div
-			class="max-w-5xl pb-12 mx-auto overflow-hidden rounded-lg shadow-lg bg-gray-50"
+			class="pb-12 mx-auto overflow-hidden rounded-lg shadow-lg max-w-7xl bg-gray-50"
 		>
 			<!-- <div class="p-4 bg-gray-800">
 				<h2 class="text-lg font-semibold text-white">ManagerData Picks</h2>
@@ -335,7 +335,7 @@
 	const teamPoints = ref(0);
 
 	watchEffect(async () => {
-		if (manager.value && bootstrap.value) {
+		if (manager.value && bootstrap.value && predictions.value) {
 			picks.value = await $fetch(
 				`/api/managers/picks/?gw=${manager.value.current_event}&id=${manager.value.id}`
 			);
