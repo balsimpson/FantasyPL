@@ -24,7 +24,7 @@
               Check Manager Stats
             </h1>
             <p class="text-xl text-gray-500">
-              Check on yours or your friend's stats easily, including team and
+              Check on yours or your friend's stats, including team and
               leagues.
             </p>
           </div>
