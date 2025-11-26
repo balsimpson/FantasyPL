@@ -1,164 +1,233 @@
 <template>
-  <div class="p-4 mx-auto max-w-7xl">
-    <div class="mb-6 space-y-4">
-      <!-- Search and filters -->
-      <div class="flex flex-wrap gap-4">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search players..."
-          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        <select
-          v-model="selectedPosition"
-          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Positions</option>
-          <option value="GK">Goalkeeper</option>
-          <option value="DEF">Defender</option>
-          <option value="MID">Midfielder</option>
-          <option value="FWD">Forward</option>
-        </select>
-
-        <select
-          v-model="sortBy"
-          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="score">Sort by Score</option>
-          <option value="form">Sort by Form</option>
-          <option value="cost">Sort by Price</option>
-        </select>
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Instagram Scheduler</h1>
+        <p class="mt-2 text-gray-600">Generate and schedule Instagram posts for FPL players and comparisons.</p>
       </div>
-    </div>
-  
-    <div>Players</div>
 
-    <AppCarousel>
-      <SchedulerPlayerCard
-        v-for="item in recommendedPlayersNew"
-        :key="item"
-        :player="item"
-        :data="data.teams"
-        class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
-        @selected="getPreview($event)"
-      />
-    </AppCarousel>
+      <!-- Filters Section -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+        <div class="flex flex-wrap gap-4">
+          <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <input v-model="searchQuery" type="text" placeholder="Search players..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+          </div>
 
-    <div class="flex flex-col items-center justify-center">
-      <button
-        v-if="selectedPlayerData"
-        @click="schedulePost"
-        :disabled="isPosting"
-        class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
-      >
-        {{ postButtonText }}
-        <div
-          v-if="isPosting"
-          class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
-        >
-          <div
-            class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
-          ></div>
+          <div class="w-48">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+            <select v-model="selectedPosition"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+              <option value="">All Positions</option>
+              <option value="GK">Goalkeeper</option>
+              <option value="DEF">Defender</option>
+              <option value="MID">Midfielder</option>
+              <option value="FWD">Forward</option>
+            </select>
+          </div>
+
+          <div class="w-48">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <select v-model="sortBy"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+              <option value="score">Sort by Score</option>
+              <option value="form">Sort by Form</option>
+              <option value="cost">Sort by Price</option>
+            </select>
+          </div>
         </div>
-      </button>
+      </div>
 
-      <button
-        @click="automatePostCreation"
-        :disabled="isAutomating"
-        class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
-      >
-        {{ automateButtonText }}
-        <div
-          v-if="isAutomating"
-          class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
-        >
-          <div
-            class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
-          ></div>
+      <!-- Main Content Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Left Column: Player Selection -->
+        <div class="lg:col-span-12 space-y-12">
+
+          <!-- AI Recommendations Section -->
+          <section v-if="smartRecommendations.length > 0">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                ✨ AI Smart Picks
+                <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">Beta</span>
+              </h2>
+              <span class="text-sm text-gray-500">Curated weekly selections</span>
+            </div>
+
+            <AppCarousel class="py-4">
+              <SchedulerPlayerCard v-for="item in smartRecommendations" :key="item.id" :player="item" :data="data.teams"
+                :label="item.recommendationType"
+                class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 snap-start cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all"
+                @selected="getPreview($event)" />
+            </AppCarousel>
+          </section>
+
+          <!-- Single Player Section -->
+          <section>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-gray-900">Recommended Players</h2>
+              <span class="text-sm text-gray-500">Select a player to preview</span>
+            </div>
+
+            <AppCarousel class="py-4">
+              <SchedulerPlayerCard v-for="item in recommendedPlayersNew" :key="item.id" :player="item"
+                :data="data.teams"
+                class="flex-shrink-0 w-64 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                @selected="getPreview($event)" />
+            </AppCarousel>
+
+            <!-- Single Player Preview & Action Area -->
+            <div v-if="selectedPlayerData"
+              class="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Preview -->
+                <div class="flex flex-col items-center">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
+                  <div
+                    class="relative w-full overflow-x-auto flex justify-center bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <InstaPlayerCard :player="selectedPlayerData"
+                      :team="getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''"
+                      :upcoming="player?.fixtures.slice(0, 5)" :gameweek="data.currentGameweek"
+                      :key="selectedPlayerData.web_name" ref="playerCard" id="my-node" />
+                  </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex flex-col space-y-6">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Caption</h3>
+                    <p class="text-sm text-gray-500 mb-2">AI-generated caption for your post.</p>
+                    <div
+                      class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg min-h-[11rem] text-sm text-gray-700 whitespace-pre-wrap">
+                      {{ caption || 'Generating caption...' }}
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 pt-4 border-t border-gray-100">
+                    <button @click="schedulePost" :disabled="isPosting"
+                      class="w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm">
+                      <span v-if="isPosting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                          fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                          </circle>
+                          <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          </path>
+                        </svg>
+                        {{ postButtonText }}
+                      </span>
+                      <span v-else>Schedule Post</span>
+                    </button>
+                    <p class="text-xs text-center text-gray-500">
+                      This will generate the image and schedule it to Instagram.
+                    </p>
+
+                    <button @click="automatePostCreation" :disabled="isAutomating"
+                      class="w-full flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                      <span v-if="isAutomating" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg"
+                          fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                          </circle>
+                          <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          </path>
+                        </svg>
+                        {{ automateButtonText }}
+                      </span>
+                      <span v-else>Automate Random Post</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Comparisons Section -->
+          <section class="pt-8 border-t border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-gray-900">Player Comparisons</h2>
+              <span class="text-sm text-gray-500">Select a pair to compare</span>
+            </div>
+
+            <AppCarousel class="py-4">
+              <SchedulerPlayerComparisonCard v-for="(pair, index) in comparisonPairs" :key="index" :player1="pair.a"
+                :player2="pair.b" :data="data"
+                class="flex-shrink-0 w-[42rem] h-96 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                @selected="getComparisonPreview(pair)" />
+            </AppCarousel>
+
+            <!-- Comparison Preview & Action Area -->
+            <div v-if="selectedComparisonData"
+              class="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-fade-in">
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- Preview -->
+                <div class="flex flex-col items-center">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
+                  <div
+                    class="relative w-full overflow-x-auto flex justify-center bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <InstaPlayerComparison :player1="selectedComparisonData.a" :player2="selectedComparisonData.b"
+                      :data="data" id="player-comparison" />
+                  </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex flex-col space-y-6">
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Caption</h3>
+                    <p class="text-sm text-gray-500 mb-2">AI-generated caption for your comparison post.</p>
+                    <div
+                      class="w-full p-4 bg-gray-50 border border-gray-200 rounded-lg min-h-[11rem] text-sm text-gray-700 whitespace-pre-wrap">
+                      {{ caption || 'Generating caption...' }}
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 pt-4 border-t border-gray-100">
+                    <button @click="scheduleComparisonPost" :disabled="isComparisonPosting"
+                      class="w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm">
+                      <span v-if="isComparisonPosting" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                          fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                          </circle>
+                          <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          </path>
+                        </svg>
+                        {{ postComparisonButtonText }}
+                      </span>
+                      <span v-else>Schedule Comparison Post</span>
+                    </button>
+                    <p class="text-xs text-center text-gray-500">
+                      This will generate the comparison image and schedule it to Instagram.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-      </button>
+      </div>
 
-      <!-- Status Message -->
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="transform -translate-y-2 opacity-0"
-        enter-to-class="transform translate-y-0 opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="transform translate-y-0 opacity-100"
-        leave-to-class="transform -translate-y-2 opacity-0"
-      >
-        <div
-          v-if="statusMessage"
-          :class="[
-            'fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white max-w-sm z-100',
-            statusMessage.type === 'error' ? 'bg-red-500' : 'bg-green-500',
-          ]"
-        >
+      <!-- Status Message Toast -->
+      <Transition enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform translate-y-2 opacity-0" enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in" leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform translate-y-2 opacity-0">
+        <div v-if="statusMessage" :class="[
+          'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 flex items-center gap-2',
+          statusMessage.type === 'error' ? 'bg-red-600' : 'bg-green-600',
+        ]">
+          <span v-if="statusMessage.type === 'success'">✓</span>
+          <span v-else>!</span>
           {{ statusMessage.text }}
         </div>
       </Transition>
-
-      <h2 class="mt-6 font-bold">Caption</h2>
-      <div class="w-full p-4 bg-blue-100 rounded-lg min-h-44">
-        {{ caption }}
-      </div>
-      <!-- class="w-full max-w-2xl mx-auto md:max-w-3xl" -->
-      <div class="flex w-full overflow-x-auto">
-        <InstaPlayerCard
-          v-if="selectedPlayerData"
-          :player="selectedPlayerData"
-          :team="
-            getTeamInfo(selectedPlayerData.team_code, data.teams)?.name || ''
-          "
-          :upcoming="player?.fixtures.slice(0, 5)"
-          :gameweek="data.currentGameweek"
-          :key="selectedPlayerData.web_name"
-          ref="playerCard"
-          id="my-node"
-        />
-      </div>
     </div>
-
-
-    <div class="mt-8">
-      <h2 class="text-2xl font-bold">Player Comparisons</h2>
-      <AppCarousel>
-        <SchedulerPlayerComparisonCard
-          v-for="(pair, index) in comparisonPairs"
-          :key="index"
-          :player1="pair.a"
-          :player2="pair.b"
-          :data="data"
-          class="flex-shrink-0 w-[42rem] h-96 rounded-lg bg-gradient-to-br from-slate-100 to-slate-300 snap-start"
-          @selected="getComparisonPreview(pair)"
-        />
-      </AppCarousel>
-    </div>
-
-    <div class="flex flex-col items-center justify-center">
-        <button
-            v-if="selectedComparisonData"
-            @click="scheduleComparisonPost"
-            :disabled="isComparisonPosting"
-            class="relative w-full max-w-md px-4 py-2 mx-auto mt-6 text-white bg-blue-500 rounded disabled:bg-blue-300"
-        >
-            {{ postComparisonButtonText }}
-            <div
-            v-if="isComparisonPosting"
-            class="absolute inset-0 flex items-center justify-center bg-blue-500 bg-opacity-50"
-            >
-            <div
-                class="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"
-            ></div>
-            </div>
-        </button>
-
-        <div v-if="selectedComparisonData" class="w-full overflow-x-auto">
-            <InstaPlayerComparison :player1="selectedComparisonData.a" :player2="selectedComparisonData.b" :data="data" id="player-comparison"/>
-        </div>
-    </div>
-
   </div>
 </template>
 
@@ -226,6 +295,11 @@ const recommendedPlayersNew = computed(() => {
   }
 
   return scoredPlayers;
+});
+
+const smartRecommendations = computed(() => {
+  if (!data.value?.players) return [];
+  return getSmartRecommendations(data.value.players);
 });
 
 const comparisonPairs = computed(() => {
@@ -414,13 +488,6 @@ const schedulePost = async () => {
     // Clear any existing cache first
     await clearBrowserCache();
 
-    // Force reload images
-    const images = captureEl.getElementsByTagName("img");
-    for (let img of images) {
-      const currentSrc = img.src;
-      img.src = currentSrc + "?t=" + Date.now();
-    }
-
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const playerName = selectedPlayerData.value?.web_name
@@ -467,13 +534,6 @@ const scheduleComparisonPost = async () => {
 
     // Clear any existing cache first
     await clearBrowserCache();
-
-    // Force reload images
-    const images = captureEl.getElementsByTagName("img");
-    for (let img of images) {
-      const currentSrc = img.src;
-      img.src = currentSrc + "?t=" + Date.now();
-    }
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -523,21 +583,8 @@ const sendImageToWebhook = async (caption, image_url) => {
 
 const convertImage = async (elementToCapture) => {
   try {
-    // Add cache busting to image URLs
-    const images = elementToCapture.getElementsByTagName("img");
-    const imagePromises = Array.from(images).map((img) => {
-      if (img.complete) return Promise.resolve();
-      img.src = img.src + "?t=" + Date.now();
-      return new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-    });
-
-    await Promise.all(imagePromises);
-
     // Then convert external images to proxy
-    await convertExternalImagesToProxy(elementToCapture);
+    const cleanup = await convertExternalImagesToProxy(elementToCapture);
 
     // Additional safety delay
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -580,6 +627,10 @@ const convertImage = async (elementToCapture) => {
     }
 
     const blob = await fetch(dataUrl).then((r) => r.blob());
+
+    // Restore original images
+    if (cleanup) cleanup();
+
     return blob;
   } catch (error) {
     console.error("Convert image error:", error);
@@ -877,15 +928,24 @@ function selectPairsOnly(players, opts = {}) {
 const convertExternalImagesToProxy = async (element) => {
   const images = element.querySelectorAll("img");
   const promises = [];
+  const originalSrcs = new Map();
 
   images.forEach((img) => {
     const src = img.src || img.getAttribute("src");
+
+    // Skip if already proxied
+    if (src && src.includes('/api/proxy-image')) return;
+
     if (
       src &&
       src.startsWith("http") &&
       !src.startsWith(window.location.origin)
     ) {
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+      // Store original src for cleanup
+      originalSrcs.set(img, src);
+
+      // Add timestamp to proxy URL to prevent caching issues
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}&t=${Date.now()}`;
 
       // Create a promise that resolves when the image loads
       const imagePromise = new Promise((resolve, reject) => {
@@ -911,5 +971,12 @@ const convertExternalImagesToProxy = async (element) => {
 
   // Additional wait to ensure DOM is updated
   await new Promise((resolve) => setTimeout(resolve, 500));
+
+  // Return cleanup function
+  return () => {
+    originalSrcs.forEach((src, img) => {
+      img.src = src;
+    });
+  };
 };
 </script>

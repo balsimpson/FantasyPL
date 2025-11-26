@@ -319,14 +319,15 @@ const allFixtures = useState("allFixtures", () => []);
 
 const managerID = ref(null);
 
-// const { data: bootstrap, error } = useFetch("/api/bootstrap-static");
-// if (error.value) {
-// 	console.error("Failed to fetch bootstrap data:", error.value);
-// }
+const playersStore = usePlayersStore();
+const { bootstrap, loading, error } = storeToRefs(playersStore);
 
-const { data: bootstrap, error } = await useLazyAsyncData("bootstrap", () =>
-  $fetch("/api/bootstrap-static")
-);
+// Fetch data using the store
+await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
+
+// Ensure bootstrap is available before computing properties
+// Note: useAsyncData with the store action handles the initial fetch.
+// Subsequent navigations will use the cached data from the store.
 
 const { data: fixtures } = await useLazyAsyncData("fixtures", () =>
   $fetch("/api/fixtures")

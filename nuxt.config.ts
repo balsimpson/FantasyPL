@@ -63,10 +63,10 @@ export default defineNuxtConfig({
 			style: [],
 		},
 	},
-	modules: ["@nuxtjs/tailwindcss"],
+	modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
 	runtimeConfig: {
+		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		public: {
-			OPENAI_KEY: process.env.OPENAI_API_KEY,
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
 			MAKE_WEBHOOK_URL: process.env.MAKE_WEBHOOK_URL,
 		},

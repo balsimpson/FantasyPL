@@ -169,7 +169,7 @@ export function calculatePlayerScore(player) {
 		parseFloat(player.form) * weightForm +
 		parseFloat(player.clean_sheets_per_90) * weightCleanSheetsPer90 -
 		parseFloat(player.expected_goals_conceded_per_90) *
-			weightExpectedGoalsConcededPer90 +
+		weightExpectedGoalsConcededPer90 +
 		player.bps * weightBps +
 		parseFloat(player.threat) * weightThreat +
 		parseFloat(player.influence) * weightInfluence +
@@ -191,155 +191,155 @@ export function calculatePlayerScore(player) {
  *
  * Returns: players mapped with { score, explain }
  */
-export function computeScores(players = [], opts = {}) {
+export function computeScores(players: any[] = [], opts = {}) {
 	const cfg = {
-	  minMinutesForTrust: 90,     // below this -> strong penalty
-	  minutesFloorForFullWeight: 270, // >= this -> full minutes multiplier
-	  transfersCapPercentile: 0.95,
-	  lambdaValue: 0.12,          // value (ppg / cost) weight multiplier
-	  weights: null,              // can pass custom weights per position
-	  ...opts,
-	};	
-  
+		minMinutesForTrust: 90,     // below this -> strong penalty
+		minutesFloorForFullWeight: 270, // >= this -> full minutes multiplier
+		transfersCapPercentile: 0.95,
+		lambdaValue: 0.12,          // value (ppg / cost) weight multiplier
+		weights: null,              // can pass custom weights per position
+		...opts,
+	};
+
 	// Helpers
 	const num = v => {
-	  const n = parseFloat(v);
-	  return Number.isFinite(n) ? n : 0;
+		const n = parseFloat(v);
+		return Number.isFinite(n) ? n : 0;
 	};
 	const per90 = (stat, mins) => (mins > 0 ? stat * (90 / mins) : 0);
 	const log1p = v => Math.log1p(Math.max(0, v));
 	const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  
+
 	// Default weights by position (sensible defaults)
 	const defaultWeights = {
-	  GK: { total_points: 0.2, points_per_game: 0.15, form: 0.15, clean_sheets_per_90: 0.18, saves_per_90: 0.18, expected_goals_conceded_per_90: -0.12, bps: 0.02, influence: 0.02, value: 0.1, transfers: 0.0 },
-	  DEF: { total_points: 0.18, points_per_game: 0.12, form: 0.14, clean_sheets_per_90: 0.20, tackles: 0.12, clearances_blocks_interceptions: 0.10, threat: 0.06, bps: 0.02, value: 0.06, transfers: 0.04 },
-	  MID: { total_points: 0.16, points_per_game: 0.12, form: 0.14, goals_per90: 0.15, assists_per90: 0.12, expected_goal_involvements: 0.08, creativity: 0.06, threat: 0.04, value: 0.06, transfers: 0.07 },
-	  FWD: { total_points: 0.16, points_per_game: 0.12, form: 0.13, goals_per90: 0.30, assists_per90: 0.10, expected_goals_per_90: 0.10, threat: 0.05, value: 0.04, transfers: 0.06 },
+		GK: { total_points: 0.2, points_per_game: 0.15, form: 0.15, clean_sheets_per_90: 0.18, saves_per_90: 0.18, expected_goals_conceded_per_90: -0.12, bps: 0.02, influence: 0.02, value: 0.1, transfers: 0.0 },
+		DEF: { total_points: 0.18, points_per_game: 0.12, form: 0.14, clean_sheets_per_90: 0.20, tackles: 0.12, clearances_blocks_interceptions: 0.10, threat: 0.06, bps: 0.02, value: 0.06, transfers: 0.04 },
+		MID: { total_points: 0.16, points_per_game: 0.12, form: 0.14, goals_per90: 0.15, assists_per90: 0.12, expected_goal_involvements: 0.08, creativity: 0.06, threat: 0.04, value: 0.06, transfers: 0.07 },
+		FWD: { total_points: 0.16, points_per_game: 0.12, form: 0.13, goals_per90: 0.30, assists_per90: 0.10, expected_goals_per_90: 0.10, threat: 0.05, value: 0.04, transfers: 0.06 },
 	};
-  
+
 	const weightsByPos = cfg.weights || defaultWeights;
-  
+
 	// 1) Precompute derived stats we will normalize: per90 metrics & log transfers
 	const derived = players.map(p => {
-	  const mins = Math.max(0, num(p.minutes));
-	  return {
-		id: p.id,
-		derived: {
-		  goals_per90: per90(num(p.goals_scored), mins),
-		  assists_per90: per90(num(p.assists), mins),
-		  saves_per90: per90(num(p.saves), mins),
-		  expected_goals_per_90: num(p.expected_goals_per_90) || per90(num(p.expected_goals), mins),
-		  expected_assists_per_90: num(p.expected_assists_per_90) || per90(num(p.expected_assists), mins),
-		  expected_goal_involvements: num(p.expected_goal_involvements) || per90(num(p.expected_goal_involvements), mins),
-		  clean_sheets_per_90: num(p.clean_sheets_per_90) || per90(num(p.clean_sheets), mins),
-		  saves_per_90: per90(num(p.saves), mins),
-		  transfers_in_event_log: log1p(num(p.transfers_in_event)),
-		  transfers_out_event_log: log1p(num(p.transfers_out_event)),
-		  value_raw: (num(p.points_per_game) || 0) / Math.max(1, num(p.now_cost)), // small protect
-		},
-		raw: p,
-	  };
+		const mins = Math.max(0, num(p.minutes));
+		return {
+			id: p.id,
+			derived: {
+				goals_per90: per90(num(p.goals_scored), mins),
+				assists_per90: per90(num(p.assists), mins),
+				saves_per90: per90(num(p.saves), mins),
+				expected_goals_per_90: num(p.expected_goals_per_90) || per90(num(p.expected_goals), mins),
+				expected_assists_per_90: num(p.expected_assists_per_90) || per90(num(p.expected_assists), mins),
+				expected_goal_involvements: num(p.expected_goal_involvements) || per90(num(p.expected_goal_involvements), mins),
+				clean_sheets_per_90: num(p.clean_sheets_per_90) || per90(num(p.clean_sheets), mins),
+				saves_per_90: per90(num(p.saves), mins),
+				transfers_in_event_log: log1p(num(p.transfers_in_event)),
+				transfers_out_event_log: log1p(num(p.transfers_out_event)),
+				value_raw: (num(p.points_per_game) || 0) / Math.max(1, num(p.now_cost)), // small protect
+			},
+			raw: p,
+		};
 	});
-  
+
 	// 2) Build min/max ranges for normalization (per derived field + some raw fields)
 	const metricsToNorm = [
-	  'total_points', 'points_per_game', 'form', 'bps', 'influence', 'threat',
-	  'goals_per90', 'assists_per90', 'saves_per90',
-	  'expected_goals_per_90', 'expected_assists_per_90', 'expected_goal_involvements',
-	  'clean_sheets_per_90', 'saves_per_90',
-	  'transfers_in_event_log', 'transfers_out_event_log', 'value_raw'
+		'total_points', 'points_per_game', 'form', 'bps', 'influence', 'threat',
+		'goals_per90', 'assists_per90', 'saves_per90',
+		'expected_goals_per_90', 'expected_assists_per_90', 'expected_goal_involvements',
+		'clean_sheets_per_90', 'saves_per_90',
+		'transfers_in_event_log', 'transfers_out_event_log', 'value_raw'
 	];
-  
+
 	const ranges = {};
 	for (const m of metricsToNorm) {
-	  const values = derived.map(d => {
-		if (m in d.derived) return d.derived[m];
-		return num(d.raw[m]);
-	  });
-	  const min = Math.min(...values);
-	  const max = Math.max(...values);
-	  ranges[m] = { min, max: max === min ? min + 1 : max, span: Math.max(1e-6, max - min) };
+		const values = derived.map(d => {
+			if (m in d.derived) return d.derived[m];
+			return num(d.raw[m]);
+		});
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+		ranges[m] = { min, max: max === min ? min + 1 : max, span: Math.max(1e-6, max - min) };
 	}
-  
+
 	const normalize = (m, v) => {
-	  if (v == null) return 0;
-	  const r = ranges[m] || { min: 0, span: 1 };
-	  return clamp((v - r.min) / r.span, 0, 1);
+		if (v == null) return 0;
+		const r = ranges[m] || { min: 0, span: 1 };
+		return clamp((v - r.min) / r.span, 0, 1);
 	};
-  
+
 	// 3) Optionally compute transfer cap via percentile (simple approach: cap to observed max or cfg)
 	const maxTransfersInLog = Math.max(...derived.map(d => d.derived.transfers_in_event_log || 0));
 	const maxTransfersOutLog = Math.max(...derived.map(d => d.derived.transfers_out_event_log || 0));
-  
+
 	// 4) Score each player
 	const scored = derived.map(d => {
-	  const p = d.raw;
-	  const mins = Math.max(0, num(p.minutes));
-	  const pos = {1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD'}[p.element_type] || 'MID';
-	  const W = weightsByPos[pos] || weightsByPos.MID;
-  
-	  // availability + minutes factor
-	  const availability = clamp((num(p.chance_of_playing_next_round) || num(p.chance_of_playing_this_round) || 100) / 100, 0, 1);
-	  const minutesFactor = clamp(mins / cfg.minutesFloorForFullWeight, 0, 1); // 0..1
-	  const lowMinutesPenalty = mins < cfg.minMinutesForTrust ? 0.4 : 1; // heavy penalty for almost no minutes
-  
-	  // normalized inputs
-	  const vals = {
-		total_points: normalize('total_points', num(p.total_points)),
-		points_per_game: normalize('points_per_game', num(p.points_per_game)),
-		form: normalize('form', num(p.form)),
-		bps: normalize('bps', num(p.bps)),
-		influence: normalize('influence', num(p.influence)),
-		threat: normalize('threat', num(p.threat)),
-		goals_per90: normalize('goals_per90', d.derived.goals_per90),
-		assists_per90: normalize('assists_per90', d.derived.assists_per90),
-		saves_per90: normalize('saves_per90', d.derived.saves_per90),
-		expected_goals_per_90: normalize('expected_goals_per_90', d.derived.expected_goals_per_90),
-		expected_assists_per_90: normalize('expected_assists_per_90', d.derived.expected_assists_per_90),
-		expected_goal_involvements: normalize('expected_goal_involvements', d.derived.expected_goal_involvements),
-		clean_sheets_per_90: normalize('clean_sheets_per_90', d.derived.clean_sheets_per_90),
-		transfers_in_event_log: normalize('transfers_in_event_log', d.derived.transfers_in_event_log),
-		transfers_out_event_log: normalize('transfers_out_event_log', d.derived.transfers_out_event_log),
-		value_raw: normalize('value_raw', d.derived.value_raw),
-	  };
-  
-	  // compute weighted sum by W
-	  let score = 0;
-	  for (const k of Object.keys(W)) {
-		const w = W[k] || 0;
-		const v = vals[k] ?? 0;
-		score += w * v;
-	  }
-  
-	  // incorporate transfers (in positive, out negative), scaled and capped
-	  const transfersScore = (vals.transfers_in_event_log || 0) - (vals.transfers_out_event_log || 0);
-	  score += (W.transfers || 0) * transfersScore;
-  
-	  // value boost (small)
-	  score += cfg.lambdaValue * vals.value_raw * (weightsByPos[pos]?.value || 0);
-  
-	  // apply availability & minutes multipliers and low-minutes penalty
-	  score = score * availability * minutesFactor * lowMinutesPenalty;
-  
-	  // Attach explanation bits (top contributors)
-	  const explain = {};
-	  const contributors = Object.entries(W).map(([k, w]) => ({ k, w, v: vals[k] || 0, contrib: (vals[k] || 0) * (w || 0) }));
-	  contributors.sort((a,b) => Math.abs(b.contrib) - Math.abs(a.contrib));
-	  explain.top = contributors.slice(0, 4).map(c => ({ stat: c.k, weight: c.w, norm: +c.v.toFixed(3), contrib: +c.contrib.toFixed(3) }));
-  
-	  return {
-		...p,
-		score,
-		explain,
-		_meta: { availability, minutesFactor, mins },
-	  };
+		const p = d.raw;
+		const mins = Math.max(0, num(p.minutes));
+		const pos = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' }[p.element_type] || 'MID';
+		const W = weightsByPos[pos] || weightsByPos.MID;
+
+		// availability + minutes factor
+		const availability = clamp((num(p.chance_of_playing_next_round) || num(p.chance_of_playing_this_round) || 100) / 100, 0, 1);
+		const minutesFactor = clamp(mins / cfg.minutesFloorForFullWeight, 0, 1); // 0..1
+		const lowMinutesPenalty = mins < cfg.minMinutesForTrust ? 0.4 : 1; // heavy penalty for almost no minutes
+
+		// normalized inputs
+		const vals = {
+			total_points: normalize('total_points', num(p.total_points)),
+			points_per_game: normalize('points_per_game', num(p.points_per_game)),
+			form: normalize('form', num(p.form)),
+			bps: normalize('bps', num(p.bps)),
+			influence: normalize('influence', num(p.influence)),
+			threat: normalize('threat', num(p.threat)),
+			goals_per90: normalize('goals_per90', d.derived.goals_per90),
+			assists_per90: normalize('assists_per90', d.derived.assists_per90),
+			saves_per90: normalize('saves_per90', d.derived.saves_per90),
+			expected_goals_per_90: normalize('expected_goals_per_90', d.derived.expected_goals_per_90),
+			expected_assists_per_90: normalize('expected_assists_per_90', d.derived.expected_assists_per_90),
+			expected_goal_involvements: normalize('expected_goal_involvements', d.derived.expected_goal_involvements),
+			clean_sheets_per_90: normalize('clean_sheets_per_90', d.derived.clean_sheets_per_90),
+			transfers_in_event_log: normalize('transfers_in_event_log', d.derived.transfers_in_event_log),
+			transfers_out_event_log: normalize('transfers_out_event_log', d.derived.transfers_out_event_log),
+			value_raw: normalize('value_raw', d.derived.value_raw),
+		};
+
+		// compute weighted sum by W
+		let score = 0;
+		for (const k of Object.keys(W)) {
+			const w = W[k] || 0;
+			const v = vals[k] ?? 0;
+			score += w * v;
+		}
+
+		// incorporate transfers (in positive, out negative), scaled and capped
+		const transfersScore = (vals.transfers_in_event_log || 0) - (vals.transfers_out_event_log || 0);
+		score += (W.transfers || 0) * transfersScore;
+
+		// value boost (small)
+		score += cfg.lambdaValue * vals.value_raw * (weightsByPos[pos]?.value || 0);
+
+		// apply availability & minutes multipliers and low-minutes penalty
+		score = score * availability * minutesFactor * lowMinutesPenalty;
+
+		// Attach explanation bits (top contributors)
+		const explain = {};
+		const contributors = Object.entries(W).map(([k, w]) => ({ k, w, v: vals[k] || 0, contrib: (vals[k] || 0) * (w || 0) }));
+		contributors.sort((a, b) => Math.abs(b.contrib) - Math.abs(a.contrib));
+		explain.top = contributors.slice(0, 4).map(c => ({ stat: c.k, weight: c.w, norm: +c.v.toFixed(3), contrib: +c.contrib.toFixed(3) }));
+
+		return {
+			...p,
+			score,
+			explain,
+			_meta: { availability, minutesFactor, mins },
+		};
 	});
-  
+
 	// final sort and return
-	scored.sort((a,b) => b.score - a.score);
+	scored.sort((a, b) => b.score - a.score);
 	return scored;
-  }
+}
 
 export function getTopPlayers(
 	players: any[],
@@ -368,7 +368,7 @@ export function getTopPlayers(
 	// }
 	filteredPlayers = position
 		? // @ts-ignore
-		  players.filter((p) => p.element_type === position)
+		players.filter((p) => p.element_type === position)
 		: players;
 	// console.log("filteredPlayers", filteredPlayers.length, position);
 	// console.log("filteredPlayers", filteredPlayers.slice(0, topN));
