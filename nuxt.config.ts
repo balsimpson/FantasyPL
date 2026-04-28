@@ -10,12 +10,13 @@ export default defineNuxtConfig({
 	},
 	app: {
 		head: {
-			titleTemplate: (title) => (title ? `${title} | FPL Insights` : "FPL Insights"),
+			title: "FPL Insights",
+			titleTemplate: "%s | FPL Insights",
 			meta: [
 				{ name: "viewport", content: "width=device-width, initial-scale=1" },
 				{
 					property: "og:image",
-					content: "https://example.com/fpl-insights-preview.png",
+					content: "https://fantasyleague.vercel.app/twitter_large_image.png",
 				},
 				{
 					name: "twitter:card",
@@ -23,7 +24,7 @@ export default defineNuxtConfig({
 				},
 				{
 					name: "twitter:image",
-					content: "https://example.com/fpl-insights-preview.png",
+					content: "https://fantasyleague.vercel.app/twitter_large_image.png",
 				},
 				{
 					name: "keywords",
