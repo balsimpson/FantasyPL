@@ -74,6 +74,7 @@
 						</div>
 					</div>
 
+					<!-- test -->
 					<div class="grid w-full gap-3 sm:grid-cols-2 lg:max-w-xl">
 						<div
 							v-for="stat in managerStats"
