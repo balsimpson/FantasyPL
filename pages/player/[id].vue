@@ -11,6 +11,20 @@
 			<section class="overflow-hidden rounded-4xl ">
 		<div class="relative z-10 flex flex-col gap-6 p-3 sm:p-6">
 			<div class="max-w-2xl px-5 pt-5 sm:px-6">
+				<UBreadcrumb
+					:items="breadcrumbLinks"
+					separator-icon="i-lucide-chevron-right"
+					class="pb-4"
+					:ui="{
+						root: 'max-w-full',
+						list: 'flex items-center gap-1.5 text-sm',
+						item: 'min-w-0',
+						link: 'flex items-center gap-1.5 text-stone-400 transition-colors hover:text-white',
+						linkLabel: 'truncate',
+						separator: 'flex text-stone-600',
+						separatorIcon: 'size-4',
+					}"
+				/>
 				<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
 					Player overview
 				</p>
@@ -272,6 +286,12 @@
 			"Unknown Player"
 		);
 	});
+
+	const breadcrumbLinks = computed(() => [
+		{ label: "Home", to: "/" },
+		{ label: "Player" },
+		{ label: playerName.value },
+	]);
 
 	const playerTeam = computed(() => playerData.value?.teamData?.name || "Loading team...");
 

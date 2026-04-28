@@ -47,7 +47,7 @@
 							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
 								Value
 							</p>
-							<p class="mt-1 text-3xl font-semibold text-white">
+							<p class="font-serif text-[1.9rem] font-black leading-none tracking-[-0.06em] text-white">
 								{{ playerPrice }}
 							</p>
 						</div>
