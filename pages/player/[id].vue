@@ -9,10 +9,22 @@
 
 		<div class="relative mx-auto flex w-full max-w-6xl flex-col gap-6 ">
 			<section class="overflow-hidden rounded-4xl ">
-				<div class="relative z-10 flex flex-col gap-6 p-3 sm:p-6">
-					<!-- <div class="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
-						<div class="max-w-2xl">
-							<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
+		<div class="relative z-10 flex flex-col gap-6 p-3 sm:p-6">
+			<div class="max-w-2xl px-5 pt-5 sm:px-6">
+				<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
+					Player overview
+				</p>
+				<h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
+					{{ playerName }}
+				</h1>
+				<p class="mt-4 max-w-xl text-sm leading-6 text-stone-300 sm:text-base">
+					{{ playerSummary }}
+				</p>
+			</div>
+
+			<!-- <div class="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
+				<div class="max-w-2xl">
+					<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
 								Player overview
 							</p>
 							<h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
@@ -211,18 +223,20 @@
 </template>
 
 <script setup>
+	import { getPlayerIdFromRouteParam } from "~/composables/usePlayerRoute";
+
 	const route = useRoute();
-	const id = route.params.id;
+	const playerId = computed(() => getPlayerIdFromRouteParam(route.params.id));
 	const playersStore = usePlayersStore();
 	const { bootstrap } = storeToRefs(playersStore);
 
-	const { data: player } = useFetch(`/api/players/${id}`);
+	const { data: player } = useFetch(() => `/api/players/${playerId.value}`);
 	await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
 	// const { data: fixtures } = useLazyFetch("/api/fixtures");
 
 	const playerData = computed(() => {
 		if (bootstrap.value?.elements) {
-			const foundPlayer = bootstrap.value.elements.find((item) => item.id == id);
+			const foundPlayer = bootstrap.value.elements.find((item) => item.id == playerId.value);
 
 			if (!foundPlayer) {
 				return null;
@@ -263,7 +277,22 @@
 			return "Pulling the latest data so the page can show form, fixtures, and history in one place.";
 		}
 
-		return `A compact read on ${playerName.value}, with the numbers, schedule, and history that matter for the next call.`;
+		return `See ${playerData.value.web_name || playerName.value}'s Fantasy Premier League stats, fixtures, ownership, form, and history in one place to plan your next move.`;
+	});
+
+	const playerMetaName = computed(() => playerData.value?.web_name || playerName.value);
+
+	useSeoMeta({
+		title: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership`),
+		description: computed(() => playerSummary.value),
+		ogTitle: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership | FPL Insights`),
+		ogDescription: computed(() =>
+			`See ${playerMetaName.value}'s Fantasy Premier League stats, fixtures, ownership, and form with FPL Insights.`
+		),
+		twitterTitle: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership | FPL Insights`),
+		twitterDescription: computed(() =>
+			`Track ${playerMetaName.value}'s FPL stats, fixtures, ownership, and form in one place.`
+		),
 	});
 
 	const formatCompact = (value) => {

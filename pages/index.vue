@@ -12,7 +12,7 @@
               Fantasy Premier League
             </p>
             <h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
-              Track stats, fixtures, and form
+              Fantasy Premier League Player Stats, Fixtures & Ownership
             </h1>
             <p class="mt-4 max-w-xl text-sm leading-6 text-stone-300 sm:text-base">
               Follow the next deadline, compare player ownership, and find the numbers that matter most without the
@@ -33,7 +33,7 @@
                   class="min-w-0 flex-1 appearance-none rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-stone-100 shadow-sm outline-none transition placeholder:text-stone-500 focus:border-lime-300/40 focus:ring-2 focus:ring-lime-300/20"
                   placeholder="Enter Manager ID" />
                 <button type="submit"
-                  class="rounded-2xl bg-lime-300 px-4 py-3 text-sm font-semibold text-black shadow-[0_16px_30px_rgba(200,255,61,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+                  class="rounded-2xl bg-lime-300 px-4 py-3 text-sm font-semibold text-black shadow-[0_16px_30px_rgba(200,255,61,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-200 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-lime-300"
                   :class="[managerID ? 'opacity-100' : 'pointer-events-none opacity-50']">
                   Open team
                 </button>
@@ -336,17 +336,22 @@
 </template>
 
 <script setup>
+import { getPlayerRoute } from "~/composables/usePlayerRoute";
+
 definePageMeta({
   keepalive: true,
 });
 
 useSeoMeta({
-  title: 'Fantasy Premier League stats, fixtures and player form',
+  title: 'Fantasy Premier League Stats, Fixtures & Ownership',
   description:
-    'Track Fantasy Premier League player stats, fixtures, ownership, transfers and form in one place.',
-  ogTitle: 'Fantasy Premier League stats, fixtures and player form',
+    'Compare Fantasy Premier League player stats, fixtures, ownership, transfers, and form in one clean dashboard to make faster weekly decisions and spot trends.',
+  ogTitle: 'Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights',
   ogDescription:
-    'Track Fantasy Premier League player stats, fixtures, ownership, transfers and form in one place.',
+    'Track player stats, fixtures, ownership, transfers, and form with a clean FPL dashboard built for faster weekly decisions.',
+  twitterTitle: 'Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights',
+  twitterDescription:
+    'Fantasy Premier League stats, fixtures, ownership, and form in one clean dashboard.',
 });
 
 const allPlayers = useState("allPlayers", () => []);
@@ -625,7 +630,7 @@ const playerSearchResults = computed(() => {
 });
 
 const goToPlayer = async (player) => {
-  await navigateTo(`/player/${player.id}`);
+  await navigateTo(getPlayerRoute(player));
 };
 
 const goToFirstPlayerResult = async () => {

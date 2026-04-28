@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <NuxtLink :to="`/player/${player.id}`" class="group block h-full" :aria-label="`Open ${player.web_name} profile`">
+    <NuxtLink :to="getPlayerRoute(player)" class="group block h-full" :aria-label="`Open ${player.web_name} profile`">
       <UCard
         :ui="{ body: 'p-4', root: 'ring-0' }"
         class="relative flex h-full w-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 text-stone-50 transition duration-300 hover:-translate-y-1"
@@ -120,6 +120,8 @@
 </template>
 
 <script setup>
+import { getPlayerRoute } from "~/composables/usePlayerRoute";
+
 const props = defineProps({
   player: {
     type: Object,
