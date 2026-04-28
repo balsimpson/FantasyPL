@@ -1,5 +1,8 @@
 <template>
-	<div class="flex space-x-4 overflow-x-auto snap-x scrollbar-hidden snap-mandatory">
+	<div
+		ref="carouselEl"
+		class="flex items-stretch gap-2 overflow-x-auto overflow-y-visible px-4 py-6 snap-x snap-mandatory scrollbar-hidden scroll-smooth"
+	>
 		<!-- <div class="flex-shrink-0 w-64 p-4 bg-gray-200 snap-start"> -->
 			<!-- <p>Item 1</p>
 			<img
@@ -9,6 +12,21 @@
 		<!-- </div> -->
 	</div>
 </template>
+
+<script setup>
+const carouselEl = ref(null);
+
+const scrollToStart = () => {
+	carouselEl.value?.scrollTo({
+		left: 0,
+		behavior: 'smooth',
+	});
+};
+
+defineExpose({
+	scrollToStart,
+});
+</script>
 
 <style>
 	.scrollbar-hidden::-webkit-scrollbar {

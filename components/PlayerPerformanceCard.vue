@@ -1,206 +1,284 @@
 <template>
-	<div
-		
-		class="flex flex-col items-center w-full max-w-xl p-3 mx-auto bg-gray-300 rounded-lg sm:flex-row"
-	>
-
-		<div class="relative z-0 flex justify-center w-full sm:w-auto">
-			<!-- image -->
-			<img
-				:src="`https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`"
-				class="object-cover w-auto h-44 sm:h-auto sm:z-20 sm:w-auto"
-				:alt="player.web_name"
-			/>
-
+	<div class="h-full">
+		<UCard :ui="{ body: 'p-0', root: 'ring-0' }"
+			class="group relative h-full w-full overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 text-stone-50 transition duration-300 hover:-translate-y-1">
 			<div
-				class="absolute z-30 px-4 py-2 rounded-lg shadow-lg -bottom-4 sm:bottom-0 text-slate-800 bg-slate-100/95 right-2 left-2"
-			>
-				<div class="flex pb-1 border-b border-slate-300 justify-evenly">
-					<div class="text-xs text-right uppercase">
-						<div class="opacity-50">Points</div>
-						<div class="font-semibold lowercase">
-							{{ player.total_points }}
-						</div>
-					</div>
+				class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.14),transparent_30%),radial-gradient(circle_at_110%_18%,rgba(72,214,255,0.1),transparent_24%),linear-gradient(135deg,#111317_0%,#090a0d_100%)]" />
+			<div
+				class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size[5px_5px] opacity-10" />
 
-					<div class="text-xs text-left uppercase">
-						<div class="opacity-50">Goals</div>
-						<div class="font-semibold lowercase">
-							{{ player.goals_scored }}
-						</div>
-					</div>
-				</div>
-				<div class="flex justify-between pt-1">
-					<div class="text-xs text-left uppercase">
-						<div class="opacity-50">Played</div>
-						<div class="font-semibold lowercase">{{ player.minutes }} min</div>
-					</div>
-					<div class="text-xs text-center uppercase">
-							<div class="opacity-50">Form</div>
-							<div
-								class="font-semibold lowercase"
-								:class="['form-value']"
-							>
-								{{ player.form }}
-							</div>
-						</div>
-					<div class="text-xs text-right uppercase">
-						<div class="opacity-50">Selected by</div>
-						<div class="font-semibold lowercase">
-							{{ player.selected_by_percent }}%
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="flex items-center max-w-2xl mx-auto mt-5">
-			<div class="ml-3">
-				<div class="text-2xl font-bold leading-6">
-					{{ playerFullName }}
-				</div>
-
-
-									<div class="flex items-center justify-between my-3 leading-3">
-						<!-- cards issued -->
-						<div class="flex items-center">
-							<img
-								:src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
-								alt=""
-								class="w-12 pr-1 bottom-1 sm:z-0 sm:top-1 sm:right-1"
-							/>
-
-							<div class="pr-3 leading-5">
-								<div class="text-sm font-semibold">{{ player.teamData?.name || 'N/A' }}</div>
-								<div class="text-xs uppercase text-slate-500">
-									{{ elementType }}
+			<div class="relative z-10 flex h-full flex-col gap-4 p-4">
+				<header class="flex items-start justify-between gap-4">
+					<div class="min-w-0 space-y-2">
+						<p class="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
+							Performance
+						</p>
+						<h2 class="text-[2rem] font-black leading-[0.92] tracking-tight text-white text-balance">
+							{{ playerFullName }}
+						</h2>
+						<div class="flex flex-wrap items-center gap-3">
+							<div class="flex items-center gap-3">
+								<div class="h-10 w-10 shrink-0">
+									<img :src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
+										:alt="teamName"
+										class="h-full w-full object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]" />
+								</div>
+								<div class="min-w-0">
+									<p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-stone-300">
+										{{ teamName }}
+									</p>
+									<p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-stone-500">
+										{{ elementType }}
+									</p>
 								</div>
 							</div>
 						</div>
-						<section v-if="player.yellow_cards > 0 || player.red_cards > 0">
-							<!-- <div class="mt-2 text-sm font-semibold">Cards</div> -->
-							<div class="flex items-center">
+					</div>
+
+					<div class="shrink-0 text-right backdrop-blur-sm">
+						<div class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+							Selected
+						</div>
+						<div class="font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] text-white">
+							{{ formatPercent(player.selected_by_percent) }}
+						</div>
+
+						<div class="mt-4">
+							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+								Value
+							</p>
+							<p class="mt-1 text-3xl font-semibold text-white">
+								{{ playerPrice }}
+							</p>
+						</div>
+					</div>
+				</header>
+
+				<section class="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] items-center">
+					<div class="space-y-4">
+						<div class="grid grid-cols-3 gap-2">
+							<div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-2 text-center">
+								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Points</div>
 								<div
-									v-if="player.yellow_cards > 0"
-									class="w-4 h-6 mr-1 bg-yellow-400"
-									:title="`${player.yellow_cards} Yellow Card${
-										player.yellow_cards > 1 ? 's' : ''
-									}`"
-								/>
-								<div
-									v-if="player.red_cards > 0"
-									class="w-4 h-6 bg-red-600 rounded-[2px]"
-									:title="`${player.red_cards} Red Card${
-										player.red_cards > 1 ? 's' : ''
-									}`"
-								/>
-								<span
-									v-if="player.yellow_cards === 0 && player.red_cards === 0"
-									class="text-sm"
-								>
-									None
-								</span>
+									class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em] text-white">
+									{{ playerPoints }}
+								</div>
 							</div>
-						</section>
+							<div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-2 text-center">
+								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Goals</div>
+								<div
+									class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em] text-white">
+									{{ player.goals_scored }}
+								</div>
+							</div>
+							<div class="rounded-2xl border px-2 py-2 text-center transition-colors"
+								:class="formTileClass">
+								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Form</div>
+								<div class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em]"
+									:class="formValueClass">
+									{{ player.form }}
+								</div>
+							</div>
+						</div>
+
+						<div>
+							<div
+								class="flex items-center justify-between text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
+								<span>Transfers</span>
+								<span>{{ formatCompact(totalTransfers) }} total</span>
+							</div>
+							<div class="mt-2 flex h-2 overflow-hidden rounded-full border border-white/10 bg-white/6">
+								<div class="h-full bg-lime-300" :style="{ width: `${inPercentage}%` }" />
+								<div class="h-full bg-rose-500" :style="{ width: `${outPercentage}%` }" />
+							</div>
+							<div
+								class="mt-2 flex justify-between text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-stone-300">
+								<span>In {{ formatCompact(player.transfers_in_event) }}</span>
+								<span>Out {{ formatCompact(player.transfers_out_event) }}</span>
+							</div>
+						</div>
+
+						<div
+							class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/4 px-3 py-3">
+							<div
+								class="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.28em] text-stone-400">
+								<span
+									class="inline-flex h-8 w-6 items-center justify-center rounded-sm bg-yellow-300 font-black text-black"
+									:title="`${yellowCards} Yellow Card${yellowCards === 1 ? '' : 's'}`">
+									{{ yellowCards }}
+								</span>
+								<span
+									class="inline-flex h-8 w-6 items-center justify-center rounded-sm bg-rose-500 font-black text-white"
+									:title="`${redCards} Red Card${redCards === 1 ? '' : 's'}`">
+									{{ redCards }}
+								</span>
+								<span>{{ cardTotal ? `${cardTotal} booking${cardTotal > 1 ? 's' : ''}` : 'No bookings'
+								}}</span>
+							</div>
+						</div>
 					</div>
 
-				
-				<div class="w-full mb-3">
-						<ComparisonBar
-							:comparison="{
-								label: 'Transfers',
-								homeWidth: inPercentage,
-								homeTitle: 'In',
-								homeValue: shortenNumber(player.transfers_in_event),
-								awayWidth: outPercentage,
-								awayTitle: 'Out',
-								awayValue: shortenNumber(player.transfers_out_event),
-							}"
-						/>
+					<div class="relative flex items-end justify-center">
+						<div class="relative w-full max-w-md">
+							<div
+								class="absolute inset-x-[8%] top-[16%] h-[72%] rounded-[999px] bg-lime-300/14 blur-3xl" />
+							<div class="absolute inset-x-[16%] bottom-[5%] h-[12%] rounded-full bg-black/50 blur-2xl" />
+							<img :src="playerImageSrc" :alt="player.web_name"
+								class="relative z-10 mx-auto w-full max-h-112 object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.5)] transition duration-300 group-hover:scale-[1.015]"
+								@error="handleImageError" />
+						</div>
 					</div>
+				</section>
 
-				<div class="flex justify-between">
-					<span>Season Value:</span>
-					<span class="font-semibold">{{ player.value_season }}</span>
-				</div>
-				<div class="flex justify-between">
-					<span>ICT Index Rank:</span>
-					<span class="font-semibold">#{{ player.ict_index_rank }}</span>
-				</div>
+				<footer
+					class="grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-center text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-300 sm:grid-cols-4">
+					<div class="space-y-1">
+						<span class="block">Minutes</span>
+						<span
+							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
+							{{ player.minutes }}
+						</span>
+					</div>
+					<div class="space-y-1">
+						<span class="block">Selected</span>
+						<span
+							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
+							{{ formatPercent(player.selected_by_percent) }}
+						</span>
+					</div>
+					<div class="space-y-1">
+						<span class="block">Season Value</span>
+						<span
+							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
+							{{ player.value_season }}
+						</span>
+					</div>
+					<div class="space-y-1">
+						<span class="block">ICT Rank</span>
+						<span
+							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
+							#{{ player.ict_index_rank }}
+						</span>
+					</div>
+				</footer>
 			</div>
-		</div>
+		</UCard>
 	</div>
 </template>
 
 <script setup>
-	const props = defineProps(["player", "bootstrap"]);
-	const savedWatchlist = ref([]);
-	const isOnWatchlist = ref(false);
+const props = defineProps({
+	player: {
+		type: Object,
+		required: true,
+	},
+	bootstrap: {
+		type: [Object, Array],
+		default: null,
+	},
+});
 
-	const inPercentage = computed(() =>
-		totalTransfers.value === 0
-			? 50
-			: (props.player.transfers_in_event / totalTransfers.value) * 100
-	);
+const elementTypeMap = {
+	1: 'Goalkeeper',
+	2: 'Defender',
+	3: 'Midfielder',
+	4: 'Forward',
+};
 
-	const outPercentage = computed(() =>
-		totalTransfers.value === 0
-			? 50
-			: (props.player.transfers_out_event / totalTransfers.value) * 100
-	);
+const bootstrapData = computed(() => props.bootstrap?.value ?? props.bootstrap);
 
-	const totalTransfers = computed(
-		() => props.player.transfers_in_event + props.player.transfers_out_event
-	);
+const teamName = computed(() => {
+	const teams = Array.isArray(bootstrapData.value) ? bootstrapData.value : bootstrapData.value?.teams || bootstrapData.value?.elements || [];
+	const team = teams.find((item) => item.id === props.player.team || item.id === props.player.team_code);
 
-	const addToWatchlist = (player) => {
-		const index = savedWatchlist.value.indexOf(player.code);
+	return props.player.teamData?.name || team?.name || 'N/A';
+});
 
-		// If player is already on the watchlist, remove them
-		if (index !== -1) {
-			savedWatchlist.value.splice(index, 1); // Remove the player
-			localStorage.setItem(
-				"savedWatchlist",
-				JSON.stringify(savedWatchlist.value)
-			);
-			isOnWatchlist.value = false;
-		} else {
-			// Add player to watchlist if not already present
-			savedWatchlist.value.push(player.code);
-			localStorage.setItem(
-				"savedWatchlist",
-				JSON.stringify(savedWatchlist.value)
-			);
-			isOnWatchlist.value = true;
-		}
-	};
+const formatCost = (value) => {
+	const cost = Number(value || 0) / 10;
 
-	const playerData = computed(() => {
-		if (bootstrap.value) {
-			const selectedPlayer = bootstrap.value.elements.find((player) => player.id == id);
-			
+	return `${cost.toFixed(cost % 1 === 0 ? 0 : 1)}m`;
+};
 
-			return selectedPlayer ? selectedPlayer : "No player data";
-		}
+const elementType = computed(() => elementTypeMap[props.player.element_type] || 'Unknown');
 
-		return null;
-	});
+const playerFullName = computed(() => {
+	const fullName = `${props.player.first_name || ''} ${props.player.second_name || ''}`.trim();
 
-	onMounted(() => {
-	});
+	return fullName || props.player.web_name || 'Unknown Player';
+});
 
-	const elementTypeMap = {
-		1: "Goalkeeper",
-		2: "Defender",
-		3: "Midfielder",
-		4: "Forward",
-	};
+const playerPrice = computed(() => (props.player ? formatCost(props.player.now_cost) : "—"));
 
-	const elementType = computed(
-		() => elementTypeMap[props.player.element_type] || "Unknown"
-	);
+const playerPoints = computed(() => Number(props.player.total_points ?? props.player.event_points ?? 0));
+const yellowCards = computed(() => Number(props.player.yellow_cards || 0));
+const redCards = computed(() => Number(props.player.red_cards || 0));
+const cardTotal = computed(() => yellowCards.value + redCards.value);
 
-	const playerFullName = computed(
-		() => `${props.player.first_name} ${props.player.second_name}`
-	);
+const formValue = computed(() => Number(props.player.form || 0));
+
+const formCategory = computed(() => {
+	if (formValue.value >= 5) return 'good';
+	if (formValue.value >= 3) return 'average';
+	return 'bad';
+});
+
+const formTileClass = computed(() => {
+	if (formCategory.value === 'good') return 'border-lime-300/40 bg-lime-400/10';
+	if (formCategory.value === 'average') return 'border-amber-300/40 bg-amber-400/10';
+	return 'border-rose-300/40 bg-rose-400/10';
+});
+
+const formValueClass = computed(() => {
+	if (formCategory.value === 'good') return 'text-lime-200';
+	if (formCategory.value === 'average') return 'text-amber-200';
+	return 'text-rose-200';
+});
+
+const totalTransfers = computed(
+	() => Number(props.player.transfers_in_event || 0) + Number(props.player.transfers_out_event || 0)
+);
+
+const inPercentage = computed(() =>
+	totalTransfers.value === 0
+		? 50
+		: (Number(props.player.transfers_in_event || 0) / totalTransfers.value) * 100
+);
+
+const outPercentage = computed(() =>
+	totalTransfers.value === 0
+		? 50
+		: (Number(props.player.transfers_out_event || 0) / totalTransfers.value) * 100
+);
+
+const playerImageSrc = computed(
+	() => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`
+);
+
+const formatCompact = (value) => {
+	const number = Number(value || 0);
+
+	return new Intl.NumberFormat('en', {
+		notation: 'compact',
+		maximumFractionDigits: 1,
+	}).format(number);
+};
+
+const formatPercent = (value) => {
+	const number = Number(value || 0);
+
+	return number % 1 === 0 ? `${number.toFixed(0)}%` : `${number.toFixed(1)}%`;
+};
+
+const handleImageError = (event) => {
+	const target = event?.target;
+
+	if (!target) return;
+
+	target.onerror = null;
+	target.src = '/fallback.png';
+};
 </script>

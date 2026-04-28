@@ -1,6 +1,6 @@
 import { getPlayerInfoDetails } from "~~/composables/usePremiereLeague";
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
 	try {
         const id = event.context.params?.id
         // @ts-ignore
@@ -12,4 +12,8 @@ export default defineEventHandler(async (event) => {
 			message: "getPlayerInfoDetails-Error: " + error,
 		};
 	}
+}, {
+	maxAge: 60 * 10,
+	swr: true,
+	getKey: (event) => `player-${event.context.params?.id ?? 'unknown'}`,
 });

@@ -1,107 +1,152 @@
 <template>
-  <section
-    class="p-5 mt-6 bg-gradient-to-br from-[#4B0082] to-[#7300c5] rounded-lg shadow-lg"
-  >
-    <div class="flex items-center justify-center">
-      <div class="hidden sm:block">
-        <img
-          :src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${gameweek.mostCaptainedPlayerCode}.png`"
-          :alt="`Most captained player: ${gameweek.mostCaptained}`"
-          class="object-contain w-full h-full rounded-md"
-          loading="lazy"
-          @error="(e) => handleImageError(e, gameweek.mostCaptainedPlayerCode)"
-        />
-        <div
-          class="px-3 py-2 mb-2 text-center rounded-lg bg-white/80 backdrop-blur-sm"
-        >
-          <div class="text-xs font-semibold sm:text-sm text-slate-700">
-            Most Captained
+  <div class="mx-auto mt-6 h-full w-full  ">
+    <UCard :ui="{ body: 'p-4', root: 'ring-0' }"
+      class="relative h-full w-full overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 text-stone-50 shadow-2xl transition duration-300 hover:-translate-y-1">
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.14),transparent_30%),radial-gradient(circle_at_110%_18%,rgba(72,214,255,0.1),transparent_24%),linear-gradient(135deg,#111317_0%,#090a0d_100%)]">
+      </div>
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:5px_5px] opacity-10">
+      </div>
+
+      <div class="relative z-10 flex h-full flex-col gap-4 p-3">
+        <header class="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-stone-300">
+                Gameweek
+              </p>
+              <span v-if="gameweek.is_current"
+                class="inline-flex items-center rounded-full border border-lime-300/30 bg-lime-300/10 px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-[0.24em] text-lime-200">
+                Current
+              </span>
+            </div>
+            <h2 class="mt-1 text-[2rem] font-black leading-[0.92] tracking-tight text-white text-balance">
+              {{ gameweek.name }}
+            </h2>
           </div>
+
+          <div class="shrink-0 text-right">
+            <div class="text-[0.54rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
+              Transfers
+            </div>
+            <div class="mt-1 font-serif text-[1.9rem] font-black leading-none tracking-[-0.06em] text-white">
+              {{ shortenNumber(gameweek.transfers_made) }}
+            </div>
+          </div>
+        </header>
+
+
+        <div class="flex justify-between">
+          <div class="space-y-2 lg:pr-4">
+            <p class="text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
+              Most Captained
+            </p>
+            <div class="relative w-full overflow-hidden rounded-[22px]">
+              <div class="absolute inset-x-[8%] top-[16%] h-[72%] rounded-[999px] bg-lime-300/14 blur-3xl"></div>
+              <img :src="captainImageSrc" :alt="`Most captained player: ${gameweek.mostCaptained}`"
+                class="relative z-10 mx-auto h-44 w-full max-w-[24rem] object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.5)] transition duration-300"
+                loading="lazy" @error="(e) => handleImageError(e, gameweek.mostCaptainedPlayerCode)" />
+            </div>
+            <p class="text-[0.95rem] font-bold leading-tight text-white text-center text-balance">
+              {{ gameweek.mostCaptained }}
+            </p>
+          </div>
+
+
+
+
+
           <div
-            class="text-base font-bold leading-tight sm:text-xl text-slate-900"
-          >
-            {{ gameweek.mostCaptained }}
+            class="hidden px-8 md:flex flex-col justify-center gap-3 border-y border-white/10 py-4 lg:border-y-0 lg:border-x lg:px-4 lg:py-0">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[0.54rem] font-semibold uppercase tracking-[0.32em] text-stone-500">
+                  Deadline
+                </p>
+                <p class="mt-1 font-serif text-[1.35rem] font-black leading-none tracking-[-0.05em] text-white">
+                  {{ getRemainingTime(gameweek.deadline_time) }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-[0.54rem] font-semibold uppercase tracking-[0.32em] text-stone-500">
+                  Transfers
+                </p>
+                <p class="mt-1 font-serif text-[1.35rem] font-black leading-none tracking-[-0.05em] text-white">
+                  {{ shortenNumber(gameweek.transfers_made) }}
+                </p>
+              </div>
+            </div>
+
+            <div v-if="gameweek.chip_plays && gameweek.chip_plays.length">
+              <div class="h-px w-full bg-white/10"></div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span v-for="chip in gameweek.chip_plays" :key="chip.chip_name"
+                  class="inline-flex items-center rounded-full border border-white/10 px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-stone-300">
+                  {{ chip.chip_name }}: {{ shortenNumber(chip.num_played) }}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <!-- Center content -->
-      <div class="text-center">
-        <div class="flex flex-col items-center justify-center space-y-2">
-          <h2
-            class="text-lg font-extrabold tracking-tight text-purple-100 md:text-2xl lg:text-3xl"
-          >
-            {{ gameweek.name }}
-          </h2>
-          <span
-            v-if="gameweek.is_current"
-            class="px-3 py-1 text-xs font-semibold text-teal-800 bg-teal-200 rounded-full md:text-sm"
-          >
-            Current
-          </span>
+
+
+
+
+          <div class="space-y-2 lg:pl-4">
+            <p class="text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
+              Most Vice Captained
+            </p>
+            <div class="relative w-full overflow-hidden rounded-[22px]">
+              <div class="absolute inset-x-[8%] top-[16%] h-[72%] rounded-[999px] bg-sky-300/14 blur-3xl"></div>
+              <img :src="viceCaptainImageSrc" :alt="`Most vice-captained player: ${gameweek.mostViceCaptained}`"
+                class="relative z-10 mx-auto h-44 w-full max-w-[24rem] object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.5)] transition duration-300"
+                loading="lazy" @error="(e) => handleImageError(e, gameweek.mostViceCaptainedPlayerCode)" />
+            </div>
+            <p class="text-[0.95rem] font-bold leading-tight text-white text-center text-balance">
+              {{ gameweek.mostViceCaptained }}
+            </p>
+          </div>
         </div>
 
-        <div class="mt-4">
-          <h3 class="text-sm tracking-wide uppercase md:text-lg text-slate-200">
-            Transfers
-          </h3>
-          <div class="mt-1 text-2xl font-semibold md:text-3xl text-slate-100">
-            {{ shortenNumber(gameweek.transfers_made) }}
-          </div>
-        </div>
+        <section class="md:hidden grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.12fr)_minmax(0,0.92fr)]">
 
-        <div class="mt-4">
-          <h3 class="text-sm tracking-wide uppercase md:text-lg text-slate-200">
-            Deadline
-          </h3>
-          <div class="mt-1 text-2xl font-semibold md:text-3xl text-slate-100">
-            {{ getRemainingTime(gameweek.deadline_time) }}
-          </div>
-        </div>
 
-        <!-- Chip usage (centered, wraps) -->
-        <div
-          v-if="gameweek.chip_plays && gameweek.chip_plays.length"
-          class="max-w-md mx-auto mt-4"
-        >
-          <h4 class="mb-2 text-sm font-semibold text-center text-purple-200">
-            Chip Usage
-          </h4>
-          <div class="flex flex-wrap justify-center gap-2">
-            <span
-              v-for="chip in gameweek.chip_plays"
-              :key="chip.chip_name"
-              class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded"
-            >
-              {{ chip.chip_name }}: {{ shortenNumber(chip.num_played) }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div  class="hidden sm:block">
-        <img
-          :src="`https://resources.premierleague.com/premierleague/photos/players/250x250/p${gameweek.mostViceCaptainedPlayerCode}.png`"
-          :alt="`Most vice-captained player: ${gameweek.mostViceCaptained}`"
-          class="object-contain w-full h-full rounded-md"
-          loading="lazy"
-          @error="
-            (e) => handleImageError(e, gameweek.mostViceCaptainedPlayerCode)
-          "
-        />
-        <div
-          class="px-3 py-2 mb-2 text-center rounded-lg bg-white/80 backdrop-blur-sm"
-        >
-          <div class="text-sm font-semibold text-slate-700">
-            Most Vice Captained
-          </div>
           <div
-            class="text-lg font-bold leading-tight md:text-2xl text-slate-900"
-          >
-            {{ gameweek.mostViceCaptained }}
+            class="flex flex-col justify-center gap-3 border-y border-white/10 py-4 lg:border-y-0 lg:border-x lg:px-4 lg:py-0">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[0.54rem] font-semibold uppercase tracking-[0.32em] text-stone-500">
+                  Deadline
+                </p>
+                <p class="mt-1 font-serif text-[1.35rem] font-black leading-none tracking-[-0.05em] text-white">
+                  {{ getRemainingTime(gameweek.deadline_time) }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-[0.54rem] font-semibold uppercase tracking-[0.32em] text-stone-500">
+                  Transfers
+                </p>
+                <p class="mt-1 font-serif text-[1.35rem] font-black leading-none tracking-[-0.05em] text-white">
+                  {{ shortenNumber(gameweek.transfers_made) }}
+                </p>
+              </div>
+            </div>
+
+            <div v-if="gameweek.chip_plays && gameweek.chip_plays.length">
+              <div class="h-px w-full bg-white/10"></div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span v-for="chip in gameweek.chip_plays" :key="chip.chip_name"
+                  class="inline-flex items-center rounded-full border border-white/10 px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-stone-300">
+                  {{ chip.chip_name }}: {{ shortenNumber(chip.num_played) }}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+
+        </section>
       </div>
-    </div>
-  </section>
+    </UCard>
+  </div>
 </template>
 
 <script setup>
@@ -112,22 +157,24 @@ const props = defineProps({
   },
 });
 
-/**
- * Fallback handler keeps logic out of template and allows reuse.
- * When remote 250x250 fails, try the smaller 110x140 and slightly scale.
- */
+const captainImageSrc = computed(
+  () =>
+    `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.gameweek.mostCaptainedPlayerCode}.png`
+);
+
+const viceCaptainImageSrc = computed(
+  () =>
+    `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.gameweek.mostViceCaptainedPlayerCode}.png`
+);
+
 function handleImageError(e, code) {
   const img = e.target;
   img.onerror = null;
   img.src = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`;
-  // keep image contained but visually stronger on small fallback
-  img.style.transform = "scale(1.6)";
+  img.style.transform = "scale(1.45)";
   img.style.objectFit = "contain";
 }
 
-/**
- * Simple helpers — replace with your existing utilities if present.
- */
 function shortenNumber(n) {
   if (n === null || n === undefined) return "-";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -136,7 +183,6 @@ function shortenNumber(n) {
 }
 
 function getRemainingTime(deadline) {
-  // if you already have a humanized function, use that.
   if (!deadline) return "-";
   const now = Date.now();
   const then = new Date(deadline).getTime();
@@ -154,7 +200,6 @@ function getRemainingTime(deadline) {
 </script>
 
 <style scoped>
-/* tiny visual tweak for stronger drop shadow if you want */
 img {
   filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.45));
   transform-origin: center;

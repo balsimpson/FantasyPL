@@ -1,6 +1,6 @@
 import { getUpcomingFixtures } from "~~/composables/usePremiereLeague";
 
-export default defineEventHandler(async () => {
+export default defineCachedEventHandler(async () => {
 	try {
 		const data = await getUpcomingFixtures();
 		return data;
@@ -10,4 +10,7 @@ export default defineEventHandler(async () => {
 			message: "getUpcomingFixtures: Error" + error,
 		};
 	}
+}, {
+	maxAge: 60 * 10,
+	swr: true,
 });

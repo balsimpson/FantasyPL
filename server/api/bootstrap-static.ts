@@ -1,6 +1,6 @@
-import { getBootstrapStatic, gameweekPlayerDetails } from "~~/composables/usePremiereLeague";
+import { getBootstrapStatic } from "~~/composables/usePremiereLeague";
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async () => {
 	try {
 		const data = await getBootstrapStatic();
 		return data;
@@ -10,4 +10,7 @@ export default defineEventHandler(async (event) => {
 			message: "getBootstrapStatic: Error" + error,
 		};
 	}
+}, {
+	maxAge: 60 * 10,
+	swr: true,
 });

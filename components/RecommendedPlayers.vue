@@ -57,7 +57,7 @@
 					:key="item"
 					:player="item"
 					:data="allTeams"
-					class="flex-shrink-0 w-64 bg-gradient-to-br rounded-lg from-slate-100 to-slate-300 snap-start"
+					class="flex-shrink-0 w-[88vw] sm:w-[24rem] lg:w-[28rem] snap-start"
 				/>
 			</AppCarousel>
 		</div>

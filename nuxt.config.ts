@@ -63,7 +63,8 @@ export default defineNuxtConfig({
 			style: [],
 		},
 	},
-	modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
+	modules: ["@pinia/nuxt", "@nuxt/ui"],
+	  css: ['~/assets/css/main.css'],
 	runtimeConfig: {
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		public: {

@@ -1,385 +1,625 @@
 <template>
-	<main
-		v-if="error"
-		class="grid min-h-full px-6 py-24 place-items-center sm:py-32 lg:px-8"
-	>
-		<div class="text-center">
-			<p class="text-base font-semibold text-indigo-600">{{ id }}</p>
-			<h1
-				class="mt-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl"
+	<main class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
+		<section v-if="error" class="grid min-h-[60vh] place-items-center">
+			<UCard
+				:ui="{ body: 'p-6 sm:p-8', root: 'ring-0 overflow-hidden' }"
+				class="w-full max-w-2xl border border-error/20 bg-gradient-to-br from-error/15 via-white/[0.04] to-transparent text-stone-50"
 			>
-				Manager not found
-			</h1>
-			<p class="mt-6 text-base leading-7 text-gray-600">
-				Sorry, we couldn’t find the manager page you’re looking for.
-			</p>
-			<div class="flex items-center justify-center mt-10 gap-x-6">
-				<NuxtLink
-					to="/"
-					class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-					>Go back home</NuxtLink
-				>
-			</div>
-		</div>
-	</main>
-	<div v-else class="p-3">
-		<div
-			v-if="managerData"
-			class="mx-auto overflow-hidden bg-white rounded-lg shadow-lg max-w-7xl"
-		>
-			<div class="relative py-6 overflow-hidden bg-gray-900 isolate sm:py-12">
-				<!-- <img
-					src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&crop=focalpoint&fp-y=.8&w=2830&h=1500&q=80&blend=111827&sat=-100&exp=15&blend-mode=multiply"
-					alt=""
-					class="absolute inset-0 object-cover object-right w-full h-full -z-10 md:object-center"
-				/> -->
-				<div
-					class="hidden sm:absolute sm:-top-10 sm:right-1/2 sm:-z-10 sm:mr-10 sm:block sm:transform-gpu sm:blur-3xl"
-					aria-hidden="true"
-				>
-					<div
-						class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-tr from-[#ff4694] to-[#776fff] opacity-20"
-						style="
-							clip-path: polygon(
-								74.1% 44.1%,
-								100% 61.6%,
-								97.5% 26.9%,
-								85.5% 0.1%,
-								80.7% 2%,
-								72.5% 32.5%,
-								60.2% 62.4%,
-								52.4% 68.1%,
-								47.5% 58.3%,
-								45.2% 34.5%,
-								27.5% 76.7%,
-								0.1% 64.9%,
-								17.9% 100%,
-								27.6% 76.8%,
-								76.1% 97.7%,
-								74.1% 44.1%
-							);
-						"
-					></div>
+				<div class="mb-6 flex justify-center">
+					<div class="rounded-full border border-error/20 bg-error/10 p-4 text-error">
+						<UIcon name="i-lucide-user-x" class="size-9" />
+					</div>
 				</div>
-				<div
-					class="absolute -top-52 left-1/2 -z-10 -translate-x-1/2 transform-gpu blur-3xl sm:top-[-28rem] sm:ml-16 sm:translate-x-0 sm:transform-gpu"
-					aria-hidden="true"
-				>
-					<div
-						class="aspect-[1097/845] w-[68.5625rem] bg-gradient-to-tr from-[#ff4694] to-[#776fff] opacity-20"
-						style="
-							clip-path: polygon(
-								74.1% 44.1%,
-								100% 61.6%,
-								97.5% 26.9%,
-								85.5% 0.1%,
-								80.7% 2%,
-								72.5% 32.5%,
-								60.2% 62.4%,
-								52.4% 68.1%,
-								47.5% 58.3%,
-								45.2% 34.5%,
-								27.5% 76.7%,
-								0.1% 64.9%,
-								17.9% 100%,
-								27.6% 76.8%,
-								76.1% 97.7%,
-								74.1% 44.1%
-							);
-						"
-					></div>
+
+				<UAlert
+					color="error"
+					variant="soft"
+					title="Manager not found"
+					:description="managerErrorDescription"
+				/>
+
+				<div class="mt-6 flex justify-center">
+					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="soft">
+						Go back home
+					</UButton>
 				</div>
-				<div class="px-6 mx-auto max-w-7xl lg:px-8">
-					<div class="max-w-2xl mx-auto lg:mx-0">
-						<h2
-							class="text-4xl font-bold tracking-tight text-white sm:text-6xl"
+			</UCard>
+		</section>
+
+		<section v-else-if="managerData" class="space-y-8">
+			<UCard
+				:ui="{ body: 'p-6 sm:p-8 lg:p-10', root: 'ring-0 overflow-hidden' }"
+				class="border border-white/10 bg-gradient-to-br from-primary/15 via-white/[0.04] to-transparent text-stone-50"
+			>
+				<div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+					<div class="max-w-2xl space-y-6">
+						<div class="flex flex-wrap items-center justify-between gap-4">
+							<div class="flex items-center gap-4">
+								<UAvatar
+									:text="managerInitials"
+									size="3xl"
+									class="border border-white/15 bg-white/10 text-white shadow-xl shadow-black/20"
+								/>
+								<div class="space-y-2">
+									<UBadge color="primary" variant="soft" size="lg">
+										Manager profile
+									</UBadge>
+									<div class="flex flex-wrap gap-2">
+										<UBadge color="neutral" variant="subtle">ID {{ id }}</UBadge>
+										<UBadge color="neutral" variant="subtle">Gameweek {{ managerData.current_event }}</UBadge>
+									</div>
+								</div>
+							</div>
+							<UButton to="/" icon="i-lucide-house" color="neutral" variant="soft" size="sm">
+								Home
+							</UButton>
+						</div>
+
+						<div>
+							<h1 class="text-4xl font-black tracking-tight text-white sm:text-6xl">
+								{{ managerDisplayName }}
+							</h1>
+							<p class="mt-3 text-base leading-7 text-stone-300">
+								{{ managerData.name }}
+							</p>
+						</div>
+
+						<div class="flex flex-wrap gap-2">
+							<UBadge icon="i-lucide-calendar-days" color="primary" variant="soft">
+								Active {{ managerData.years_active }} years
+							</UBadge>
+							<UBadge icon="i-lucide-shirt" color="neutral" variant="soft">
+								{{ formatNumber(classicLeagues.length) }} classic leagues
+							</UBadge>
+						</div>
+					</div>
+
+					<div class="grid w-full gap-3 sm:grid-cols-2 lg:max-w-xl">
+						<div
+							v-for="stat in managerStats"
+							:key="stat.label"
+							class="rounded-3xl border border-white/10 bg-zinc-950/25 p-4 shadow-lg shadow-black/10"
 						>
-							{{ managerData.player_first_name }}
-							{{ managerData.player_last_name }}
+							<div class="flex items-start justify-between gap-3">
+								<dl>
+									<dt class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+										{{ stat.label }}
+									</dt>
+									<dd class="mt-2 text-2xl font-black tracking-tight text-white">
+										{{ stat.value }}
+									</dd>
+								</dl>
+								<div class="rounded-2xl bg-white/10 p-2 text-primary">
+									<UIcon :name="stat.icon" class="size-5" />
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</UCard>
+
+			<section class="space-y-5">
+				<div class="flex flex-wrap items-end justify-between gap-4">
+					<div class="max-w-2xl">
+						<UBadge color="neutral" variant="soft" size="lg">
+							Classic leagues
+						</UBadge>
+						<h2 class="mt-3 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
+							League standings
 						</h2>
-						<pre class="text-white">{{ managerData.name }}</pre>
-						<p class="mt-1 text-sm leading-8 text-gray-300">
-							Active for
-							<span class="font-bold">{{ managerData.years_active }}</span>
-							years
+						<p class="mt-3 text-sm leading-6 text-stone-300">
+							Tracked league positions for this manager.
 						</p>
 					</div>
-					<div
-						v-if="managerData && managerData.leagues"
-						class="max-w-2xl mx-auto mt-0 lg:mx-0 lg:max-w-none"
-					>
-						<dl
-							class="grid grid-cols-2 gap-8 mt-2 sm:mt-4 sm:grid-cols-2 lg:grid-cols-4"
-						>
-							<div class="flex flex-col-reverse">
-								<dt class="text-base leading-7 text-gray-300">Points</dt>
-								<dd
-									class="text-2xl font-bold leading-9 tracking-tight text-white"
-								>
-									{{ managerData.summary_overall_points }}
-								</dd>
-							</div>
+					<UBadge icon="i-lucide-list-ordered" color="primary" variant="soft" size="lg">
+						{{ formatNumber(classicLeagues.length) }} leagues
+					</UBadge>
+				</div>
+				<!-- <USeparator /> -->
 
-							<div
-								v-if="managerData.leagues && managerData.leagues.classic"
-								class="flex flex-col-reverse"
-							>
-								<dt class="text-base leading-7 text-gray-300">Leagues</dt>
-								<dd
-									class="text-2xl font-bold leading-9 tracking-tight text-white"
-								>
-									{{ managerData.leagues.classic.length }}
+				<AppCarousel v-if="classicLeagues.length" class="px-0 py-2">
+					<UCard
+						v-for="league in decoratedClassicLeagues"
+						:key="league.id"
+						:ui="{ body: 'p-5', root: 'ring-0 overflow-hidden' }"
+						class="w-full max-w-sm shrink-0 snap-start border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.025] text-stone-50"
+					>
+						<div class="flex items-start justify-between gap-4">
+							<div class="min-w-0">
+								<p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
+									League
+								</p>
+								<h3 class="mt-2 line-clamp-2 text-xl font-bold leading-tight text-white">
+									{{ league.name }}
+								</h3>
+							</div>
+							<UBadge color="neutral" variant="subtle">#{{ formatNumber(league.id) }}</UBadge>
+						</div>
+
+						<div class="mt-5 rounded-3xl border border-white/10 bg-zinc-950/25 p-4">
+							<div class="flex items-center justify-between gap-4">
+								<div>
+									<p class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+										Current rank
+									</p>
+									<p class="mt-2 text-4xl font-black tracking-tight text-white">
+										{{ formatNumber(league.entry_rank) }}
+									</p>
+								</div>
+								<UBadge :color="league.rankMovement.color" variant="soft" size="lg">
+									<UIcon :name="league.rankMovement.icon" class="mr-1 size-4" />
+									{{ league.rankMovement.label }}
+								</UBadge>
+							</div>
+						</div>
+
+						<dl class="mt-5 grid grid-cols-2 gap-3">
+							<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+								<dt class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Last rank
+								</dt>
+								<dd class="mt-2 text-lg font-black tracking-tight text-white">
+									{{ formatNumber(league.entry_last_rank) }}
 								</dd>
 							</div>
-							<div class="flex flex-col-reverse">
-								<dt class="text-base leading-7 text-gray-300">Overall rank</dt>
-								<dd
-									class="text-2xl font-bold leading-9 tracking-tight text-white"
-								>
-									{{
-										new Intl.NumberFormat().format(
-											managerData.summary_overall_rank
-										)
-									}}
+							<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-right">
+								<dt class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Movement
+								</dt>
+								<dd class="mt-2 text-lg font-black tracking-tight text-white">
+									{{ league.rankMovement.detail }}
 								</dd>
 							</div>
-							<div class="flex flex-col-reverse">
-								<dt class="text-base leading-7 text-gray-300">Event rank</dt>
-								<dd
-									class="text-2xl font-bold leading-9 tracking-tight text-white"
-								>
-									{{
-										new Intl.NumberFormat().format(
-											managerData.summary_event_rank
-										)
-									}}
+							<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+								<dt class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Participants
+								</dt>
+								<dd class="mt-2 text-lg font-black tracking-tight text-white">
+									{{ formatNumber(league.rank_count) }}
+								</dd>
+							</div>
+							<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-right">
+								<dt class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+									Percentile
+								</dt>
+								<dd class="mt-2 text-lg font-black tracking-tight text-white">
+									{{ league.entry_percentile_rank }}%
 								</dd>
 							</div>
 						</dl>
+					</UCard>
+				</AppCarousel>
+
+				<UCard
+					v-else
+					:ui="{ body: 'p-6 sm:p-8', root: 'ring-0' }"
+					class="border border-white/10 bg-white/[0.04] text-stone-50"
+				>
+					<UAlert
+						icon="i-lucide-list-x"
+						color="neutral"
+						variant="soft"
+						title="No classic leagues"
+						description="This manager does not currently belong to any classic leagues."
+					/>
+				</UCard>
+			</section>
+
+			<section v-if="hasPicks" class="space-y-5">
+				<div class="flex flex-wrap items-end justify-between gap-4">
+					<div class="max-w-2xl">
+						<UBadge color="neutral" variant="soft" size="lg">
+							Squad overview
+						</UBadge>
+						<h2 class="mt-3 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
+							Starting XI and bench
+						</h2>
+						<p class="mt-3 text-sm leading-6 text-stone-300">
+							Current gameweek squad with team value and projected points.
+						</p>
 					</div>
+					<UBadge icon="i-lucide-users" color="primary" variant="soft" size="lg">
+						{{ formatNumber(squadState?.picks?.length ?? 0) }} players
+					</UBadge>
 				</div>
-			</div>
-		</div>
+				<!-- <USeparator /> -->
 
-		<div v-if="managerData && managerData.leagues" class="my-6">
-			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-				Classic Leagues
-			</h1>
-			<AppCarousel class="w-full mx-auto max-w-7xl">
-				<LeagueInfoCard
-					v-for="league in managerData?.leagues.classic"
-					:key="league.id"
-					class="w-full max-w-md shrink-0 snap-start"
-					:league="league"
-				/>
-			</AppCarousel>
-		</div>
+				<UCard
+					:ui="{ body: 'p-0 sm:p-0', root: 'ring-0 overflow-hidden' }"
+					class="bg-transparent text-stone-50"
+				>
+					<div class="grid gap-3 grid-cols-2 xl:grid-cols-4">
+						<div
+							v-for="stat in squadStats"
+							:key="stat.label"
+							class="rounded-3xl border border-white/10 bg-zinc-950/25 p-4"
+						>
+							<div class="flex items-start justify-between gap-3">
+								<dl>
+									<dt class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
+										{{ stat.label }}
+									</dt>
+									<dd class="mt-2 text-2xl font-black tracking-tight text-white">
+										{{ stat.value }}
+									</dd>
+								</dl>
+								<div class="rounded-2xl bg-white/10 p-2 text-primary">
+									<UIcon :name="stat.icon" class="size-5" />
+								</div>
+							</div>
+						</div>
+					</div>
 
-		<div
-			class="pb-12 mx-auto overflow-hidden rounded-lg shadow-lg max-w-7xl bg-gray-50"
-		>
-			<!-- <div class="p-4 bg-gray-800">
-				<h2 class="text-lg font-semibold text-white">ManagerData Picks</h2>
-				<p class="text-sm text-gray-400">Gameweek 3</p>
-			</div> -->
-			<div
-				v-if="managerData && managerData.player_first_name"
-				class="max-w-2xl px-3 py-6 mx-auto text-center"
+					<div class="mt-8 space-y-5 border-t border-white/10 pt-8">
+						<div
+							v-for="section in lineupSections"
+							:key="section.key"
+							:class="['space-y-4 rounded-3xl border bg-zinc-950/20 p-4 sm:p-5', section.accentClass]"
+						>
+							<div class="flex items-center justify-between gap-3">
+								<div class="flex items-center gap-3">
+									<UIcon :name="section.icon" class="size-5" :class="[section.iconClass]"/>
+									<!-- <div :class="['rounded-2xl p-2', section.iconClass]">
+									</div> -->
+									<h3 class="text-sm font-black uppercase tracking-[0.24em] text-white">
+										{{ section.label }}
+									</h3>
+								</div>
+								<UBadge color="neutral" variant="soft">{{ section.items.length }}</UBadge>
+							</div>
+							<div
+								v-if="section.items.length"
+								class="flex flex-wrap items-start justify-center gap-4 lg:justify-start"
+							>
+								<PlayerCardPick
+									v-for="pick in section.items"
+									:key="pick.element?.id ?? `${section.key}-${pick.element?.code}`"
+									:pick="pick"
+								/>
+							</div>
+							<UAlert
+								v-else
+								icon="i-lucide-user-round-x"
+								color="neutral"
+								variant="soft"
+								title="No players"
+								description="No players available for this section."
+							/>
+						</div>
+					</div>
+				</UCard>
+			</section>
+
+			<UCard
+				v-else-if="isSquadLoading"
+				:ui="{ body: 'p-6 sm:p-8', root: 'ring-0' }"
+				class="border border-white/10 bg-white/[0.04] text-stone-50"
 			>
-				<p
-					class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
-				>
-					{{ managerData.player_first_name }}'s picks
-				</p>
-				<h4 class="text-xs font-light">
-					With predicted points for the next 5 weeks
-				</h4>
-				<h2 class="mt-4 text-base font-semibold leading-7 text-indigo-600">
-					GAMEWEEK {{ managerData.current_event }}
-				</h2>
-
-				<div class="flex">
-					<div class="flex flex-col max-w-xs mx-auto gap-y-0">
-						<dt class="text-base leading-5 text-gray-600">Team points</dt>
-						<dd
-							class="order-first text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl"
-						>
-							{{ teamPoints }}
-						</dd>
+				<div class="space-y-5">
+					<div class="flex items-center gap-3">
+						<USkeleton class="size-12 rounded-full" />
+						<div class="space-y-2">
+							<USkeleton class="h-4 w-40" />
+							<USkeleton class="h-3 w-64" />
+						</div>
 					</div>
-
-					<div class="flex flex-col max-w-xs mx-auto gap-y-0">
-						<dt class="text-base leading-5 text-gray-600">Team Cost</dt>
-						<dd
-							class="order-first text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl"
-						>
-							{{ teamCost / 10 }}m
-						</dd>
+					<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+						<USkeleton v-for="item in 4" :key="item" class="h-24 rounded-3xl" />
 					</div>
 				</div>
+			</UCard>
 
-				<!-- <pre>{{ picks[0] }}</pre> -->
-			</div>
-			<div class="p-4 bg-gray-50">
-				<div
-					v-if="picks && picks.length > 0"
-					class="flex flex-col gap-4 text-gray-700 gap-y-12 sm:gap-y-16"
-				>
-					<div>
-						<div
-							class="col-span-3 font-mono font-bold text-center text-gray-400 uppercase"
-						>
-							Forwards
-						</div>
-						<!-- <pre>{{ groupedByType.Midfielder }}</pre> -->
-						<div
-							v-if="groupedByType && groupedByType.Forward"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
-						>
-						
-							<PlayerCardPick
-								:pick="pick"
-								v-for="pick in groupedByType.Forward"
-								:key="pick"
-							/>
-						</div>
-					</div>
+			<UCard
+				v-else
+				:ui="{ body: 'p-6 sm:p-8', root: 'ring-0' }"
+				class="border border-white/10 bg-white/[0.04] text-stone-50"
+			>
+				<UAlert
+					icon="i-lucide-users-x"
+					color="neutral"
+					variant="soft"
+					title="No squad data"
+					description="The squad for this manager is not available yet."
+				/>
+			</UCard>
+		</section>
 
-					<div>
-						<div
-							class="col-span-3 font-mono font-bold text-center text-gray-400 uppercase"
-						>
-							Midfielders
-						</div>
-						<div
-							v-if="groupedByType && groupedByType.Midfielder"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
-						>
-							<PlayerCardPick
-								:pick="pick"
-								v-for="pick in groupedByType.Midfielder"
-								:key="pick"
-							/>
+		<section v-else class="grid min-h-[60vh] place-items-center">
+			<UCard
+				:ui="{ body: 'p-6 sm:p-8', root: 'ring-0 overflow-hidden' }"
+				class="w-full max-w-2xl border border-white/10 bg-gradient-to-br from-primary/15 via-white/[0.04] to-transparent text-stone-50"
+			>
+				<div class="space-y-6">
+					<div class="flex items-center gap-4">
+						<USkeleton class="size-16 rounded-full" />
+						<div class="space-y-3">
+							<USkeleton class="h-5 w-36" />
+							<USkeleton class="h-10 w-64" />
 						</div>
 					</div>
-
-					<div>
-						<div
-							class="col-span-3 font-mono font-bold text-center text-gray-400 uppercase"
-						>
-							Defenders
-						</div>
-						<div
-							v-if="groupedByType && groupedByType.Defender"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
-						>
-							<PlayerCardPick
-								:pick="pick"
-								v-for="pick in groupedByType.Defender"
-								:key="pick"
-							/>
-						</div>
-					</div>
-					<div>
-						<div
-							class="col-span-3 font-mono font-bold text-center text-gray-400 uppercase"
-						>
-							Goalkeepers
-						</div>
-						<div
-							v-if="groupedByType && groupedByType.Goalkeeper"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
-						>
-							<PlayerCardPick
-								:pick="pick"
-								v-for="pick in groupedByType.Goalkeeper"
-								:key="pick"
-							/>
-						</div>
-					</div>
-					<div>
-						<div
-							class="col-span-3 font-mono font-bold text-center text-gray-400 uppercase"
-						>
-							Bench
-						</div>
-						<div
-							v-if="bench"
-							class="flex flex-wrap items-start justify-center w-full gap-x-6 gap-y-12"
-						>
-						<!-- <pre>{{ bench }}</pre> -->
-							<PlayerCardPick :pick="pick" v-for="pick in bench" :key="pick" />
-						</div>
+					<USkeleton class="h-4 w-full max-w-lg" />
+					<div class="grid gap-3 sm:grid-cols-2">
+						<USkeleton v-for="item in 4" :key="item" class="h-24 rounded-3xl" />
 					</div>
 				</div>
-			</div>
-		</div>
-	</div>
+			</UCard>
+		</section>
+	</main>
 </template>
 
 <script setup>
-	const route = useRoute();
-	const id = route.params.id;
-	const picks = ref([]);
-	const bench = ref([]);
-	const startingXI = ref([]);
-	const groupedByType = ref();
+const route = useRoute();
+const id = computed(() => String(route.params.id ?? ""));
 
-	const managerData = useState("manager", () => []);
+const numberFormatter = new Intl.NumberFormat("en-GB");
 
-	const { data: manager, error } = useFetch(`/api/managers/${id}`);
-	const { data: bootstrap } = useLazyFetch(`/api/bootstrap-static`);
-	const { data: predictions } = useLazyFetch(`/api/predictions`);
+const formatNumber = (value) => {
+	if (value === null || value === undefined || value === "") return "-";
 
-	const teamCost = ref(0);
-	const teamPoints = ref(0);
+	const numericValue = Number(value);
+	return Number.isNaN(numericValue) ? String(value) : numberFormatter.format(numericValue);
+};
 
-	watchEffect(async () => {
-		if (manager.value && bootstrap.value && predictions.value) {
-			picks.value = await $fetch(
-				`/api/managers/picks/?gw=${manager.value.current_event}&id=${manager.value.id}`
-			);
+const formatCost = (value) => {
+	const numericValue = Number(value ?? 0);
+	if (!Number.isFinite(numericValue)) return "-";
 
-			picks.value.map((pick) => {
-				const element = getPlayerInfo(pick.element, bootstrap.value);
-				pick.element = element;
-				pick.element_type = getPositionName(element.element_type);
-				pick.predictions = getPredictionsOfPlayer(
-					predictions.value,
-					pick.element.code
-				);
-				return pick;
-			});
+	return `${(numericValue / 10).toFixed(1).replace(/\.0$/, "")}m`;
+};
 
-			// Separate last 4 elements as bench
-			bench.value = picks.value.slice(-4);
+const getRankMovement = (league) => {
+	const currentRank = Number(league?.entry_rank);
+	const lastRank = Number(league?.entry_last_rank);
 
-			// Separate starting XI
-			startingXI.value = picks.value.slice(0, -4);
+	if (!Number.isFinite(currentRank) || !Number.isFinite(lastRank) || currentRank === 0 || lastRank === 0) {
+		return {
+			color: "neutral",
+			detail: "-",
+			icon: "i-lucide-minus",
+			label: "No movement",
+		};
+	}
 
-			// Group players by element_type
-			groupedByType.value = startingXI.value.reduce((acc, player) => {
-				const { element_type } = player;
-				if (!acc[element_type]) {
-					acc[element_type] = [];
-				}
-				acc[element_type].push(player);
-				return acc;
-			}, {});
+	const movement = lastRank - currentRank;
 
-			teamCost.value = startingXI.value.reduce((total, pick) => {
-				const element = getPlayerInfo(pick.element.id, bootstrap.value);
-				return total + element.now_cost; // Assuming 'cost' is the property for player cost
-			}, 0);
+	if (movement > 0) {
+		return {
+			color: "success",
+			detail: `+${formatNumber(movement)}`,
+			icon: "i-lucide-trending-up",
+			label: `Up ${formatNumber(movement)}`,
+		};
+	}
 
-			teamPoints.value = startingXI.value.reduce((total, pick) => {
-				const element = getPlayerInfo(pick.element.id, bootstrap.value);
-				return total + element.total_points; // Assuming 'cost' is the property for player cost
-			}, 0);
+	if (movement < 0) {
+		return {
+			color: "error",
+			detail: `-${formatNumber(Math.abs(movement))}`,
+			icon: "i-lucide-trending-down",
+			label: `Down ${formatNumber(Math.abs(movement))}`,
+		};
+	}
 
-			managerData.value = manager.value;
+	return {
+		color: "neutral",
+		detail: "0",
+		icon: "i-lucide-minus",
+		label: "No movement",
+	};
+};
 
-			localStorage.setItem("savedManagerId", id);
+const transformPick = (pick, bootstrapData, predictionData) => {
+	const element = getPlayerInfo(Number(pick?.element), bootstrapData);
+
+	if (!element) return null;
+
+	return {
+		...pick,
+		element,
+		element_type: getPositionName(element.element_type) ?? "Unknown",
+		predictions: Array.isArray(predictionData)
+			? getPredictionsOfPlayer(predictionData, element.code)
+			: [],
+	};
+};
+
+const buildSquadState = (picks = []) => {
+	const benchStart = Math.max(0, picks.length - 4);
+	const startingXI = picks.slice(0, benchStart);
+	const bench = picks.slice(benchStart);
+
+	const groupedByType = startingXI.reduce((acc, player) => {
+		const type = player.element_type ?? "Unknown";
+		if (!acc[type]) acc[type] = [];
+		acc[type].push(player);
+		return acc;
+	}, {});
+
+	const teamCost = startingXI.reduce((total, pick) => {
+		return total + Number(pick?.element?.now_cost ?? 0);
+	}, 0);
+
+	const teamPoints = startingXI.reduce((total, pick) => {
+		return total + Number(pick?.element?.total_points ?? 0);
+	}, 0);
+
+	return { picks, startingXI, bench, groupedByType, teamCost, teamPoints };
+};
+
+const { data: pageData, pending, error } = await useAsyncData(
+	"manager-page",
+	async () => {
+		if (!id.value) {
+			throw createError({ statusCode: 404, statusMessage: "Manager not found" });
 		}
-	});
+
+		const manager = await $fetch(`/api/managers/${id.value}`);
+
+		if (!manager || manager.message) {
+			throw createError({ statusCode: 404, statusMessage: "Manager not found" });
+		}
+
+		const [bootstrapResult, predictionsResult] = await Promise.allSettled([
+			$fetch("/api/bootstrap-static"),
+			$fetch("/api/predictions"),
+		]);
+
+		const bootstrap = bootstrapResult.status === "fulfilled" ? bootstrapResult.value : null;
+		const predictions = predictionsResult.status === "fulfilled" ? predictionsResult.value : [];
+
+		if (!bootstrap?.elements) {
+			return {
+				manager,
+				classicLeagues: manager?.leagues?.classic ?? [],
+				squad: null,
+			};
+		}
+
+		let picks = [];
+
+		if (manager.current_event && manager.id) {
+			try {
+				const fetchedPicks = await $fetch("/api/managers/picks", {
+					query: {
+						gw: manager.current_event,
+						id: manager.id,
+					},
+				});
+
+				picks = Array.isArray(fetchedPicks)
+					? fetchedPicks
+							.map((pick) => transformPick(pick, bootstrap, predictions))
+							.filter(Boolean)
+					: [];
+			} catch {
+				picks = [];
+			}
+		}
+
+		return {
+			manager,
+			classicLeagues: manager?.leagues?.classic ?? [],
+			squad: buildSquadState(picks),
+		};
+	},
+	{ watch: [id] }
+);
+
+const isCurrentManager = computed(() => String(pageData.value?.manager?.id ?? "") === id.value);
+const managerData = computed(() => (isCurrentManager.value ? pageData.value?.manager ?? null : null));
+const classicLeagues = computed(() => (isCurrentManager.value ? pageData.value?.classicLeagues ?? [] : []));
+const squadState = computed(() => (isCurrentManager.value ? pageData.value?.squad ?? null : null));
+const isSquadLoading = computed(() => pending.value && !isCurrentManager.value);
+const hasPicks = computed(() => (squadState.value?.picks ?? []).length > 0);
+
+const managerErrorDescription = computed(
+	() => error.value?.statusMessage || error.value?.message || "Sorry, we couldn’t find the manager page you’re looking for."
+);
+
+const managerDisplayName = computed(() => {
+	const firstName = managerData.value?.player_first_name ?? "";
+	const lastName = managerData.value?.player_last_name ?? "";
+	return `${firstName} ${lastName}`.trim() || "Manager";
+});
+
+const managerInitials = computed(() => {
+	return managerDisplayName.value
+		.split(" ")
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((part) => part.charAt(0).toUpperCase())
+		.join("") || "M";
+});
+
+const decoratedClassicLeagues = computed(() => {
+	return classicLeagues.value.map((league) => ({
+		...league,
+		rankMovement: getRankMovement(league),
+	}));
+});
+
+const managerStats = computed(() => {
+	if (!managerData.value) return [];
+
+	return [
+		{
+			icon: "i-lucide-trophy",
+			label: "Overall points",
+			value: formatNumber(managerData.value.summary_overall_points),
+		},
+		{
+			icon: "i-lucide-chart-no-axes-column-increasing",
+			label: "Overall rank",
+			value: formatNumber(managerData.value.summary_overall_rank),
+		},
+		{
+			icon: "i-lucide-calendar-range",
+			label: "Event rank",
+			value: formatNumber(managerData.value.summary_event_rank),
+		},
+		{
+			icon: "i-lucide-list-ordered",
+			label: "Leagues",
+			value: formatNumber(classicLeagues.value.length),
+		},
+	];
+});
+
+const squadStats = computed(() => {
+	const squad = squadState.value;
+
+	return [
+		{ icon: "i-lucide-star", label: "Team points", value: formatNumber(squad?.teamPoints ?? 0) },
+		{ icon: "i-lucide-badge-pound-sterling", label: "Team cost", value: formatCost(squad?.teamCost ?? 0) },
+		{ icon: "i-lucide-users", label: "Starting XI", value: formatNumber(squad?.startingXI?.length ?? 0) },
+		{ icon: "i-lucide-armchair", label: "Bench", value: formatNumber(squad?.bench?.length ?? 0) },
+	];
+});
+
+const lineupSections = computed(() => {
+	const squad = squadState.value;
+
+	return [
+		{
+			accentClass: "border-rose-400/20",
+			icon: "i-lucide-crosshair",
+			iconClass: "bg-rose-400/60 text-rose-500",
+			items: squad?.groupedByType?.Forward ?? [],
+			key: "Forward",
+			label: "Forwards",
+		},
+		{
+			accentClass: "border-sky-400/20",
+			icon: "i-lucide-circle-dot",
+			iconClass: "bg-sky-400/60 text-sky-500",
+			items: squad?.groupedByType?.Midfielder ?? [],
+			key: "Midfielder",
+			label: "Midfielders",
+		},
+		{
+			accentClass: "border-emerald-400/20",
+			icon: "i-lucide-shield",
+			iconClass: "bg-emerald-400/60 text-emerald-500",
+			items: squad?.groupedByType?.Defender ?? [],
+			key: "Defender",
+			label: "Defenders",
+		},
+		{
+			accentClass: "border-amber-400/20",
+			icon: "i-lucide-hand",
+			iconClass: "bg-amber-400/60 text-amber-500",
+			items: squad?.groupedByType?.Goalkeeper ?? [],
+			key: "Goalkeeper",
+			label: "Goalkeepers",
+		},
+		{
+			accentClass: "border-white/10",
+			icon: "i-lucide-armchair",
+			iconClass: "bg-white/60 text-stone-200",
+			items: squad?.bench ?? [],
+			key: "Bench",
+			label: "Bench",
+		},
+	];
+});
 </script>
