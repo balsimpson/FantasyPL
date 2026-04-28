@@ -12,6 +12,9 @@ export default defineNuxtConfig({
 		head: {
 			title: "FPL Insights",
 			titleTemplate: "%s | FPL Insights",
+			htmlAttrs: {
+				lang: "en",
+			},
 			meta: [
 				{ name: "viewport", content: "width=device-width, initial-scale=1" },
 				{
@@ -42,6 +45,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		public: {
+			SITE_URL: process.env.NUXT_PUBLIC_SITE_URL || "https://fantasyleague.vercel.app",
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
 			MAKE_WEBHOOK_URL: process.env.MAKE_WEBHOOK_URL,
 		},

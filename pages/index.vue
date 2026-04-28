@@ -342,6 +342,12 @@ definePageMeta({
   keepalive: true,
 });
 
+const canonicalUrl = useCanonicalUrl();
+
+useHead({
+  link: [{ rel: "canonical", href: canonicalUrl }],
+});
+
 useSeoMeta({
   title: 'Fantasy Premier League Stats, Fixtures & Ownership',
   description:

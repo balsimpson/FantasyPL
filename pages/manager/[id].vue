@@ -348,10 +348,15 @@
 </template>
 
 <script setup>
-const route = useRoute();
-const id = computed(() => String(route.params.id ?? ""));
+	const route = useRoute();
+	const id = computed(() => String(route.params.id ?? ""));
+	const canonicalUrl = useCanonicalUrl();
 
-const numberFormatter = new Intl.NumberFormat("en-GB");
+	useHead({
+		link: [{ rel: "canonical", href: canonicalUrl }],
+	});
+
+	const numberFormatter = new Intl.NumberFormat("en-GB");
 
 const formatNumber = (value) => {
 	if (value === null || value === undefined || value === "") return "-";

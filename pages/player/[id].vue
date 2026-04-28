@@ -229,6 +229,11 @@
 	const playerId = computed(() => getPlayerIdFromRouteParam(route.params.id));
 	const playersStore = usePlayersStore();
 	const { bootstrap } = storeToRefs(playersStore);
+	const canonicalUrl = useCanonicalUrl();
+
+	useHead({
+		link: [{ rel: "canonical", href: canonicalUrl }],
+	});
 
 	const { data: player } = useFetch(() => `/api/players/${playerId.value}`);
 	await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
