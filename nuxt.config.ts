@@ -47,6 +47,8 @@ export default defineNuxtConfig({
 		public: {
 			SITE_URL: process.env.NUXT_PUBLIC_SITE_URL || "https://fantasyleague.vercel.app",
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
+			CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+			CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET,
 			MAKE_WEBHOOK_URL: process.env.MAKE_WEBHOOK_URL,
 		},
 	},
