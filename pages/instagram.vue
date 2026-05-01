@@ -53,7 +53,8 @@
           <!-- PREVIEW -->
           <InstagramMovementCard :player="selectedMover.player" :team-name="selectedMover.teamName"
             :gameweek-label="currentGameweekLabel" :total-movement="selectedMover.totalMovement"
-            :net-movement="selectedMover.netMovement" :style-config="activeStyleConfig" id="instagram-card" />
+            :net-movement="selectedMover.netMovement" :style-config="activeStyleConfig" 
+            :layout="selectedLayoutId" id="instagram-card" />
           
             <div class="space-y-4">
               
@@ -147,9 +148,16 @@
   
               <div class="grid gap-4 md:grid-cols-2">
                 <div class="space-y-2">
+                  <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Layout</label>
+                  <USelect v-model="selectedLayoutId" :items="layoutOptions" color="neutral" variant="subtle" size="md" :highlight="false" />
+                </div>
+                <div class="space-y-2">
                   <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Pattern</label>
                   <USelect v-model="styleControls.patternKind" :items="patternKindOptions" color="neutral" variant="subtle" size="md" :highlight="false" />
                 </div>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
                 <div class="space-y-2">
                   <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
                     <span>Pattern rotation</span>
@@ -205,6 +213,11 @@ const statusMessage = ref(null);
 const localStylePresetKey = 'fantasypl.instagram-movement.presets';
 const variationSeed = ref(0);
 const selectedStylePresetId = ref(instagramMovementPresets[0].id);
+const selectedLayoutId = ref('classic');
+const layoutOptions = [
+  { label: 'Classic Movement', value: 'classic' },
+  { label: 'Minimal Focus', value: 'minimal' },
+];
 const presetNameDraft = ref('');
 const customStylePresets = ref([]);
 const resolveListImage = (code) => {
