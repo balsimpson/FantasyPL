@@ -207,30 +207,8 @@ const variationSeed = ref(0);
 const selectedStylePresetId = ref(instagramMovementPresets[0].id);
 const presetNameDraft = ref('');
 const customStylePresets = ref([]);
-const listImageCache = reactive({});
-
 const resolveListImage = (code) => {
-  if (listImageCache[code]) return listImageCache[code];
-
-  const url = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${code}.png`;
-
-  if (!process.client) {
-    return url;
-  }
-
-  // Use a transparent pixel as a placeholder while loading to prevent broken image flashes
-  listImageCache[code] = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-
-  const img = new Image();
-  img.onload = () => {
-    listImageCache[code] = url;
-  };
-  img.onerror = () => {
-    listImageCache[code] = '/fallback.png';
-  };
-  img.src = url;
-
-  return listImageCache[code];
+  return `https://resources.premierleague.com/premierleague/photos/players/110x140/p${code}.png`;
 };
 
 const styleControlsDefaults = {

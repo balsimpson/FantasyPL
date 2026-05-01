@@ -50,16 +50,16 @@ Rules:
 export default defineEventHandler(async (event) => {
   const { prompt } = await readBody(event);
 
-  console.log("prompt", typeof prompt);
+  // console.log("prompt", typeof prompt);
   
   try {
     const resp = await openai.responses.create({
-      model: "gpt-4.1",
+      model: "gpt-5.4",
       instructions: instructions_v2,
       input: [{ role: "user", content: JSON.stringify(prompt) }],
       store: false,
     });
-    console.log(resp.output_text);
+    // console.log(resp.output_text);
     return {
       success: true,
       error: null,

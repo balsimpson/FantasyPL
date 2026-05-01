@@ -290,8 +290,8 @@ const updateImages = async () => {
   if (!props.player) return;
   const currentSeq = ++loadSeq;
   
-  const teamUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
-  const playerUrl = `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player.code}.png`;
+  const teamUrl = `/api/image-proxy/team/${props.player.team_code}?url=${encodeURIComponent(`https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`)}`;
+  const playerUrl = `/api/image-proxy/player/${props.player.code}?url=${encodeURIComponent(`https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player.code}.png`)}`;
 
   const [teamRes, playerRes] = await Promise.all([
     loadImage(teamUrl),
