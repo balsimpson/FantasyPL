@@ -1,321 +1,170 @@
 <template>
   <div class="min-h-screen bg-[#050816] text-white">
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-      <section class="grid gap-6 xl:grid-cols-[0.94fr_1.06fr]">
-        <UCard :ui="cardUi" class="overflow-hidden border border-white/10 bg-white/[0.03] text-white">
-          <div class="space-y-6">
-            <div class="space-y-3">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">
-                Instagram builder
-              </p>
-              <h1 class="text-4xl font-black leading-[0.95] tracking-[-0.05em] text-balance sm:text-6xl">
-                Build a clean Instagram post from live FPL movement.
-              </h1>
-            </div>
+    <div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div class="flex flex-col gap-3">
+        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">Instagram builder</p>
+        <h1 class="text-4xl font-black leading-[0.95] tracking-[-0.05em] text-balance sm:text-5xl">
+          Build a clean Instagram post from live FPL movement.
+        </h1>
+      </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Players</p>
-                <p class="mt-2 text-3xl font-black tracking-[-0.04em]">{{ movers.length }}</p>
+      <div class="grid gap-6 sm:grid-cols-2">
+        <!-- LEFT: Player List -->
+        <div class="flex h-[calc(100vh-10rem)] sticky top-6 flex-col overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.02]">
+          <div class="space-y-4 border-b border-white/10 p-5 shrink-0 bg-white/[0.02]">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-black tracking-[-0.03em]">Trending Players</h2>
+              <UBadge color="neutral" variant="soft" class="uppercase tracking-[0.24em] text-[0.55rem]">Live feed</UBadge>
+            </div>
+            <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Search players" color="neutral" variant="subtle" size="md" :highlight="false" class="w-full" />
+            <USelect v-model="sortKey" :items="sortOptions" color="neutral" variant="subtle" size="sm" :highlight="false" class="w-full" />
+          </div>
+          
+          <div class="flex-1 overflow-y-auto p-2 space-y-1">
+            <div v-if="filteredMovers.length" class="space-y-1">
+              <button v-for="item in filteredMovers" :key="item.player.id" type="button"
+                class="flex w-full items-center gap-3 rounded-xl border p-3 text-left transition duration-200"
+                :class="item.player.id === selectedMover?.player?.id ? 'border-lime-300/40 bg-lime-300/10' : 'border-transparent hover:bg-white/[0.04]'"
+                @click="selectMover(item)">
+                <div class="relative flex h-10 w-10 shrink-0 items-end justify-center overflow-hidden rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(8,12,24,0.12)_40%,rgba(0,0,0,0.95)_100%)] border border-white/10">
+                  <img :src="resolveListImage(item.player.code)"
+                       :alt="item.player.web_name" class="w-[90%] h-[90%] object-contain object-bottom" @error="handleImageError" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate text-sm font-bold text-white">{{ item.player.web_name }}</h3>
+                  <p class="truncate text-xs text-white/50">{{ item.teamName }} · {{ item.positionLabel }}</p>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-sm font-black" :class="item.netMovement >= 0 ? 'text-lime-300' : 'text-rose-300'">
+                    {{ formatSigned(item.netMovement) }}
+                  </div>
+                  <div class="text-[0.55rem] uppercase tracking-[0.2em] text-white/40">Net</div>
+                </div>
+              </button>
+            </div>
+            <div v-else class="p-4 text-sm text-white/50 text-center">
+              No players found.
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Workspace -->
+        <div class="flex flex-col gap-6" v-if="selectedMover">
+          <!-- PREVIEW -->
+          <InstagramMovementCard :player="selectedMover.player" :team-name="selectedMover.teamName"
+            :gameweek-label="currentGameweekLabel" :total-movement="selectedMover.totalMovement"
+            :net-movement="selectedMover.netMovement" :style-config="activeStyleConfig" id="instagram-card" />
+          
+            <div class="space-y-4">
+              
+              <div>
+                <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Instagram caption</p>
+                <textarea readonly :value="captionText || 'Instagram caption generated.'"
+                class="mt-2 min-h-32 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-sm leading-6 text-white/80 outline-none"></textarea>
+                
               </div>
-              <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Interest score</p>
-                <p class="mt-2 text-3xl font-black tracking-[-0.04em] text-lime-300">
-                  {{ selectedMover ? formatInterestScore(selectedMover.interestingScore) : '—' }}
-                </p>
+              <div class="mt-4 flex flex-col gap-2">
+                <UButton color="primary" size="lg" block :loading="isPosting" icon="i-lucide-send" @click="postToInsta">
+                  <span v-if="isPosting">{{ postButtonText }}</span>
+                  <span v-else>Post to Insta</span>
+                </UButton>
+              </div>
+          </div>
+        </div>
+      </div>
+      <!-- DETAILS & TOOLS -->
+      <div class="space-y-6">
+
+  
+        <!-- Style Studio -->
+        <UCard :ui="cardUi" class="border border-white/10 bg-white/[0.02] text-white rounded-[24px]">
+          <div class="p-5 space-y-6">
+            <div class="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
+              <div class="max-w-md space-y-2">
+                <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">Style studio</p>
+                <h2 class="text-2xl font-black leading-tight tracking-[-0.05em]">
+                  Atmosphere & Layout
+                </h2>
+              </div>
+  
+              <div class="flex flex-wrap gap-2">
+                <UButton color="neutral" variant="soft" icon="i-lucide-shuffle" @click="shuffleStyleSeed">
+                  Shuffle lights
+                </UButton>
+                <UButton color="neutral" variant="soft" icon="i-lucide-rotate-ccw" @click="resetStyleControls">
+                  Reset preset
+                </UButton>
               </div>
             </div>
-
-            <div class="flex flex-wrap gap-3">
-              <UButton color="primary" size="md" :loading="isPosting" icon="i-lucide-send" @click="postToInsta">
-                <span v-if="isPosting">{{ postButtonText }}</span>
-                <span v-else>Post to Insta</span>
-              </UButton>
-              <UButton color="neutral" variant="soft" size="md" icon="i-lucide-rotate-ccw" @click="selectTopMover">
-                Reset to top pick
-              </UButton>
-            </div>
-
-            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-              <div class="mb-3 flex items-center justify-between">
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Sort picks</p>
-                <UBadge color="neutral" variant="soft" class="uppercase tracking-[0.24em]">Live feed</UBadge>
+  
+            <div class="grid gap-6">
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Preset</label>
+                  <USelect v-model="selectedStylePresetId" :items="stylePresetOptions" color="neutral" variant="subtle" size="md" :highlight="false" />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Save as preset</label>
+                  <div class="flex gap-2">
+                    <UInput v-model="presetNameDraft" placeholder="Name this style" color="neutral" variant="subtle" size="md" :highlight="false" class="flex-1" />
+                    <UButton color="primary" icon="i-lucide-bookmark-plus" @click="saveCurrentPreset">
+                      Save
+                    </UButton>
+                  </div>
+                </div>
               </div>
-              <USelect v-model="sortKey" :items="sortOptions" color="neutral" variant="subtle" size="md"
-                :highlight="false" class="w-full" />
+  
+              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span>Light drift</span>
+                    <span>{{ styleControls.lightSpread }}%</span>
+                  </div>
+                  <input v-model.number="styleControls.lightSpread" type="range" min="0" max="100" class="w-full accent-lime-300" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span>Glow strength</span>
+                    <span>{{ styleControls.glowIntensity }}%</span>
+                  </div>
+                  <input v-model.number="styleControls.glowIntensity" type="range" min="50" max="160" class="w-full accent-sky-300" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span>Pattern density</span>
+                    <span>{{ styleControls.patternScale }}%</span>
+                  </div>
+                  <input v-model.number="styleControls.patternScale" type="range" min="70" max="135" class="w-full accent-white" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span>Pattern opacity</span>
+                    <span>{{ styleControls.patternOpacity }}%</span>
+                  </div>
+                  <input v-model.number="styleControls.patternOpacity" type="range" min="5" max="85" class="w-full accent-violet-300" />
+                </div>
+              </div>
+  
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Pattern</label>
+                  <USelect v-model="styleControls.patternKind" :items="patternKindOptions" color="neutral" variant="subtle" size="md" :highlight="false" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span>Pattern rotation</span>
+                    <span>{{ styleControls.patternRotation }}°</span>
+                  </div>
+                  <input v-model.number="styleControls.patternRotation" type="range" min="-24" max="24" class="w-full accent-emerald-300" />
+                </div>
+              </div>
+  
             </div>
           </div>
         </UCard>
 
-        <div class="space-y-4">
-          <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
-            <div class="max-w-2xl">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">
-                Interesting players
-              </p>
-              <h2 class="mt-2 text-3xl font-black leading-none tracking-[-0.05em] sm:text-5xl">
-                Choose a player and export the post
-              </h2>
-            </div>
-
-            <div class="w-full max-w-xs">
-              <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Search players" color="neutral"
-                variant="subtle" size="md" :highlight="false" />
-            </div>
-          </div>
-
-          <div v-if="filteredMovers.length" class="max-h-[42rem] overflow-y-auto pr-2">
-            <div class="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-              <button v-for="item in filteredMovers" :key="item.player.id" type="button" class="group h-full text-left"
-                @click="selectMover(item)">
-                <UCard :ui="cardUi" class="h-full overflow-hidden border transition duration-200"
-                  :class="item.player.id === selectedMover?.player?.id ? 'border-lime-300/40 bg-lime-300/10 shadow-[0_18px_40px_rgba(190,255,84,0.08)]' : 'border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]'">
-                  <div class="space-y-4 p-5">
-                    <div class="flex items-start justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                          <div
-                            class="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/20">
-                            <img
-                              :src="`https://resources.premierleague.com/premierleague/badges/t${item.player.team_code}.png`"
-                              :alt="item.teamName" class="h-5 w-5 object-contain" />
-                          </div>
-                          <UBadge color="neutral" variant="soft">
-                            {{ item.teamName }}
-                          </UBadge>
-                        </div>
-                        <h3 class="mt-3 truncate text-2xl font-black tracking-[-0.04em] text-white">
-                          {{ item.player.web_name }}
-                        </h3>
-                        <p class="mt-1 text-[0.62rem] font-semibold uppercase tracking-[0.3em] text-white/45">
-                          {{ item.positionLabel }}
-                        </p>
-                      </div>
-
-                      <div class="h-16 w-16 shrink-0 rounded-2xl border border-white/10 bg-black/20 p-2">
-                        <img
-                          :src="`https://resources.premierleague.com/premierleague/badges/t${item.player.team_code}.png`"
-                          :alt="item.teamName" class="h-full w-full object-contain" />
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2">
-                      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-center">
-                        <div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-white/40">In</div>
-                        <div class="mt-1 text-xl font-black tracking-[-0.04em] text-lime-300">
-                          {{ formatCompact(item.transfersIn) }}
-                        </div>
-                      </div>
-                      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-center">
-                        <div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-white/40">Out</div>
-                        <div class="mt-1 text-xl font-black tracking-[-0.04em] text-sky-300">
-                          {{ formatCompact(item.transfersOut) }}
-                        </div>
-                      </div>
-                      <div class="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 text-center">
-                        <div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-white/40">Net</div>
-                        <div class="mt-1 text-xl font-black tracking-[-0.04em]"
-                          :class="item.netMovement >= 0 ? 'text-lime-300' : 'text-rose-300'">
-                          {{ formatSigned(item.netMovement) }}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center justify-between border-t border-white/10 pt-3 text-sm text-white/55">
-                      <span>Total movement</span>
-                      <span class="font-black text-lime-300">{{ formatCompact(item.totalMovement) }}</span>
-                    </div>
-                  </div>
-                </UCard>
-              </button>
-            </div>
-          </div>
-
-          <div v-else class="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 text-sm text-white/60">
-            No players matched this filter.
-          </div>
-        </div>
-      </section>
-
-      <section v-if="selectedMover" class="rounded-[36px] border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-        <div class="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
-          <div class="max-w-2xl space-y-2">
-            <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">Style studio</p>
-            <h2 class="text-2xl font-black leading-tight tracking-[-0.05em] sm:text-3xl">
-              Keep the layout, change the atmosphere.
-            </h2>
-            <p class="text-sm text-white/55">
-              Tweak the preset, shuffle the glow positions, and save the result as a reusable style.
-            </p>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <UButton color="neutral" variant="soft" icon="i-lucide-shuffle" @click="shuffleStyleSeed">
-              Shuffle lights
-            </UButton>
-            <UButton color="neutral" variant="soft" icon="i-lucide-rotate-ccw" @click="resetStyleControls">
-              Reset preset
-            </UButton>
-            <UButton color="neutral" variant="soft" icon="i-lucide-file-text" :loading="isGeneratingCaption"
-              @click="generateInstaCaption">
-              Generate caption
-            </UButton>
-            <UButton color="primary" icon="i-lucide-bookmark-plus" @click="saveCurrentPreset">
-              Save preset
-            </UButton>
-          </div>
-        </div>
-
-        <div class="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div class="space-y-4">
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="space-y-2">
-                <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Preset</label>
-                <USelect v-model="selectedStylePresetId" :items="stylePresetOptions" color="neutral" variant="subtle"
-                  size="md" :highlight="false" />
-              </div>
-              <div class="space-y-2">
-                <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Preset name</label>
-                <UInput v-model="presetNameDraft" placeholder="Name this style" color="neutral" variant="subtle"
-                  size="md" :highlight="false" />
-              </div>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div class="space-y-2">
-                <div
-                  class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
-                  <span>Light drift</span>
-                  <span>{{ styleControls.lightSpread }}%</span>
-                </div>
-                <input v-model.number="styleControls.lightSpread" type="range" min="0" max="100"
-                  class="w-full accent-lime-300" />
-              </div>
-              <div class="space-y-2">
-                <div
-                  class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
-                  <span>Glow strength</span>
-                  <span>{{ styleControls.glowIntensity }}%</span>
-                </div>
-                <input v-model.number="styleControls.glowIntensity" type="range" min="50" max="160"
-                  class="w-full accent-sky-300" />
-              </div>
-              <div class="space-y-2">
-                <div
-                  class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
-                  <span>Pattern density</span>
-                  <span>{{ styleControls.patternScale }}%</span>
-                </div>
-                <input v-model.number="styleControls.patternScale" type="range" min="70" max="135"
-                  class="w-full accent-white" />
-              </div>
-              <div class="space-y-2">
-                <div
-                  class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
-                  <span>Pattern opacity</span>
-                  <span>{{ styleControls.patternOpacity }}%</span>
-                </div>
-                <input v-model.number="styleControls.patternOpacity" type="range" min="5" max="85"
-                  class="w-full accent-violet-300" />
-              </div>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="space-y-2">
-                <label class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Pattern</label>
-                <USelect v-model="styleControls.patternKind" :items="patternKindOptions" color="neutral"
-                  variant="subtle" size="md" :highlight="false" />
-              </div>
-              <div class="space-y-2">
-                <div
-                  class="flex items-center justify-between text-[0.56rem] font-semibold uppercase tracking-[0.3em] text-white/40">
-                  <span>Pattern rotation</span>
-                  <span>{{ styleControls.patternRotation }}°</span>
-                </div>
-                <input v-model.number="styleControls.patternRotation" type="range" min="-24" max="24"
-                  class="w-full accent-emerald-300" />
-              </div>
-            </div>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div class="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Active preset</p>
-              <p class="mt-2 text-xl font-black tracking-[-0.05em]">{{ activePresetMeta?.name || 'Custom style' }}</p>
-              <p class="mt-1 text-sm text-white/55">{{ activePresetMeta?.description || 'Saved style variation' }}</p>
-            </div>
-            <div class="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Saved presets</p>
-              <p class="mt-2 text-xl font-black tracking-[-0.05em]">{{ customStylePresets.length }}</p>
-              <p class="mt-1 text-sm text-white/55">Stored in local storage for quick reuse.</p>
-            </div>
-            <div class="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Seed</p>
-              <p class="mt-2 text-xl font-black tracking-[-0.05em]">{{ variationSeed }}</p>
-              <p class="mt-1 text-sm text-white/55">Changes the glow placement while keeping the same composition.</p>
-            </div>
-            <div class="rounded-3xl border border-white/10 bg-black/20 p-4">
-              <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Tip</p>
-              <p class="mt-2 text-sm leading-6 text-white/70">
-                Use the preset select to switch base looks, then nudge the sliders and save the result as a new preset.
-              </p>
-            </div>
-            <div class="rounded-3xl border border-white/10 bg-black/20 p-4 sm:col-span-2 xl:col-span-1">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-[0.56rem] font-semibold uppercase tracking-[0.32em] text-white/38">Caption preview</p>
-                  <p class="mt-2 text-xs text-white/50">Generated text for the next Instagram post.</p>
-                </div>
-              </div>
-              <textarea readonly :value="captionText || 'Generate a caption to preview it here.'"
-                class="mt-4 min-h-40 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-sm leading-6 text-white/80 outline-none"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-6 grid gap-6 xl:grid-cols-[0.6fr_1.4fr]">
-          <UCard :ui="cardUi" class="border border-white/10 bg-white/[0.03] text-white">
-            <div class="space-y-4">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">Selected player</p>
-              <h2 class="text-3xl font-black tracking-[-0.05em]">{{ selectedMover.player.web_name }}</h2>
-              <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Team</div>
-                  <div class="mt-2 text-lg font-bold">{{ selectedMover.teamName }}</div>
-                </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Movement</div>
-                  <div class="mt-2 text-lg font-bold text-lime-300">{{ formatCompact(selectedMover.totalMovement) }}
-                  </div>
-                </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Points</div>
-                  <div class="mt-2 text-lg font-bold">{{ formatCompact(selectedMover.player.total_points) }}</div>
-                </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Form</div>
-                  <div class="mt-2 text-lg font-bold">{{ selectedMover.player.form }}</div>
-                </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Ownership</div>
-                  <div class="mt-2 text-lg font-bold">{{ formatPercent(selectedMover.player.selected_by_percent) }}
-                  </div>
-                </div>
-                <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                  <div class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-white/40">Minutes</div>
-                  <div class="mt-2 text-lg font-bold">{{ formatCompact(selectedMover.player.minutes) }}</div>
-                </div>
-              </div>
-            </div>
-          </UCard>
-
-          <div class="rounded-[36px] border border-white/10 bg-black/20 p-4">
-            <InstagramMovementCard :player="selectedMover.player" :team-name="selectedMover.teamName"
-              :gameweek-label="currentGameweekLabel" :total-movement="selectedMover.totalMovement"
-              :net-movement="selectedMover.netMovement" :style-config="activeStyleConfig" id="instagram-card" />
-          </div>
-        </div>
-      </section>
+        
+      </div>
     </div>
 
     <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-y-2 opacity-0"
@@ -338,7 +187,6 @@ import {
   instagramMovementPresets,
   resolveInstagramMovementPreset,
 } from '~/composables/useInstagramMovementStyles';
-import { toPng } from 'html-to-image';
 
 definePageMeta({
   title: 'Instagram',
@@ -359,6 +207,31 @@ const variationSeed = ref(0);
 const selectedStylePresetId = ref(instagramMovementPresets[0].id);
 const presetNameDraft = ref('');
 const customStylePresets = ref([]);
+const listImageCache = reactive({});
+
+const resolveListImage = (code) => {
+  if (listImageCache[code]) return listImageCache[code];
+
+  const url = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${code}.png`;
+
+  if (!process.client) {
+    return url;
+  }
+
+  // Use a transparent pixel as a placeholder while loading to prevent broken image flashes
+  listImageCache[code] = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+
+  const img = new Image();
+  img.onload = () => {
+    listImageCache[code] = url;
+  };
+  img.onerror = () => {
+    listImageCache[code] = '/fallback.png';
+  };
+  img.src = url;
+
+  return listImageCache[code];
+};
 
 const styleControlsDefaults = {
   lightSpread: 48,
@@ -648,112 +521,6 @@ const showMessage = (text, type = 'success') => {
   }, 2500);
 };
 
-const clearBrowserCache = async () => {
-  if (!process.client || !('caches' in window)) return;
-
-  try {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((key) => caches.delete(key)));
-  } catch (error) {
-    console.error('Error clearing cache:', error);
-  }
-};
-
-const convertExternalImagesToProxy = async (element) => {
-  const images = element.querySelectorAll('img');
-  const originalSrcs = new Map();
-  const promises = [];
-
-  images.forEach((img) => {
-    const src = img.src || img.getAttribute('src');
-
-    if (src && src.includes('/api/proxy-image')) return;
-
-    if (src && src.startsWith('http') && !src.startsWith(window.location.origin)) {
-      originalSrcs.set(img, src);
-
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}&t=${Date.now()}`;
-
-      const imagePromise = new Promise((resolve) => {
-        const newImg = new Image();
-        newImg.crossOrigin = 'anonymous';
-        newImg.onload = () => {
-          img.src = proxyUrl;
-          resolve();
-        };
-        newImg.onerror = () => {
-          console.warn('Failed to load image:', proxyUrl);
-          resolve();
-        };
-        newImg.src = proxyUrl;
-      });
-
-      promises.push(imagePromise);
-    }
-  });
-
-  await Promise.all(promises);
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  return () => {
-    originalSrcs.forEach((src, img) => {
-      img.src = src;
-    });
-  };
-};
-
-const convertImage = async (elementToCapture) => {
-  let cleanup;
-
-  try {
-    cleanup = await convertExternalImagesToProxy(elementToCapture);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const dataUrl = await toPng(elementToCapture, {
-      canvasWidth: 1080,
-      canvasHeight: 1080,
-      pixelRatio: 2,
-      cacheBust: true,
-      skipFonts: true,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#050816',
-      style: {
-        transform: 'none',
-        overflow: 'hidden',
-        width: '1080px',
-        height: '1080px',
-        position: 'absolute',
-        top: '0',
-        left: '0',
-      },
-      filter: (node) => {
-        if (node.tagName === 'IMG') {
-          console.log('Capturing image:', node.src);
-        }
-        return true;
-      },
-      fetchRequest: {
-        cache: 'no-store',
-      },
-    });
-
-    if (!dataUrl) {
-      throw new Error('Failed to generate image data URL');
-    }
-
-    const blob = await fetch(dataUrl).then((response) => response.blob());
-
-    return blob;
-  } catch (error) {
-    console.error('Convert image error:', error);
-    return null;
-  } finally {
-    if (cleanup) cleanup();
-  }
-};
-
 const uploadToCloudinary = async (blobData, fileName) => {
   const url = useRuntimeConfig().public.CLOUDINARY_UPLOAD_URL;
   console.log("url", url);
@@ -810,7 +577,7 @@ const getInstaCaption = async (playerData) => {
     const playerDetails = await $fetch(`/api/players/${playerId}`);
     const prompt = {
       ...playerData,
-      player: playerDetails,
+      playerDetails,
       upcoming: playerDetails?.fixtures?.slice(0, 5) || [],
     };
 
@@ -847,21 +614,6 @@ const generateInstaCaption = async () => {
   }
 };
 
-const waitForImages = async (root) => {
-  const images = Array.from(root.querySelectorAll('img'));
-
-  await Promise.all(
-    images.map((image) => {
-      if (image.complete) return Promise.resolve();
-
-      return new Promise((resolve) => {
-        image.addEventListener('load', resolve, { once: true });
-        image.addEventListener('error', resolve, { once: true });
-      });
-    })
-  );
-};
-
 const postToInsta = async () => {
   const active = selectedMover.value;
   if (!active) {
@@ -869,38 +621,20 @@ const postToInsta = async () => {
     return;
   }
 
-  const card = document.getElementById('instagram-card');
-  if (!card) {
-    showMessage('Instagram card not found.', 'error');
+  const img = document.getElementById('instagram-card');
+  if (!img || !img.src || !img.src.startsWith('data:')) {
+    showMessage('Instagram card preview not ready.', 'error');
     return;
   }
-
-  const previousStyle = {
-    width: card.style.width,
-    height: card.style.height,
-    maxWidth: card.style.maxWidth,
-  };
 
   try {
     isPosting.value = true;
     postButtonText.value = 'Preparing image...';
 
-    await clearBrowserCache();
+    const blob = await fetch(img.src).then((res) => res.blob());
 
-    card.style.width = '1080px';
-    card.style.height = '1080px';
-    card.style.maxWidth = '1080px';
-
-    await nextTick();
-    await new Promise((resolve) => window.requestAnimationFrame(resolve));
-    await waitForImages(card);
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
-
-    const blob = await convertImage(card);
     if (!blob) {
-      throw new Error('Failed to generate image');
+      throw new Error('Failed to generate image blob');
     }
 
     postButtonText.value = 'Uploading image...';
@@ -919,9 +653,6 @@ const postToInsta = async () => {
     console.error('Failed to post Instagram image', error);
     showMessage(error.message || 'Post failed. Check image CORS or webhook settings.', 'error');
   } finally {
-    card.style.width = previousStyle.width;
-    card.style.height = previousStyle.height;
-    card.style.maxWidth = previousStyle.maxWidth;
     isPosting.value = false;
     postButtonText.value = 'Post to Insta';
   }
@@ -945,4 +676,13 @@ const formatSigned = (value) => {
 };
 
 const formatInterestScore = (value) => `${Math.round(clamp01(Number(value || 0)) * 100)}%`;
+
+const handleImageError = (event) => {
+  const target = event?.target;
+
+  if (!target) return;
+
+  target.onerror = null;
+  target.src = '/fallback.png';
+};
 </script>

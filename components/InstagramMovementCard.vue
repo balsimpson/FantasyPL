@@ -1,22 +1,28 @@
 <template>
-  <div ref="cardShell" :id="id"
-    class="relative aspect-square w-full max-w-[1080px] overflow-hidden rounded-[clamp(24px,4vw,48px)] bg-[#050816] text-white">
-    <div class="absolute inset-0" :style="backgroundStyle" />
-    <div class="absolute inset-0" :style="patternStyle" />
-    <div class="absolute inset-0 overflow-hidden">
-      <div v-for="(glow, index) in glowLayers" :key="index" class="absolute rounded-full" :style="glow.style" />
+  <div class="relative aspect-square w-full max-w-[1080px] overflow-hidden rounded-xl bg-[#050816] text-white">
+    <img v-if="previewDataUrl" :id="id" :src="previewDataUrl" class="w-full h-auto block" alt="Instagram Card Preview" />
+    <div v-else class="absolute inset-0 flex items-center justify-center bg-[#050816]">
+      <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-white/50" />
     </div>
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
 
-    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <div class="h-[1080px] w-[1080px]" :style="artboardStyle">
-        <div class="relative z-10 flex h-full flex-col px-12 py-10">
-          <header class="flex items-center justify-between gap-4">
+    <div class="fixed left-[-9999px] top-[-9999px]">
+      <div ref="cardSource" class="relative w-[1080px] h-[1080px] overflow-hidden bg-[#050816] text-white">
+        <div class="absolute inset-0" :style="backgroundStyle" />
+        <div class="absolute inset-0" :style="patternStyle" />
+        <div class="absolute inset-0 overflow-hidden">
+          <div v-for="(glow, index) in glowLayers" :key="index" class="absolute rounded-full" :style="glow.style" />
+        </div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(0,0,0,0.22)_100%)]" />
+
+        <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div class="h-[1080px] w-[1080px]">
+            <div class="relative z-10 flex h-full flex-col px-12 py-10">
+              <header class="flex items-center justify-between gap-4">
             <div class="flex min-w-0 items-center gap-4">
               <img :src="teamBadgeSrc" :alt="teamName"
                 class="h-14 w-14 shrink-0 object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.45)]"
                 crossorigin="anonymous" @error="handleImageError" />
-              <p class="truncate text-2xl font-black leading-none tracking-[-0.06em] text-white sm:text-3xl">{{ teamName
+              <p class=" text-2xl font-black leading-none tracking-[-0.06em] text-white sm:text-3xl">{{ teamName
               }}</p>
               <p class="text-sm font-medium uppercase tracking-[0.22em] text-white/55">{{ positionLabel }}</p>
             </div>
@@ -40,11 +46,11 @@
           <main class="mt-8 flex flex-1 gap-6 xl:gap-8">
             <section class="flex min-w-0 flex-1 basis-0 flex-col gap-5">
               <div
-                class="flex flex-wrap items-center gap-3 text-[1rem] font-semibold uppercase tracking-[0.16em] text-white/55">
-                <span>{{ positionLabel }}</span>
+                class="flex shrink-0 items-center gap-3 whitespace-nowrap text-[1rem] font-semibold uppercase tracking-[0.16em] text-white/55">
+                <!-- <span>{{ positionLabel }}</span>
                 <span class="text-white/25">/</span>
                 <span>{{ formatCost(player.now_cost) }}</span>
-                <span class="text-white/25">/</span>
+                <span class="text-white/25">/</span> -->
                 <span>ICT #{{ formatCompact(player.ict_index_rank) }}</span>
                 <span class="text-white/25">/</span>
                 <span class="text-lime-200">Value {{ player.value_season || '—' }}</span>
@@ -202,11 +208,14 @@
         </div>
       </div>
     </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { buildInstagramMovementStyle } from '~/composables/useInstagramMovementStyles';
+import { toPng } from 'html-to-image';
 
 const props = defineProps({
   id: {
@@ -257,11 +266,44 @@ const elementTypeMap = {
 const positionLabel = computed(() => elementTypeMap[props.player?.element_type] || 'Player');
 const transfersIn = computed(() => Number(props.player?.transfers_in_event || 0));
 const transfersOut = computed(() => Number(props.player?.transfers_out_event || 0));
-const teamBadgeSrc = computed(() => `https://resources.premierleague.com/premierleague/badges/t${props.player?.team_code}.png`);
-const playerImageSrc = computed(() => `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player?.code}.png`);
-const cardShell = ref(null);
-const cardScale = ref(1);
-let resizeObserver;
+const teamBadgeSrc = ref('/fallback.png');
+const playerImageSrc = ref('/fallback.png');
+const cardSource = ref(null);
+const previewDataUrl = ref(null);
+let renderTimeout = null;
+
+const loadImage = (url) => {
+  if (!url) return Promise.resolve('/fallback.png');
+  if (!process.client) return Promise.resolve(url);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(url);
+    img.onerror = () => resolve('/fallback.png');
+    img.src = url;
+  });
+};
+
+let loadSeq = 0;
+
+const updateImages = async () => {
+  if (!props.player) return;
+  const currentSeq = ++loadSeq;
+  
+  const teamUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
+  const playerUrl = `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player.code}.png`;
+
+  const [teamRes, playerRes] = await Promise.all([
+    loadImage(teamUrl),
+    loadImage(playerUrl)
+  ]);
+
+  if (currentSeq === loadSeq) {
+    teamBadgeSrc.value = teamRes;
+    playerImageSrc.value = playerRes;
+    triggerRender();
+  }
+};
 
 const movementStyle = computed(() => buildInstagramMovementStyle({
   presetId: props.styleConfig?.presetId || props.stylePreset,
@@ -274,31 +316,45 @@ const movementStyle = computed(() => buildInstagramMovementStyle({
   patternRotation: props.styleConfig?.patternRotation,
 }));
 
-const updateCardScale = () => {
-  const width = cardShell.value?.clientWidth || 1080;
-  cardScale.value = Math.min(1, width / 1080);
+const generateImage = async () => {
+  if (!process.client || !cardSource.value) return;
+
+  try {
+    const dataUrl = await toPng(cardSource.value, {
+      canvasWidth: 1080,
+      canvasHeight: 1080,
+      pixelRatio: 1,
+      cacheBust: true,
+      skipFonts: true,
+      useCORS: true,
+      backgroundColor: '#050816',
+      style: {
+        transform: 'none',
+      },
+    });
+
+    previewDataUrl.value = dataUrl;
+  } catch (error) {
+    console.error('Failed to generate preview image:', error);
+  }
 };
 
+const triggerRender = () => {
+  if (renderTimeout) clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(generateImage, 300);
+};
+
+watch(() => props.player, () => {
+  updateImages();
+}, { deep: true, immediate: true });
+
+watch(() => props.styleConfig, triggerRender, { deep: true });
+watch(() => props.stylePreset, triggerRender);
+watch(() => props.styleSeed, triggerRender);
+
 onMounted(() => {
-  updateCardScale();
-
-  resizeObserver = new ResizeObserver(updateCardScale);
-  if (cardShell.value) {
-    resizeObserver.observe(cardShell.value);
-  }
-
-  window.addEventListener('resize', updateCardScale);
+  triggerRender();
 });
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect();
-  window.removeEventListener('resize', updateCardScale);
-});
-
-const artboardStyle = computed(() => ({
-  transform: `scale(${cardScale.value})`,
-  transformOrigin: 'center center',
-}));
 
 const backgroundStyle = computed(() => movementStyle.value.backdropStyle);
 const patternStyle = computed(() => movementStyle.value.patternStyle);
