@@ -221,7 +221,7 @@ const layoutOptions = [
 const presetNameDraft = ref('');
 const customStylePresets = ref([]);
 const resolveListImage = (code) => {
-  return `https://resources.premierleague.com/premierleague/photos/players/110x140/p${code}.png`;
+  return `https://images.weserv.nl/?url=ssl:resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png&output=png`;
 };
 
 const styleControlsDefaults = {
@@ -514,29 +514,45 @@ const showMessage = (text, type = 'success') => {
 
 const uploadToCloudinary = async (blobData, fileName) => {
   const url = useRuntimeConfig().public.CLOUDINARY_UPLOAD_URL;
-  console.log("url", url);
+
+  if (!url) {
+    throw new Error('Cloudinary upload URL is not configured');
+  }
 
   const formData = new FormData();
   formData.append("file", blobData, fileName);
   formData.append("upload_preset", "fpl-preset"); // your unsigned preset name
   formData.append("folder", "fpl-posts"); // optional
 
-  try {
-    // Upload to Cloudinary
-    const response = await fetch(url, { method: "POST", body: formData });
+  const response = await fetch(url, { method: "POST", body: formData });
+  const data = await response.json().catch(() => null);
 
-    // Get the public URL
-    const data = await response.json();
-
-    console.log("cloudinary", data);
-    return data.secure_url;
-  } catch (error) {
-    console.error(error);
-    return error;
+  if (!response.ok || !data?.secure_url) {
+    throw new Error(data?.error?.message || 'Failed to upload image to Cloudinary');
   }
+
+  return data.secure_url;
 };
 
 const sendImageToWebhook = async (captionText, imageUrl) => {
+  const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
+  const params = new URLSearchParams({
+    caption: captionText || '',
+    image_url: imageUrl || '',
+  }).toString();
+
+  if (webhookUrl && process.client) {
+    fetch(`${webhookUrl}?${params}`, {
+      method: 'GET',
+      mode: 'no-cors',
+      keepalive: true,
+    }).catch((error) => {
+      console.error('Failed to trigger Buffer webhook', error);
+    });
+
+    return { success: true, queued: true };
+  }
+
   try {
     return await $fetch('/api/send-buffer-post', {
       method: 'POST',

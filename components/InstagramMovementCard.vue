@@ -88,6 +88,13 @@ const cardSource = ref(null);
 const previewDataUrl = ref(null);
 let renderTimeout = null;
 
+const resolveCaptureImageUrl = (sourceUrl) => {
+  const imageUrl = new URL(sourceUrl);
+  const cdnUrl = `https://images.weserv.nl/?url=ssl:${imageUrl.host}${imageUrl.pathname}&output=png`;
+
+  return [cdnUrl, '/fallback.png'];
+};
+
 const loadImage = (url) => {
   if (!url) return Promise.resolve('/fallback.png');
   if (!process.client) return Promise.resolve(url);
@@ -100,18 +107,31 @@ const loadImage = (url) => {
   });
 };
 
+const loadFirstAvailableImage = async (urls) => {
+  for (const url of urls) {
+    const loadedUrl = await loadImage(url);
+
+    if (loadedUrl !== '/fallback.png') {
+      return loadedUrl;
+    }
+  }
+
+  return '/fallback.png';
+};
+
 let loadSeq = 0;
 
 const updateImages = async () => {
   if (!props.player) return;
   const currentSeq = ++loadSeq;
-  
-  const teamUrl = `/api/image-proxy/team/${props.player.team_code}?url=${encodeURIComponent(`https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`)}`;
-  const playerUrl = `/api/image-proxy/player/${props.player.code}?url=${encodeURIComponent(`https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player.code}.png`)}`;
+  const teamSourceUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
+  const playerSourceUrl = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`;
+  const teamUrl = resolveCaptureImageUrl(teamSourceUrl);
+  const playerUrl = resolveCaptureImageUrl(playerSourceUrl);
 
   const [teamRes, playerRes] = await Promise.all([
-    loadImage(teamUrl),
-    loadImage(playerUrl)
+    loadFirstAvailableImage(teamUrl),
+    loadFirstAvailableImage(playerUrl)
   ]);
 
   if (currentSeq === loadSeq) {
