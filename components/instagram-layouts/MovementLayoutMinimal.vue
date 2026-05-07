@@ -74,10 +74,10 @@
         <div class="flex flex-col pointer-events-auto gap-y-6">
           <div v-for="stat in rightStats" :key="stat.label" 
             class="group flex flex-col items-end">
-            <p class="text-4xl font-black uppercase tracking-[0.3em] text-white/40 mb-2">{{ stat.label }}</p>
+            <p class="text-4xl font-black uppercase tracking-[0.3em] text-white/40 mb-2 text-right">{{ stat.label }}</p>
             <div class="flex items-baseline gap-2">
               <span v-if="stat.prefix" class="text-4xl font-bold text-sky-300 uppercase tracking-widest">{{ stat.prefix }}</span>
-              <span class="text-7xl font-black text-white">{{ stat.value }}</span>
+              <span class="text-7xl font-black text-white text-right">{{ stat.value }}</span>
             </div>
           </div>
         </div>

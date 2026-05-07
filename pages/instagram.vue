@@ -8,7 +8,7 @@
         </h1>
       </div>
 
-      <div class="grid gap-6 sm:grid-cols-2">
+      <div class="grid gap-6 sm:grid-cols-3">
         <!-- LEFT: Player List -->
         <div class="flex h-[calc(100vh-10rem)] sticky top-6 flex-col overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.02]">
           <div class="space-y-4 border-b border-white/10 p-5 shrink-0 bg-white/[0.02]">
@@ -49,7 +49,7 @@
         </div>
 
         <!-- RIGHT: Workspace -->
-        <div class="flex flex-col gap-6" v-if="selectedMover">
+        <div class="flex flex-col gap-6 sm:col-span-2" v-if="selectedMover">
           <!-- PREVIEW -->
           <InstagramMovementCard :player="selectedMover.player" :team-name="selectedMover.teamName"
             :gameweek-label="currentGameweekLabel" :total-movement="selectedMover.totalMovement"
