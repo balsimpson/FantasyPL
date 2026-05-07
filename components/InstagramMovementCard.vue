@@ -99,11 +99,19 @@ const captureKey = computed(() => [
   playerImageSrc.value,
 ].join(':'));
 
-const resolveCaptureImageUrl = (sourceUrl, cacheKey) => {
+const resolveCaptureImageUrl = (sourceUrl, cacheKey, width = null) => {
   const imageUrl = new URL(sourceUrl);
-  const cdnUrl = `https://images.weserv.nl/?url=ssl:${imageUrl.host}${imageUrl.pathname}&output=png&cacheKey=${encodeURIComponent(cacheKey)}`;
+  const params = new URLSearchParams({
+    url: `ssl:${imageUrl.host}${imageUrl.pathname}`,
+    output: 'png',
+    cacheKey,
+  });
 
-  return [cdnUrl, '/fallback.png'];
+  if (width) {
+    params.set('w', String(width));
+  }
+
+  return [`https://images.weserv.nl/?${params.toString()}`, '/fallback.png'];
 };
 
 const loadImage = (url) => {
@@ -160,7 +168,7 @@ const loadFirstAvailableImageDataUrl = async (urls) => {
 let loadSeq = 0;
 
 const updateImages = async () => {
-  if (!props.player) return;
+  if (!process.client || !props.player) return;
   const currentSeq = ++loadSeq;
 
   imagesReady.value = false;
@@ -169,9 +177,9 @@ const updateImages = async () => {
   playerImageSrc.value = '/fallback.png';
 
   const teamSourceUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
-  const playerSourceUrl = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`;
+  const playerCurrentSourceUrl = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`;
   const teamUrl = resolveCaptureImageUrl(teamSourceUrl, `team-${props.player.team_code}`);
-  const playerUrl = resolveCaptureImageUrl(playerSourceUrl, `player-${props.player.code}`);
+  const playerUrl = resolveCaptureImageUrl(playerCurrentSourceUrl, `player-current-${props.player.code}`, 700);
 
   const [teamRes, playerRes] = await Promise.all([
     loadFirstAvailableImageDataUrl(teamUrl),
