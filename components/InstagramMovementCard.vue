@@ -99,43 +99,13 @@ const captureKey = computed(() => [
   playerImageSrc.value,
 ].join(':'));
 
-const resolveCaptureImageUrl = (sourceUrl, cacheKey, width = null) => {
-  const imageUrl = new URL(sourceUrl);
-  const params = new URLSearchParams({
-    url: `ssl:${imageUrl.host}${imageUrl.pathname}`,
-    output: 'png',
-    cacheKey,
-  });
-
-  if (width) {
-    params.set('w', String(width));
+const buildProxyImageUrl = (sourceUrl) => {
+  if (!sourceUrl || sourceUrl === '/fallback.png') {
+    return '/fallback.png';
   }
 
-  return [`https://images.weserv.nl/?${params.toString()}`, '/fallback.png'];
-};
-
-const loadImage = (url) => {
-  if (!url) return Promise.resolve('/fallback.png');
-  if (!process.client) return Promise.resolve(url);
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(url);
-    img.onerror = () => resolve('/fallback.png');
-    img.src = url;
-  });
-};
-
-const loadFirstAvailableImage = async (urls) => {
-  for (const url of urls) {
-    const loadedUrl = await loadImage(url);
-
-    if (loadedUrl !== '/fallback.png') {
-      return loadedUrl;
-    }
-  }
-
-  return '/fallback.png';
+  const params = new URLSearchParams({ url: sourceUrl });
+  return `/api/image-proxy/fetch?${params.toString()}`;
 };
 
 const fetchImageDataUrl = async (url) => {
@@ -147,22 +117,37 @@ const fetchImageDataUrl = async (url) => {
 
   const blob = await response.blob();
 
-  return await new Promise((resolve, reject) => {
+  const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+
+  const finalUrl = response.url ? new URL(response.url, window.location.origin) : null;
+  const redirectedToFallback = url !== '/fallback.png' && finalUrl?.pathname === '/fallback.png';
+
+  return {
+    dataUrl,
+    redirectedToFallback,
+  };
 };
 
-const loadFirstAvailableImageDataUrl = async (urls) => {
-  const loadedUrl = await loadFirstAvailableImage(urls);
+const loadFirstAvailableImageDataUrl = async (sources) => {
+  for (const source of sources) {
+    try {
+      const result = await fetchImageDataUrl(source.fetchUrl);
 
-  try {
-    return await fetchImageDataUrl(loadedUrl);
-  } catch {
-    return await fetchImageDataUrl('/fallback.png');
+      if (!result.redirectedToFallback) {
+        return result.dataUrl;
+      }
+    } catch {
+      // try the next candidate
+    }
   }
+
+  const fallbackResult = await fetchImageDataUrl('/fallback.png');
+  return fallbackResult.dataUrl;
 };
 
 let loadSeq = 0;
@@ -177,9 +162,27 @@ const updateImages = async () => {
   playerImageSrc.value = '/fallback.png';
 
   const teamSourceUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
+  const playerHighResSourceUrl = `https://resources.premierleague.com/premierleague/photos/players/250x250/p${props.player.code}.png`;
   const playerCurrentSourceUrl = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`;
-  const teamUrl = resolveCaptureImageUrl(teamSourceUrl, `team-${props.player.team_code}`);
-  const playerUrl = resolveCaptureImageUrl(playerCurrentSourceUrl, `player-current-${props.player.code}`, 700);
+  const teamUrl = [
+    {
+      fetchUrl: buildProxyImageUrl(teamSourceUrl),
+    },
+    {
+      fetchUrl: '/fallback.png',
+    },
+  ];
+  const playerUrl = [
+    {
+      fetchUrl: buildProxyImageUrl(playerHighResSourceUrl),
+    },
+    {
+      fetchUrl: buildProxyImageUrl(playerCurrentSourceUrl),
+    },
+    {
+      fetchUrl: '/fallback.png',
+    },
+  ];
 
   const [teamRes, playerRes] = await Promise.all([
     loadFirstAvailableImageDataUrl(teamUrl),
