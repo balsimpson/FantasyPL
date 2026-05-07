@@ -7,9 +7,10 @@
 
     <!-- OFF-SCREEN CAPTURE AREA -->
     <div class="fixed left-[-9999px] top-[-9999px]">
-      <div ref="cardSource">
+      <div ref="cardSource" :key="captureKey">
         <component 
           :is="activeLayoutComponent"
+          :key="captureKey"
           :player="player"
           :team-name="teamName"
           :team-badge-src="teamBadgeSrc"
@@ -86,11 +87,21 @@ const teamBadgeSrc = ref('/fallback.png');
 const playerImageSrc = ref('/fallback.png');
 const cardSource = ref(null);
 const previewDataUrl = ref(null);
+const imagesReady = ref(false);
 let renderTimeout = null;
 
-const resolveCaptureImageUrl = (sourceUrl) => {
+const captureKey = computed(() => [
+  props.layout,
+  props.player?.id,
+  props.player?.code,
+  props.player?.team_code,
+  teamBadgeSrc.value,
+  playerImageSrc.value,
+].join(':'));
+
+const resolveCaptureImageUrl = (sourceUrl, cacheKey) => {
   const imageUrl = new URL(sourceUrl);
-  const cdnUrl = `https://images.weserv.nl/?url=ssl:${imageUrl.host}${imageUrl.pathname}&output=png`;
+  const cdnUrl = `https://images.weserv.nl/?url=ssl:${imageUrl.host}${imageUrl.pathname}&output=png&cacheKey=${encodeURIComponent(cacheKey)}`;
 
   return [cdnUrl, '/fallback.png'];
 };
@@ -119,24 +130,59 @@ const loadFirstAvailableImage = async (urls) => {
   return '/fallback.png';
 };
 
+const fetchImageDataUrl = async (url) => {
+  const response = await fetch(url, { cache: 'no-store' });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image ${response.status}`);
+  }
+
+  const blob = await response.blob();
+
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const loadFirstAvailableImageDataUrl = async (urls) => {
+  const loadedUrl = await loadFirstAvailableImage(urls);
+
+  try {
+    return await fetchImageDataUrl(loadedUrl);
+  } catch {
+    return await fetchImageDataUrl('/fallback.png');
+  }
+};
+
 let loadSeq = 0;
 
 const updateImages = async () => {
   if (!props.player) return;
   const currentSeq = ++loadSeq;
+
+  imagesReady.value = false;
+  previewDataUrl.value = null;
+  teamBadgeSrc.value = '/fallback.png';
+  playerImageSrc.value = '/fallback.png';
+
   const teamSourceUrl = `https://resources.premierleague.com/premierleague/badges/t${props.player.team_code}.png`;
   const playerSourceUrl = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`;
-  const teamUrl = resolveCaptureImageUrl(teamSourceUrl);
-  const playerUrl = resolveCaptureImageUrl(playerSourceUrl);
+  const teamUrl = resolveCaptureImageUrl(teamSourceUrl, `team-${props.player.team_code}`);
+  const playerUrl = resolveCaptureImageUrl(playerSourceUrl, `player-${props.player.code}`);
 
   const [teamRes, playerRes] = await Promise.all([
-    loadFirstAvailableImage(teamUrl),
-    loadFirstAvailableImage(playerUrl)
+    loadFirstAvailableImageDataUrl(teamUrl),
+    loadFirstAvailableImageDataUrl(playerUrl)
   ]);
 
   if (currentSeq === loadSeq) {
     teamBadgeSrc.value = teamRes;
     playerImageSrc.value = playerRes;
+    imagesReady.value = true;
+    await nextTick();
     triggerRender();
   }
 };
@@ -153,9 +199,25 @@ const movementStyle = computed(() => buildInstagramMovementStyle({
 }));
 
 const generateImage = async () => {
-  if (!process.client || !cardSource.value) return;
+  if (!process.client || !cardSource.value || !imagesReady.value) return;
 
   try {
+    await nextTick();
+    await Promise.all(
+      Array.from(cardSource.value.querySelectorAll('img')).map(async (image) => {
+        if (!image.complete || image.naturalWidth === 0) {
+          await new Promise((resolve) => {
+            image.onload = resolve;
+            image.onerror = resolve;
+          });
+        }
+
+        if (image.decode) {
+          await image.decode().catch(() => {});
+        }
+      })
+    );
+
     const dataUrl = await toPng(cardSource.value, {
       canvasWidth: 1080,
       canvasHeight: 1080,
@@ -176,6 +238,7 @@ const generateImage = async () => {
 };
 
 const triggerRender = () => {
+  if (!imagesReady.value) return;
   if (renderTimeout) clearTimeout(renderTimeout);
   renderTimeout = setTimeout(generateImage, 350); // Slightly longer timeout for components to settle
 };
