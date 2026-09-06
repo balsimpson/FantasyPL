@@ -413,16 +413,9 @@ export function getMostTransferredOutPlayers(players: any[], topN = 5) {
 }
 
 export async function getPlayerInfoDetails(id: number) {
-	try {
-		const BASE_URL = "https://fantasy.premierleague.com/api/element-summary";
-		const url = `${BASE_URL}/${id}/`;
-		const response = await $fetch(url);
-		// console.log("getPlayerInfoDetails", response);
-		return response;
-	} catch (error) {
-		console.error("Error getPlayerInfoDetails:", error);
-		return null;
-	}
+	const BASE_URL = "https://fantasy.premierleague.com/api/element-summary";
+	const url = `${BASE_URL}/${id}/`;
+	return await $fetch(url, { timeout: 10_000 });
 }
 
 export async function getUpcomingFixtures(count: number = 12) {

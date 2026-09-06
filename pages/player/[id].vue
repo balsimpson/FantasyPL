@@ -7,7 +7,69 @@
 			class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-size-[5px_5px] opacity-10"
 		/> -->
 
-		<div class="relative mx-auto flex w-full max-w-6xl flex-col gap-6 ">
+		<div
+			v-if="pageState === 'error'"
+			class="relative mx-auto flex min-h-[70vh] w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8"
+		>
+			<section class="w-full">
+				<UCard
+					:ui="{ body: 'p-6 sm:p-8', root: 'ring-0 overflow-hidden' }"
+					class="mx-auto w-full max-w-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent text-stone-50"
+				>
+					<div class="space-y-5">
+						<div>
+							<h1 class="text-3xl font-black tracking-tight text-white sm:text-4xl">
+								{{ playerErrorTitle }}
+							</h1>
+							<p class="mt-3 text-sm leading-6 text-stone-300 sm:text-base">
+								{{ playerErrorDescription }}
+							</p>
+					</div>
+
+					<div class="flex flex-col justify-center gap-3 sm:flex-row">
+						<UButton to="/" color="primary">
+							Search players
+						</UButton>
+						<UButton
+							v-if="isTemporaryFailure"
+							color="neutral"
+							variant="soft"
+							:loading="isRetrying"
+							@click="retryPlayer"
+						>
+							Try again
+						</UButton>
+					</div>
+				</div>
+				</UCard>
+			</section>
+		</div>
+
+		<div
+			v-else-if="pageState === 'loading'"
+			class="relative mx-auto flex min-h-[70vh] w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8"
+		>
+			<section class="w-full">
+				<UCard
+					:ui="{ body: 'p-6 sm:p-8', root: 'ring-0' }"
+					class="mx-auto w-full max-w-2xl border border-white/10 bg-white/[0.03] text-stone-50"
+				>
+					<div class="flex items-center gap-4">
+						<span
+							aria-hidden="true"
+							class="size-7 shrink-0 animate-spin rounded-full border-2 border-white/15 border-t-primary"
+						/>
+						<div>
+							<h1 class="text-2xl font-black tracking-tight text-white sm:text-3xl">
+								Loading player details
+							</h1>
+						</div>
+					</div>
+				</UCard>
+			</section>
+		</div>
+
+		<div v-else class="relative mx-auto flex w-full max-w-6xl flex-col gap-6">
 			<section class="overflow-hidden rounded-4xl ">
 		<div class="relative z-10 flex flex-col gap-6 p-3 sm:p-6">
 			<div class="max-w-2xl px-5 pt-5 sm:px-6">
@@ -134,6 +196,12 @@
 
 						<div v-if="playerData" class="mx-auto ">
 							<PlayerPerformanceCard :player="playerData" :bootstrap="bootstrap" />
+							<div class="mx-auto mt-4 flex w-full max-w-xl flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+								<p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
+									Saved on this browser · no account sync
+								</p>
+								<PlayerWatchlistButton :player="playerData" class="shrink-0" />
+							</div>
 						</div>
 						<div
 							v-else
@@ -242,14 +310,21 @@
 	const route = useRoute();
 	const playerId = computed(() => getPlayerIdFromRouteParam(route.params.id));
 	const playersStore = usePlayersStore();
-	const { bootstrap } = storeToRefs(playersStore);
+	const { bootstrap, loading: bootstrapLoading } = storeToRefs(playersStore);
 
-	const { data: player } = useFetch(() => `/api/players/${playerId.value}`);
-	await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
+	const playerRequest = useFetch(() => `/api/players/${playerId.value}`);
+	const bootstrapRequest = useAsyncData("player-bootstrap", () => playersStore.fetchPlayers());
+	const {
+		data: player,
+		pending: playerPending,
+		error: playerError,
+		refresh: refreshPlayer,
+	} = await playerRequest;
+	const { pending: bootstrapPending } = await bootstrapRequest;
 	// const { data: fixtures } = useLazyFetch("/api/fixtures");
 
 	const playerData = computed(() => {
-		if (bootstrap.value?.elements) {
+		if (Array.isArray(bootstrap.value?.elements)) {
 			const foundPlayer = bootstrap.value.elements.find((item) => item.id == playerId.value);
 
 			if (!foundPlayer) {
@@ -264,6 +339,93 @@
 
 		return null;
 	});
+
+	const hasBootstrapCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
+	const bootstrapRequestPending = computed(() => bootstrapPending.value || bootstrapLoading.value);
+	const bootstrapFailed = computed(() => !bootstrapRequestPending.value && !hasBootstrapCatalog.value);
+	const isMalformedPlayerRoute = computed(() => !/^[1-9]\d*$/.test(String(playerId.value).trim()));
+	const playerDetailSettled = computed(() => !playerPending.value);
+	const allRequestsSettled = computed(() => !playerPending.value && !bootstrapRequestPending.value);
+
+	const getErrorStatusCode = (error) => {
+		if (!error || typeof error !== "object") return 0;
+
+		return Number(error.response?.status ?? error.statusCode ?? error.status ?? 0);
+	};
+
+	const playerErrorStatus = computed(() => getErrorStatusCode(playerError.value));
+	const isPlayerNotFound = computed(() => {
+		if (!playerDetailSettled.value) return false;
+		if (isMalformedPlayerRoute.value || playerErrorStatus.value === 404) return true;
+		if (!allRequestsSettled.value) return false;
+
+		return Boolean(
+			hasBootstrapCatalog.value &&
+			!bootstrapFailed.value &&
+			!playerError.value &&
+			player.value &&
+			!playerData.value
+		);
+	});
+
+	const isTemporaryFailure = computed(() => {
+		if (!playerDetailSettled.value || isPlayerNotFound.value) return false;
+		if (playerError.value && playerErrorStatus.value !== 404) return true;
+		if (!allRequestsSettled.value) return false;
+		if (bootstrapFailed.value) return true;
+
+		return !player.value || !playerData.value;
+	});
+
+	const pageState = computed(() => {
+		if (isPlayerNotFound.value || isTemporaryFailure.value) return "error";
+		if (!allRequestsSettled.value) return "loading";
+
+		return playerData.value ? "ready" : "error";
+	});
+
+	const playerErrorTitle = computed(() => {
+		if (isMalformedPlayerRoute.value) return "Invalid player link";
+		if (isPlayerNotFound.value) return "Player not found";
+
+		return "Player data is temporarily unavailable";
+	});
+
+	const playerErrorDescription = computed(() => {
+		if (isMalformedPlayerRoute.value) {
+			return "That player link is not valid. Search for a current FPL player to open their profile.";
+		}
+
+		if (isPlayerNotFound.value) {
+			return "We could not find that player in the current FPL season. Search for another player to continue.";
+		}
+
+		return "The latest FPL data is unavailable right now. Try again in a moment.";
+	});
+
+	const isRetrying = ref(false);
+
+	const retryPlayer = async () => {
+		if (isRetrying.value || !isTemporaryFailure.value) return;
+
+		isRetrying.value = true;
+
+		try {
+			const requests = [refreshPlayer()];
+
+			if (bootstrapFailed.value) {
+				requests.push(playersStore.fetchPlayers(true));
+			}
+
+			await Promise.all(requests);
+		} finally {
+			isRetrying.value = false;
+		}
+	};
+
+	if (pageState.value === "error") {
+		setResponseStatus(isPlayerNotFound.value ? 404 : 502);
+	}
 
 	const preferredPlayerPath = computed(() =>
 		playerData.value ? getPlayerRoute(playerData.value) : route.path
@@ -287,7 +449,12 @@
 	};
 
 	const playerName = computed(() => {
-		if (!playerData.value) return "Loading player...";
+		if (!playerData.value) {
+			if (isMalformedPlayerRoute.value || isPlayerNotFound.value) return "Player not found";
+			if (isTemporaryFailure.value) return "Player data unavailable";
+
+			return "Loading player details";
+		}
 
 		return (
 			`${playerData.value.first_name || ""} ${playerData.value.second_name || ""}`.trim() ||
@@ -307,26 +474,36 @@
 	const playerRole = computed(() => elementTypeMap[playerData.value?.element_type] || "Loading role...");
 
 	const playerSummary = computed(() => {
-		if (!playerData.value) {
-			return "Pulling the latest data so the page can show form, fixtures, and history in one place.";
-		}
+		if (!playerData.value) return playerErrorDescription.value;
 
 		return `See ${playerData.value.web_name || playerName.value}'s Fantasy Premier League stats, fixtures, ownership, form, and history in one place to plan your next move.`;
 	});
 
-	const playerMetaName = computed(() => playerData.value?.web_name || playerName.value);
+	const playerMetaName = computed(() => playerData.value?.web_name || "this player");
+	const playerPageTitle = computed(() => {
+		if (playerData.value) return `${playerName.value} FPL Stats, Fixtures & Ownership`;
+		if (isMalformedPlayerRoute.value) return "Invalid player link";
+		if (isPlayerNotFound.value) return "Player not found";
+		if (isTemporaryFailure.value) return "Player data temporarily unavailable";
+
+		return "Loading player details";
+	});
 
 	useSeoMeta({
-		title: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership`),
+		title: playerPageTitle,
 		description: computed(() => playerSummary.value),
-		ogTitle: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership | FPL Insights`),
+		ogTitle: computed(() => `${playerPageTitle.value} | FPL Insights`),
 		ogDescription: computed(() =>
-			`See ${playerMetaName.value}'s Fantasy Premier League stats, fixtures, ownership, and form with FPL Insights.`
+			playerData.value
+				? `See ${playerMetaName.value}'s Fantasy Premier League stats, fixtures, ownership, and form with FPL Insights.`
+				: playerSummary.value
 		),
 		ogUrl: canonicalUrl,
-		twitterTitle: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership | FPL Insights`),
+		twitterTitle: computed(() => `${playerPageTitle.value} | FPL Insights`),
 		twitterDescription: computed(() =>
-			`Track ${playerMetaName.value}'s FPL stats, fixtures, ownership, and form in one place.`
+			playerData.value
+				? `Track ${playerMetaName.value}'s FPL stats, fixtures, ownership, and form in one place.`
+				: playerSummary.value
 		),
 	});
 

@@ -15,12 +15,12 @@
 							Fantasy<span class="text-[#babd23]">PL</span>
 						</span>
 					</NuxtLink>
-					<!-- <NuxtLink
+					<NuxtLink
 						to="/watchlist"
-						class="flex items-center text-2xl font-extrabold tracking-tight text-[#4B0082] transition duration-200 ease-in-out hover:text-gray-600"
+						class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-stone-300 transition duration-200 ease-in-out hover:border-primary/40 hover:text-white"
 					>
 						Watchlist
-					</NuxtLink> -->
+					</NuxtLink>
 				</nav>
 			</div>
 			<div class="grow w-full mx-auto">

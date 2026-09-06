@@ -22,7 +22,7 @@ Recommended order:
 
 ## Scope and evidence
 
-The audit excluded the `instascheduler` route and its implementation. The initial audit was read-only. This follow-up implements P1 #1, the sitemap/public-origin correction, and P1 #2, player URL consolidation, in the local checkout. No commit, push, deployment, publishing, or social posting was performed.
+The audit excluded the `instascheduler` route and its implementation. The initial audit was read-only. This follow-up now includes local corrections for P1 #1, the sitemap/public-origin correction, P1 #2, player URL consolidation, P1 #3, missing-player handling, and the browser-local watchlist work in the recommended growth order. No commit, push, deployment, publishing, or social posting was performed.
 
 Checkout confirmed before writing:
 
@@ -96,13 +96,13 @@ Google documents that it crawls sitemap URLs as listed and recommends canonical 
 
 Google describes redirects and canonical signals as ways to consolidate duplicate URLs. [Canonical guidance](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls).
 
-**Local correction completed (6 September 2026).** `pages/player/[id].vue` now resolves the route's trailing player ID against the current bootstrap catalog and permanently redirects numeric and wrong-name aliases to `getPlayerRoute(player)`. The redirect uses HTTP 301 semantics during server rendering and replaces the URL during client navigation. `useCanonicalUrl` accepts the resolved player path, and the player page uses it for both the canonical link and `og:url`. On the local built server, `/player/411`, `/player/wrong-name-411`, and `/player/411?utm_source=test` each returned HTTP 301 with `Location: /player/erling-haaland-411`; that preferred URL returned HTTP 200 with exactly one canonical and one `og:url`, both set to `https://fantasyleague.vercel.app/player/erling-haaland-411`. Unknown-player handling remains P1 #3.
+**Local correction completed (6 September 2026).** `pages/player/[id].vue` now resolves the route's trailing player ID against the current bootstrap catalog and permanently redirects numeric and wrong-name aliases to `getPlayerRoute(player)`. The redirect uses HTTP 301 semantics during server rendering and replaces the URL during client navigation. `useCanonicalUrl` accepts the resolved player path, and the player page uses it for both the canonical link and `og:url`. On the local built server, `/player/411`, `/player/wrong-name-411`, and `/player/411?utm_source=test` each returned HTTP 301 with `Location: /player/erling-haaland-411`; that preferred URL returned HTTP 200 with exactly one canonical and one `og:url`, both set to `https://fantasyleague.vercel.app/player/erling-haaland-411`. Unknown-player handling is recorded under P1 #3 below.
 
 **Hosted status:** Alias redirects and rendered metadata remain unverified on Vercel because deployment was not requested.
 
 ### 3. P1: Invalid players return successful loading pages
 
-**Verified live.** `/player/99999999` returned 200 with the title `Loading player... FPL Stats, Fixtures & Ownership | FPL Insights` and a self-canonical.
+**Previously verified live.** `/player/99999999` returned 200 with the title `Loading player... FPL Stats, Fixtures & Ownership | FPL Insights` and a self-canonical.
 
 **Why it matters:** Visitors cannot tell whether to wait or leave. Crawlers receive a success response for missing content, creating a soft-404 risk.
 
@@ -111,6 +111,12 @@ Google describes redirects and canonical signals as ways to consolidate duplicat
 **Change:** Separate pending, missing player, and temporary upstream failure. Return a real 404 for a confirmed missing player, with a route back to search. Return an appropriate temporary failure state for upstream outages, with retry or a clearly dated last successful response. Do not classify every API outage as a missing player.
 
 **Acceptance:** Known valid, invalid, malformed, and upstream-failure cases produce distinct UI and correct HTTP behavior. No settled missing-player page retains a loading title.
+
+**Local correction completed (6 September 2026).** `getPlayerInfoDetails` now lets upstream failures reach the player API route for classification instead of converting them to `null`. `server/api/players/[id].ts` rejects malformed IDs with a 404, maps a confirmed upstream 404 to `Player not found`, and maps other upstream or unusable responses to a 502 temporary-failure response. `pages/player/[id].vue` now tracks detail and bootstrap loading separately, renders explicit loading, not-found, invalid-link, and temporary-failure states, sets the SSR response status, removes the loading title from settled missing pages, links back to player search, and offers `Try again` for temporary failures.
+
+On the local built server, `/api/players/99999999` returned HTTP 404 with `Player not found`, `/api/players/not-a-player` returned HTTP 404 with `Invalid player URL`, and the corresponding page routes returned HTTP 404. Their rendered titles were `Player not found | FPL Insights` and `Invalid player link | FPL Insights`; both included `Search players` and neither included a loading title. `/player/411` continued to return HTTP 301 to `/player/erling-haaland-411`, and the preferred route returned HTTP 200. A controlled local preview with an unreachable upstream proxy returned HTTP 502, rendered `Player data temporarily unavailable` and `Try again`, did not render `Player not found`, and did not retain a loading title. The local production build, diff check, and UI detector passed.
+
+**Hosted status:** The corrected player API responses, page statuses, and temporary-failure behavior remain unverified on Vercel because deployment was not requested.
 
 ### 4. P1: Search visibility and useful visits have no available baseline
 
@@ -150,15 +156,21 @@ These are HTML and element counts, not compressed browser transfer totals or 306
 
 ### 7. P1: The watchlist cannot yet support repeat visits
 
-**Live and source evidence.** The inspected live watchlist showed only its title and the site shell. The navigation link is commented out in `layouts/default.vue:18`. The current main player profile and card have no visible save action in the inspected journey.
+**Initial live and source evidence.** Before this correction, the inspected live watchlist showed only its title and the site shell. The navigation link was commented out in `layouts/default.vue:18`. The current main player profile and card had no visible save action in the inspected journey.
 
-`pages/watchlist.vue:7` renders raw player data when populated. At `:29`, it stores a JSON string directly as watchlist state and then uses substring membership. `components/PlayerWatchlistCard.vue:2` renders debug content and contains overlapping legacy/current card markup. At `:311`, it parses storage without handling an empty or malformed string. Populated live rendering was not tested, so these are source-confirmed defects rather than a claimed live save/remove failure.
+The initial `pages/watchlist.vue:7` rendered raw player data when populated. At `:29`, it stored a JSON string directly as watchlist state and then used substring membership. The initial `components/PlayerWatchlistCard.vue:2` rendered debug content and contained overlapping legacy/current card markup. At `:311`, it parsed storage without handling an empty or malformed string. Populated live rendering was not tested, so these were source-confirmed defects rather than a claimed live save/remove failure.
 
 **Why it matters:** A player shortlist is a natural reason to come back before the next deadline. The existing implementation cannot be promoted as a finished feature.
 
 **Change:** Centralize saved player codes in a small composable or store, validate stored arrays, and use exact membership. Render one card per saved player, add a helpful empty state, and add accessible save/remove controls to the actual player journey. Expose Watchlist in navigation. Explain that the first version is saved on this browser; do not imply account sync.
 
 **Acceptance:** Add two players, reload, remove one, and navigate between homepage/profile/watchlist. Confirm exact membership, no duplicate cards, and recovery from missing or malformed storage. Test the existing saved format before migrating it. Avoid creating accounts just to launch this improvement.
+
+**Local correction completed (6 September 2026).** `composables/useWatchlist.ts` now owns the `savedWatchlist` browser-local state, accepts the existing numeric and string code formats, normalizes exact codes, removes duplicates, and repairs malformed or non-array values. `components/PlayerWatchlistButton.vue` provides the accessible save/remove control used on player profiles and saved-player cards. `pages/watchlist.vue` now has a browser-local empty state, loading and data-failure states, one card per current saved player, and `noindex,follow` utility metadata. `components/PlayerWatchlistCard.vue` is a single focused card without debug output, and `layouts/default.vue` exposes the route in navigation.
+
+The local production build returned HTTP 200 for `/watchlist`, rendered `Watchlist | FPL Insights`, included the browser-local copy, and emitted `noindex`. An isolated Brave run at 390 × 844 covered the requested journey: `/player/411` redirected to `/player/erling-haaland-411`; saving Haaland stored `["223094"]` and survived reload; saving a second current player stored `["223094","154561"]` and displayed two saved cards; removing the first left `["223094"]` and one card after reload; and replacing storage with `not-json` repaired it to `[]` and rendered the empty state. The run also navigated home → profile → watchlist. A direct normalization check accepted the prior numeric-array format, deduplicated mixed numeric/string codes, and reduced malformed/non-array input to an empty list. The local preview emitted the existing Vercel Insights script 404; no watchlist-specific page errors or console errors occurred.
+
+**Hosted status:** Watchlist navigation, save/remove behavior, hosted cache behavior, and deployment remain unverified on Vercel because deployment was not requested.
 
 ### 8. P2: Player pages explain the data less than they help make a decision
 
@@ -243,7 +255,7 @@ Estimates are focused developer effort, not calendar guarantees. They assume exi
 | 2, alongside early improvements | Build the admin-backed blog and launch the first reviewed transfer article | See BLOG_GROWTH_PLAN.md for storage, admin, generation and public-page stages | 6–10 development days for all three data-led formats, plus editorial time | Durable drafts, verified evidence, explicit publish, public HTML and article discovery pass |
 | 2, week 1–2 | Move player search up, compact the deadline, explain manager IDs, validate input | Homepage, countdown, shared navigation; extract focused components/composables | 1–2 days | First-screen mobile search and keyboard journey pass |
 | 2, week 1–2 | Reduce initial data and image work | Store, public data response design, repeated cards | 1–3 days | Measured reduction with identical useful data; shared consumers remain compatible |
-| 3, week 2 | Repair watchlist, add save controls and empty state | Watchlist page/card, dedicated composable/store, profile, layout | 1–2 days | Add/reload/remove and malformed-storage checks pass |
+| 3, week 2 | Repair watchlist, add save controls and empty state (local correction complete 6 September 2026) | Watchlist page/card, dedicated composable/store, profile, layout | 1–2 days | Local add/reload/remove and malformed-storage checks pass; hosted verification remains |
 | 3, week 2 | Add data freshness, prediction states, source/about information | Data handlers, profile/manager presentation, footer | 1–2 days | Accurate timestamps and explicit missing-data behavior |
 | 4, weeks 3–4 | Build fixtures and player browse pages | New thin pages backed by reusable filter/fixture composables; sitemap additions | 3–5 days | Useful server-rendered landing pages; tested filter state and mobile use |
 | 4, after core pages | Add concise player interpretation and related links | Player summary and comparison components, existing profile | 1–2 days | All claims match source data; meaningful onward actions |
@@ -278,14 +290,15 @@ There is no defensible percentage traffic-growth target without a baseline. The 
 - [x] Local sitemap, robots, and canonical generation use the validated configured public origin; hosted verification is still pending.
 - [ ] All sitemap locations are canonical HTTPS public URLs, including after cache revalidation.
 - [x] Local player alias checks return 301 to one preferred slug, and the preferred page returns one matching canonical and `og:url`; hosted verification is still pending.
+- [x] Local player-detail checks distinguish valid, missing, malformed, and controlled upstream-failure responses; hosted verification is still pending.
 - [ ] Valid players return 200; aliases redirect; missing players return 404; outages do not impersonate missing players.
 - [ ] Search Console ownership and analytics collection are verified separately from code installation.
 - [ ] Mobile search is visible immediately and supports keyboard operation.
-- [ ] Save/remove survives reload with exact player matching and no debug output.
+- [x] Local save/remove survives reload with exact player matching, one card per saved player, and no watchlist debug output; hosted behavior remains pending.
 - [ ] Homepage payload and image behavior improve in repeatable measurements.
 - [ ] Player summaries, fixtures, and predictions show accurate context and freshness.
 - [ ] Utility indexing policy excludes the scheduler from all proposed changes.
-- [x] The local P1 sitemap checks and `npm run build` pass; other implementation checks remain pending.
+- [x] The local P1 sitemap and player-route checks plus `npm run build` pass; hosted verification and other implementation checks remain pending.
 - [ ] Local preview, hosted behavior, authenticated manager use, and physical-phone checks are recorded separately.
 - [ ] Commit, push, publishing, and deployment occur only if explicitly requested.
 
