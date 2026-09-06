@@ -1,337 +1,101 @@
 <template>
-  <div class="relative min-h-screen overflow-hidden text-stone-50">
-
-
-
-    <div class="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-      <section v-if="bootstrap" class="grid gap-6">
-
-        <div class="flex gap-6 flex-col md:flex-row">
-          <div class="md:w-1/2">
-            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-              Fantasy Premier League
-            </p>
-            <h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
-              Fantasy Premier League Player Stats, Fixtures & Ownership
-            </h1>
-            <p class="mt-4 max-w-xl text-sm leading-6 text-stone-300 sm:text-base">
-              Follow the next deadline, compare player ownership, and find the numbers that matter most without the
-              clutter.
-            </p>
-
-            <div class="mt-6">
-              <p class="text-[0.58rem] font-semibold uppercase tracking-[0.34em] text-stone-500">
-                Find a manager
-              </p>
-              <p class="max-w-md text-sm leading-6 text-stone-300">
-                Open your own team or a rival's stats with a manager ID.
-              </p>
-
-              <form class="flex flex-col gap-3 sm:flex-row" @submit.prevent="navigateTo(`/manager/${managerID}`)">
-                <label for="manager-id" class="sr-only">Manager ID</label>
-                <input id="manager-id" v-model="managerID" autocomplete="off" inputmode="numeric"
-                  class="min-w-0 flex-1 appearance-none rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-stone-100 shadow-sm outline-none transition placeholder:text-stone-500 focus:border-lime-300/40 focus:ring-2 focus:ring-lime-300/20"
-                  placeholder="Enter Manager ID" />
-                <button type="submit"
-                  class="rounded-2xl bg-lime-300 px-4 py-3 text-sm font-semibold text-black shadow-[0_16px_30px_rgba(200,255,61,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-200 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-lime-300"
-                  :class="[managerID ? 'opacity-100' : 'pointer-events-none opacity-50']">
-                  Open team
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <CountdownTimer v-if="nextGameweek" :targetDate="nextGameweek.deadline_time" />
-        </div>
-
-        <GameWeekCardNew v-if="currentGameweek" :gameweek="currentGameweek" />
-
-      </section>
-
-      <section v-if="fixtures && fixtures.length" class="">
-        <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
-          <div class="max-w-xl">
-            <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-              Upcoming fixtures
-            </p>
-            <h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-              Next matches
-            </h2>
-            <p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-              A quick look at the schedule ahead, with the focus on the fixtures themselves.
-            </p>
-          </div>
-        </div>
-        <AppCarousel >
-          <LazyFixtureCard v-for="fixture in fixtures" :key="fixture.id" :fixture="fixture" :bootstrap="bootstrap"
-            :class="carouselCardClass" />
-        </AppCarousel>
-      </section>
-
-      <section v-if="bootstrap && bootstrap.elements" class="">
-
-
-        <div class="space-y-3 py-6 pb-12 max-w-xl mx-auto">
-          <div class="flex items-center justify-between gap-3">
-            <p class="text-[0.58rem] font-semibold uppercase tracking-[0.34em] text-stone-500">
-              Search FPL players
-            </p>
-            <span class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-              Player search
-            </span>
-          </div>
-
-          <UInput
-            v-model="playerQuery"
-            type="search"
-            icon="i-lucide-search"
-            placeholder="Search players by name"
-            autocomplete="off"
-            size="md"
-            color="neutral"
-            variant="none"
-            :highlight="false"
-            class="w-full"
-            :ui="{
-              base: 'w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-sm font-medium text-stone-100 shadow-sm outline-none transition placeholder:text-stone-500 focus:border-lime-300/40 focus:ring-2 focus:ring-lime-300/20',
-              leading: 'pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4',
-              leadingIcon: 'size-4 text-stone-500'
-            }"
-            @keydown.enter.prevent="goToFirstPlayerResult"
-          />
-
-          <div v-if="playerQuery.trim() && playerSearchResults.length" class="grid gap-2">
-            <button v-for="player in playerSearchResults" :key="player.id" type="button"
-              class="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left transition hover:border-lime-300/40 hover:bg-white/[0.07]"
-              @click="goToPlayer(player)">
-              <div>
-                <div class="text-sm font-semibold text-white">
-                  {{ player.first_name }} {{ player.second_name }}
-                </div>
-                <div class="text-xs uppercase tracking-[0.24em] text-stone-500">
-                  {{ player.web_name }}
-                </div>
-              </div>
-
-              <div class="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-                {{ getTeamInfo(player.team, bootstrap).name }}
-              </div>
-            </button>
-          </div>
-
-          <p v-else-if="playerQuery.trim()" class="text-sm text-stone-500">
-            No players match that search.
-          </p>
-        </div>
-
-
-
-        <div class="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div class="max-w-2xl">
-            <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-              Player ownership
-            </p>
-            <h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-              Most-owned players
-            </h2>
-            <p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-              Compare the most-owned players and sort by the stat that matters most to your team.
-            </p>
-          </div>
-
-            <div class="w-full max-w-xs">
-              <label class="mb-2 block text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                {{ sortSelectLabel }}
-              </label>
-              <USelect
-                v-model="sortMostSelected"
-                :items="mostSelectedSortOptions"
-                v-bind="sortSelectProps"
+  <div class="relative min-h-screen text-stone-50">
+    <main id="main-content" class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <section aria-labelledby="home-title" class="grid min-w-0 gap-x-8 gap-y-5 border-b border-white/10 pb-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
+          <h1 id="home-title" class="order-0 max-w-xl text-3xl font-black leading-tight tracking-[-0.03em] text-white sm:text-4xl">
+            Find your next FPL player
+          </h1>
+          <div class="order-1 min-w-0 w-full md:order-2">
+            <UFormField
+              label="Search players"
+              :ui="{ root: 'w-full', label: 'text-sm font-semibold text-stone-200', description: 'mt-2 text-sm text-stone-400' }"
+            >
+              <UInput
+                id="player-search"
+                v-model="playerQuery"
+                type="search"
+                icon="i-lucide-search"
+                placeholder="Haaland"
+                autocomplete="off"
+                aria-controls="player-search-results"
+                :aria-expanded="Boolean(playerQuery.trim() && hasPlayerCatalog && !bootstrapFailed)"
+                aria-autocomplete="list"
                 class="w-full"
+                :ui="{
+                  root: 'w-full',
+                  base: 'w-full rounded-xl border border-accented bg-default h-12 text-base font-medium text-highlighted shadow-sm outline-none transition placeholder:text-muted hover:bg-elevated focus:border-primary/60 focus:ring-2 focus:ring-primary/25'
+                }"
+                @keydown.enter.prevent="goToFirstPlayerResult"
               />
-            </div>
-        </div>
+            </UFormField>
 
-        <AppCarousel ref="mostSelectedCarousel" class="pt-5">
-          <LazyPlayerCardNew v-for="item in sortedMostSelected" :key="item.id" :player="item" :data="bootstrap.teams"
-            :class="carouselCardClass" />
-        </AppCarousel>
-      </section>
-
-      <section v-if="bootstrap && bootstrap.elements" class="grid gap-6 xl:grid-cols-2">
-        <div class="min-w-0 space-y-4">
-          <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="max-w-2xl">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-                Transfers in form
+            <div id="player-search-results" :class="{ 'mt-3': bootstrapPending || bootstrapFailed || playerQuery.trim() }" aria-live="polite">
+              <p v-if="bootstrapPending" class="text-sm text-stone-400">
+                Loading current player data…
               </p>
-              <h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-                Most transferred in
-              </h2>
-              <p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-                The players being added fastest, with a sort order tailored to current momentum.
-              </p>
-            </div>
 
-            <div class="w-full max-w-xs">
-              <label class="mb-2 block text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                {{ sortSelectLabel }}
-              </label>
-              <USelect
-                v-model="sortTransferredIn"
-                :items="transferredInSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full"
-              />
-            </div>
-          </div>
-
-          <AppCarousel ref="transferredInCarousel" class="pt-5">
-            <LazyPlayerCardNew v-for="item in sortedTransferredIn" :key="item.id" :player="item" :data="bootstrap.teams"
-              :class="carouselCardClass" />
-          </AppCarousel>
-        </div>
-
-        <div class="min-w-0 space-y-4">
-          <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="max-w-2xl">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-                Transfers out form
-              </p>
-              <h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-                Most transferred out
-              </h2>
-              <p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-                Spot the exits and see which names managers are moving away from.
-              </p>
-            </div>
-
-            <div class="w-full max-w-xs">
-              <label class="mb-2 block text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                {{ sortSelectLabel }}
-              </label>
-              <USelect
-                v-model="sortTransferredOut"
-                :items="transferredOutSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full"
-              />
-            </div>
-          </div>
-
-          <AppCarousel ref="transferredOutCarousel" class="pt-5">
-            <LazyPlayerCardNew v-for="item in sortedTransferredOut" :key="item.id" :player="item"
-              :data="bootstrap.teams" :class="carouselCardClass" />
-          </AppCarousel>
-        </div>
-      </section>
-
-      <section v-if="bootstrap && bootstrap.elements" class="space-y-10">
-        <div class="space-y-4">
-          <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
-            <div class="max-w-2xl">
-              <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-                Position leaders
-              </p>
-              <h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-                Top forwards
-              </h2>
-              <p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-                The highest-upside forwards, ranked by the stat that matters most.
-              </p>
-            </div>
-
-            <div class="w-full max-w-xs">
-              <label class="mb-2 block text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                {{ sortSelectLabel }}
-              </label>
-              <USelect
-                v-model="sortForwards"
-                :items="forwardsSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full"
-              />
-            </div>
-          </div>
-
-          <AppCarousel ref="forwardsCarousel" class="pt-5">
-            <LazyPlayerCardNew v-for="item in sortedForwards" :key="item.id" :player="item" :data="bootstrap.teams"
-              :class="carouselCardClass" />
-          </AppCarousel>
-        </div>
-
-        <div class="grid gap-6 xl:grid-cols-3">
-          <div class="min-w-0 space-y-4">
-            <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                  Position leaders
+              <div v-else-if="bootstrapFailed" class="flex flex-wrap items-center gap-3 rounded-xl border border-error/25 bg-error/10 px-4 py-3">
+                <p class="text-sm leading-6 text-stone-200">
+                  Player search is unavailable because the current FPL data could not be loaded.
                 </p>
-                <h3 class="mt-2 text-2xl font-black tracking-tight text-white">
-                  Top midfielders
-                </h3>
+                <UButton color="neutral" variant="outline" size="sm" @click="retryBootstrap">
+                  Try again
+                </UButton>
               </div>
-              <USelect
-                v-model="sortMidfielders"
-                :items="midfieldersSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full sm:max-w-[12rem]"
-              />
-            </div>
-            <AppCarousel ref="midfieldersCarousel" class="pt-4">
-              <LazyPlayerCardNew v-for="item in sortedMidfielders" :key="item.id" :player="item" :data="bootstrap.teams"
-                :class="carouselCardClass" />
-            </AppCarousel>
-          </div>
 
-          <div class="min-w-0 space-y-4">
-            <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                  Position leaders
-                </p>
-                <h3 class="mt-2 text-2xl font-black tracking-tight text-white">
-                  Top defenders
-                </h3>
+              <div v-else-if="playerQuery.trim() && playerSearchResults.length" class="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                <NuxtLink
+                  v-for="player in playerSearchResults"
+                  :key="player.id"
+                  :to="getPlayerRoute(player)"
+                  class="group flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-white/[0.06] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                >
+                  <span class="min-w-0">
+                    <span class="block truncate text-base font-semibold text-white">
+                      {{ player.first_name }} {{ player.second_name }}
+                    </span>
+                    <span class="mt-1 block truncate text-sm text-stone-400">
+                      {{ player.web_name }} · {{ getTeamInfo(player.team, bootstrap)?.name || 'Team unavailable' }}
+                    </span>
+                  </span>
+                  <UIcon name="i-lucide-arrow-up-right" class="size-4 shrink-0 text-stone-500 transition group-hover:text-primary" aria-hidden="true" />
+                </NuxtLink>
               </div>
-              <USelect
-                v-model="sortDefenders"
-                :items="defendersSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full sm:max-w-[12rem]"
-              />
-            </div>
-            <AppCarousel ref="defendersCarousel" class="pt-4">
-              <LazyPlayerCardNew v-for="item in sortedDefenders" :key="item.id" :player="item" :data="bootstrap.teams"
-                :class="carouselCardClass" />
-            </AppCarousel>
-          </div>
 
-          <div class="min-w-0 space-y-4">
-            <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-[0.58rem] font-semibold uppercase tracking-[0.3em] text-stone-400">
-                  Position leaders
-                </p>
-                <h3 class="mt-2 text-2xl font-black tracking-tight text-white">
-                  Top goalkeepers
-                </h3>
-              </div>
-              <USelect
-                v-model="sortGoalkeepers"
-                :items="goalkeepersSortOptions"
-                v-bind="sortSelectProps"
-                class="w-full sm:max-w-[12rem]"
-              />
+              <p v-else-if="playerQuery.trim()" class="text-sm text-stone-400">
+                No players match that search. Try a surname or the name shown in FPL.
+              </p>
+
+
             </div>
-            <AppCarousel ref="goalkeepersCarousel" class="pt-4">
-              <LazyPlayerCardNew v-for="item in sortedGoalkeepers" :key="item.id" :player="item" :data="bootstrap.teams"
-                :class="carouselCardClass" />
-            </AppCarousel>
           </div>
-        </div>
+        <HomeDeadlinePanel
+          class="order-3 md:order-1 md:self-center"
+          :deadline="nextGameweek?.deadline_time"
+          :loading="bootstrapPending"
+          :error="bootstrapFailed"
+        />
+        <HomeManagerLookup class="order-2 md:order-3" />
       </section>
-    </div>
+
+      <HomePlayerDiscovery
+        :players="bootstrap?.elements || []"
+        :teams="bootstrap?.teams || []"
+        :loading="bootstrapPending"
+        :error="bootstrapFailed"
+        @retry="retryBootstrap"
+      />
+
+      <HomeFixtureList
+        :fixtures="fixturesList"
+        :teams="bootstrap?.teams || []"
+        :loading="fixturesPending"
+        :error="fixturesFailed"
+        @retry="retryFixtures"
+      />
+
+      <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" />
+    </main>
   </div>
 </template>
 
@@ -349,271 +113,76 @@ useHead({
 });
 
 useSeoMeta({
-  title: 'Fantasy Premier League Stats, Fixtures & Ownership',
+  title: "Fantasy Premier League Stats, Fixtures & Ownership",
   description:
-    'Compare Fantasy Premier League player stats, fixtures, ownership, transfers, and form in one clean dashboard to make faster weekly decisions and spot trends.',
-  ogTitle: 'Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights',
+    "Compare Fantasy Premier League player stats, fixtures, ownership, transfers, and form in one clean dashboard to make faster weekly decisions and spot trends.",
+  ogTitle: "Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights",
   ogDescription:
-    'Track player stats, fixtures, ownership, transfers, and form with a clean FPL dashboard built for faster weekly decisions.',
-  twitterTitle: 'Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights',
+    "Track player stats, fixtures, ownership, transfers, and form with a clean FPL dashboard built for faster weekly decisions.",
+  twitterTitle: "Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights",
   twitterDescription:
-    'Fantasy Premier League stats, fixtures, ownership, and form in one clean dashboard.',
+    "Fantasy Premier League stats, fixtures, ownership, and form in one clean dashboard.",
 });
 
-const allPlayers = useState("allPlayers", () => []);
-const allTeams = useState("allTeams", () => []);
-
-const managerID = ref(null);
 const playerQuery = ref("");
-const mostSelectedCarousel = ref(null);
-const transferredInCarousel = ref(null);
-const transferredOutCarousel = ref(null);
-const forwardsCarousel = ref(null);
-const midfieldersCarousel = ref(null);
-const defendersCarousel = ref(null);
-const goalkeepersCarousel = ref(null);
 
-const playersStore = usePlayersStore();
-const { bootstrap } = storeToRefs(playersStore);
+const {
+  data: bootstrap,
+  pending: bootstrapPending,
+  error: bootstrapRequestError,
+  refresh: refreshBootstrap,
+} = await useAsyncData("homepage-bootstrap", () => $fetch("/api/homepage-data"));
 
-await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
+const {
+  data: fixtures,
+  pending: fixturesPending,
+  error: fixturesRequestError,
+  refresh: refreshFixtures,
+} = await useLazyAsyncData("fixtures", () => $fetch("/api/fixtures"));
 
-const { data: fixtures } = await useLazyAsyncData("fixtures", () =>
-  $fetch("/api/fixtures")
+const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
+const bootstrapFailed = computed(() => !bootstrapPending.value && Boolean(bootstrapRequestError.value || !hasPlayerCatalog.value));
+
+const fixturesList = computed(() => (Array.isArray(fixtures.value) ? fixtures.value : []));
+const fixturesFailed = computed(() =>
+  !fixturesPending.value && Boolean(fixturesRequestError.value || !Array.isArray(fixtures.value)),
 );
 
-const carouselCardClass = "shrink-0  snap-start";
-const sortSelectLabel = "Sort By";
-const sortSelectProps = {
-  color: "neutral",
-  variant: "subtle",
-  size: "md",
-  highlight: false,
-};
-const playerSortKeyMap = {
-  transfers_in: "transfers_in_event",
-  transfers_out: "transfers_out_event",
-};
-
-const getSortableValue = (player, key) => {
-  const resolvedKey = playerSortKeyMap[key] ?? key;
-  const value = player?.[resolvedKey];
-  return Number(value) || 0;
-};
-
-const sortPlayersByStat = (players, key) => {
-  return [...players].sort(
-    (a, b) => getSortableValue(b, key) - getSortableValue(a, key)
-  );
-};
-
-const currentGameweek = computed(() => {
-  if (bootstrap.value && bootstrap.value.events) {
-    let currentWeek = bootstrap.value.events.find((event) => event.is_current);
-
-    if (currentWeek) {
-      let most_captained = getPlayerInfo(
-        currentWeek.most_captained,
-        bootstrap.value
-      );
-      let most_captained_team = most_captained.team;
-      let most_vice_captained = getPlayerInfo(
-        currentWeek.most_vice_captained,
-        bootstrap.value
-      );
-      let most_vice_captained_team = most_vice_captained.team;
-
-      currentWeek.mostCaptained = `${most_captained.first_name} ${most_captained.second_name}`;
-
-      currentWeek.mostCaptainedTeam = getTeamInfo(
-        most_captained_team,
-        bootstrap.value
-      );
-
-      currentWeek.mostViceCaptained = `${most_vice_captained.first_name} ${most_vice_captained.second_name}`;
-      currentWeek.mostViceCaptainedTeam = getTeamInfo(
-        most_vice_captained_team,
-        bootstrap.value
-      );
-
-      // Add player and team codes for images
-      currentWeek.mostCaptainedPlayerCode = most_captained.code;
-      currentWeek.mostCaptainedTeamCode = currentWeek.mostCaptainedTeam.code;
-      currentWeek.mostViceCaptainedPlayerCode = most_vice_captained.code;
-      currentWeek.mostViceCaptainedTeamCode =
-        currentWeek.mostViceCaptainedTeam.code;
-
-      return currentWeek;
-    }
-  }
-});
-
 const nextGameweek = computed(() => {
-  if (bootstrap.value && bootstrap.value.events) {
-    return bootstrap.value.events.find((event) => event.is_next);
-  }
+  if (!Array.isArray(bootstrap.value?.events)) return null;
+  return bootstrap.value.events.find((event) => event.is_next) || null;
 });
 
-const mostSelected = computed(() => {
-  if (bootstrap.value && bootstrap.value.elements) {
-    return getMostSelectedPlayers(bootstrap.value.elements, 20);
-  }
-  return [];
-});
+const recapGameweek = computed(() => {
+  const events = Array.isArray(bootstrap.value?.events) ? bootstrap.value.events : [];
+  const event = events.find((item) => item.is_current) || [...events].reverse().find((item) => item.finished);
 
-const mostTransferredIn = computed(() => {
-  if (bootstrap.value && bootstrap.value.elements) {
-    return getMostTransferredInPlayers(bootstrap.value.elements, 20);
-  }
-  return [];
-});
+  if (!event) return null;
 
-const mostTransferredOut = computed(() => {
-  if (bootstrap.value && bootstrap.value.elements) {
-    return getMostTransferredOutPlayers(bootstrap.value.elements, 20);
-  }
-  return [];
-});
+  const captainedPlayer = getPlayerInfo(event.most_captained, bootstrap.value);
+  const viceCaptainedPlayer = getPlayerInfo(event.most_vice_captained, bootstrap.value);
+  const playerLabel = (player) => {
+    if (!player) return null;
+    return `${player.first_name || ""} ${player.second_name || player.web_name || ""}`.trim();
+  };
 
-onMounted(() => {
-  const savedManagerId = localStorage.getItem("savedManagerId") ?? "";
-
-  if (savedManagerId) {
-    managerID.value = savedManagerId;
-  }
-
-  if (bootstrap.value) {
-    allPlayers.value = bootstrap.value.elements;
-    allTeams.value = bootstrap.value.teams;
-  }
-});
-
-const sortMostSelected = ref("selected_by_percent");
-const sortTransferredIn = ref("transfers_in_event");
-const sortTransferredOut = ref("transfers_out_event");
-const sortForwards = ref("total_points");
-const sortMidfielders = ref("total_points");
-const sortDefenders = ref("total_points");
-const sortGoalkeepers = ref("total_points");
-
-const scrollCarouselToStart = async (carouselRef) => {
-  await nextTick();
-  carouselRef.value?.scrollToStart?.();
-};
-
-watch(sortMostSelected, () => scrollCarouselToStart(mostSelectedCarousel));
-watch(sortTransferredIn, () => scrollCarouselToStart(transferredInCarousel));
-watch(sortTransferredOut, () => scrollCarouselToStart(transferredOutCarousel));
-watch(sortForwards, () => scrollCarouselToStart(forwardsCarousel));
-watch(sortMidfielders, () => scrollCarouselToStart(midfieldersCarousel));
-watch(sortDefenders, () => scrollCarouselToStart(defendersCarousel));
-watch(sortGoalkeepers, () => scrollCarouselToStart(goalkeepersCarousel));
-
-const mostSelectedSortOptions = [
-  { label: "Selected by %", value: "selected_by_percent" },
-  { label: "Total Points", value: "total_points" },
-  { label: "Form", value: "form" },
-  { label: "Price", value: "now_cost" },
-];
-
-const transferredInSortOptions = [
-  { label: "Transfers In", value: "transfers_in_event" },
-  { label: "Form", value: "form" },
-  { label: "Total Points", value: "total_points" },
-  { label: "Price", value: "now_cost" },
-];
-
-const transferredOutSortOptions = [
-  { label: "Transfers Out", value: "transfers_out_event" },
-  { label: "Form", value: "form" },
-  { label: "Total Points", value: "total_points" },
-  { label: "Price", value: "now_cost" },
-];
-
-const forwardsSortOptions = [
-  { label: "Total Points", value: "total_points" },
-  { label: "Form", value: "form" },
-  { label: "Goals Scored", value: "goals_scored" },
-  { label: "Price", value: "now_cost" },
-];
-
-const midfieldersSortOptions = [
-  { label: "Total Points", value: "total_points" },
-  { label: "Form", value: "form" },
-  { label: "Assists", value: "assists" },
-  { label: "Goals Scored", value: "goals_scored" },
-  { label: "Price", value: "now_cost" },
-];
-
-const defendersSortOptions = [
-  { label: "Total Points", value: "total_points" },
-  { label: "Form", value: "form" },
-  { label: "Clean Sheets", value: "clean_sheets" },
-  { label: "Goals Conceded", value: "goals_conceded" },
-  { label: "Price", value: "now_cost" },
-];
-
-const goalkeepersSortOptions = [
-  { label: "Total Points", value: "total_points" },
-  { label: "Form", value: "form" },
-  { label: "Clean Sheets", value: "clean_sheets" },
-  { label: "Saves", value: "saves" },
-  { label: "Price", value: "now_cost" },
-];
-
-const mostSelectedSortKey = computed(() => {
-  return sortMostSelected.value;
-});
-
-const sortedMostSelected = computed(() => {
-  if (!mostSelected.value) return [];
-  return sortPlayersByStat(mostSelected.value, mostSelectedSortKey.value);
-});
-
-const sortedTransferredIn = computed(() => {
-  if (!mostTransferredIn.value) return [];
-  return sortPlayersByStat(mostTransferredIn.value, sortTransferredIn.value);
-});
-
-const sortedTransferredOut = computed(() => {
-  if (!mostTransferredOut.value) return [];
-  return sortPlayersByStat(mostTransferredOut.value, sortTransferredOut.value);
-});
-
-const sortedForwards = computed(() => {
-  if (!bootstrap.value?.elements) return [];
-  return sortPlayersByStat(getTopPlayers(bootstrap.value.elements, 4, 20), sortForwards.value);
-});
-
-const sortedMidfielders = computed(() => {
-  if (!bootstrap.value?.elements) return [];
-  return sortPlayersByStat(getTopPlayers(bootstrap.value.elements, 3, 20), sortMidfielders.value);
-});
-
-const sortedDefenders = computed(() => {
-  if (!bootstrap.value?.elements) return [];
-  return sortPlayersByStat(getTopPlayers(bootstrap.value.elements, 2, 20), sortDefenders.value);
-});
-
-const sortedGoalkeepers = computed(() => {
-  if (!bootstrap.value?.elements) return [];
-  return sortPlayersByStat(getTopPlayers(bootstrap.value.elements, 1, 20), sortGoalkeepers.value);
+  return {
+    ...event,
+    mostCaptained: playerLabel(captainedPlayer),
+    mostViceCaptained: playerLabel(viceCaptainedPlayer),
+    captainedPlayer,
+    viceCaptainedPlayer,
+  };
 });
 
 const playerSearchResults = computed(() => {
   const query = playerQuery.value.trim().toLowerCase();
 
-  if (!query || !bootstrap.value?.elements) {
-    return [];
-  }
+  if (!query || !hasPlayerCatalog.value) return [];
 
   return [...bootstrap.value.elements]
     .filter((player) => {
-      const searchableText = [
-        player.first_name,
-        player.second_name,
-        player.web_name,
-      ]
+      const searchableText = [player.first_name, player.second_name, player.web_name]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -623,28 +192,25 @@ const playerSearchResults = computed(() => {
     .sort((a, b) => {
       const aName = `${a.first_name} ${a.second_name}`.toLowerCase();
       const bName = `${b.first_name} ${b.second_name}`.toLowerCase();
-      const aStartsWith = aName.startsWith(query) || (a.web_name ?? "").toLowerCase().startsWith(query);
-      const bStartsWith = bName.startsWith(query) || (b.web_name ?? "").toLowerCase().startsWith(query);
+      const aStartsWith = aName.startsWith(query) || (a.web_name || "").toLowerCase().startsWith(query);
+      const bStartsWith = bName.startsWith(query) || (b.web_name || "").toLowerCase().startsWith(query);
 
-      if (aStartsWith !== bStartsWith) {
-        return aStartsWith ? -1 : 1;
-      }
-
-      return (b.total_points ?? 0) - (a.total_points ?? 0);
+      if (aStartsWith !== bStartsWith) return aStartsWith ? -1 : 1;
+      return Number(b.total_points || 0) - Number(a.total_points || 0);
     })
     .slice(0, 6);
 });
 
-const goToPlayer = async (player) => {
-  await navigateTo(getPlayerRoute(player));
-};
-
 const goToFirstPlayerResult = async () => {
-  if (!playerSearchResults.value.length) {
-    return;
-  }
-
-  await goToPlayer(playerSearchResults.value[0]);
+  if (!playerSearchResults.value.length) return;
+  await navigateTo(getPlayerRoute(playerSearchResults.value[0]));
 };
 
+const retryBootstrap = async () => {
+  await refreshBootstrap();
+};
+
+const retryFixtures = async () => {
+  await refreshFixtures();
+};
 </script>

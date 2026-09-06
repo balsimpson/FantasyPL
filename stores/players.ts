@@ -20,7 +20,9 @@ export const usePlayersStore = defineStore("players", () => {
         try {
             const data = await $fetch('/api/bootstrap-static');
 
-            if (!data) throw new Error("No data returned from API");
+            if (!data || !Array.isArray(data.elements)) {
+                throw new Error("Current player data is unavailable");
+            }
 
             bootstrap.value = data;
             players.value = data.elements || []; // Populate players ref for convenience

@@ -1,7 +1,8 @@
 <template>
 	<div class="h-full">
 		<UCard :ui="{ body: 'p-3', root: 'ring-0 max-w-sm' }"
-			class="h-full w-full rounded-[24px] bg-zinc-950 text-stone-50">
+			class="h-full w-full rounded-[24px] text-stone-50"
+            :class="elevated ? 'border border-zinc-700/70 bg-zinc-900' : 'bg-zinc-950'">
 			<div class="flex h-full flex-col gap-3">
 
 				<div class="flex items-center justify-between gap-3">
@@ -90,6 +91,7 @@
 
 <script setup>
 const props = defineProps({
+    elevated: Boolean,
 	fixture: {
 		type: Object,
 		required: true,
@@ -118,6 +120,8 @@ const homeBadgeSrc = computed(() => teamBadgeSrc(homeTeam.value));
 
 const awayBadgeSrc = computed(() => teamBadgeSrc(awayTeam.value));
 
+const mounted = ref(false);
+
 const kickoffDateValue = computed(() => {
 	if (!props.fixture.kickoff_time) return null;
 
@@ -127,6 +131,7 @@ const kickoffDateValue = computed(() => {
 
 const kickoffTime = computed(() => {
 	if (!kickoffDateValue.value) return 'TBD';
+	if (!mounted.value) return 'Local time';
 
 	return kickoffDateValue.value.toLocaleTimeString(undefined, {
 		hour: 'numeric',
@@ -137,6 +142,7 @@ const kickoffTime = computed(() => {
 
 const kickoffDate = computed(() => {
 	if (!kickoffDateValue.value) return '-';
+	if (!mounted.value) return '';
 
 	return kickoffDateValue.value.toLocaleDateString(undefined, {
 		weekday: 'short',
@@ -171,4 +177,8 @@ const difficultyClass = (difficulty) => {
 			return 'border-white/10 bg-white/[0.05] text-stone-200';
 	}
 };
+
+onMounted(() => {
+	mounted.value = true;
+});
 </script>

@@ -12,7 +12,24 @@ Before editing, confirm the working directory, Git remote, branch, dirty state, 
 - The branch was `main` when this guide was created. Check it each session; do not switch branches automatically.
 - Use npm only. Keep `package-lock.json` aligned with intentional dependency changes. The README's alternative package-manager examples are not the project preference.
 
-Read [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) for site priorities, evidence, affected files, and acceptance criteria. Read [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) for blog, editorial, admin, or acquisition work. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
+## Documentation ownership
+
+Read the relevant existing document before proposing work or creating another plan. Each topic has one primary document:
+
+| Document | Owns |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | Repository-wide working rules, boundaries, and pointers to topic documents |
+| [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) | Site-wide growth priorities, original audit evidence, and discovery/data/retention findings outside the dedicated plans |
+| [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, section order, UX/UI requirements, affected files, implementation checklist, and homepage verification evidence |
+| [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
+
+For homepage work, read `HOMEPAGE_UX_PLAN.md` first and use the audit for its supporting evidence. The homepage plan supplies the detailed layout decisions absent from the original audit. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
+
+- Update the primary document in place when requirements, decisions, or completion status change. Do not create another audit, plan, checklist, or status file for the same topic unless the user explicitly requests it.
+- Keep detailed recommendations, acceptance checks, and verification evidence in the owning document. Elsewhere, use a short cross-reference instead of copying them. Keep this guide focused on durable working rules.
+- Preserve historical audit evidence as dated observations. When work covered by a dedicated plan advances, add only a concise status pointer in the audit if needed; record the detailed results in that plan.
+- Before repeating a recommendation or implementing an old finding, inspect current source and the owning document's latest status. Distinguish planned work, local implementation, browser verification, and hosted verification.
+- If documents disagree, follow the user's latest instruction and verified current behavior, then correct the owning document and any conflicting summary. Do not leave competing instructions in multiple files.
 
 ## Product direction and scope
 
@@ -41,7 +58,8 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 
 | Location | Responsibility |
 | --- | --- |
-| `pages/index.vue` | Homepage, manager lookup, player search, and ranked player lists |
+| `pages/index.vue` | Homepage composition, manager lookup, player search, and ranked player lists; consumes the homepage-only data projection |
+| `components/Home*.vue`, `components/GameWeekCardNew.vue` | Focused homepage deadline, lookup, discovery, fixture, and recap presentation |
 | `pages/player/[id].vue` | Player profile, fixtures, history, and metadata |
 | `pages/manager/[id].vue` | Manager and team journey |
 | `pages/watchlist.vue`, `components/PlayerWatchlistCard.vue` | Existing incomplete saved-player experience |
@@ -52,7 +70,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `composables/usePlayerRoute.ts` | Player slug creation and route ID parsing |
 | `utils/site-url.ts`, `composables/useCanonicalUrl.ts` | Shared public-origin normalization and canonical URL generation |
 | `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts` | Crawl discovery |
-| `server/api/bootstrap-static.ts`, `server/api/players/`, `server/api/fixtures.ts`, `server/api/managers/` | Public data handlers |
+| `server/api/bootstrap-static.ts`, `server/api/homepage-data.ts`, `server/api/players/`, `server/api/fixtures.ts`, `server/api/managers/` | Public data handlers; the homepage projection is separate so shared bootstrap consumers retain their full contract |
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection |
 | `nuxt.config.ts` | Modules, global metadata, and runtime configuration |
 
@@ -77,7 +95,7 @@ Use `getPlayerRoute` for preferred player links. Numeric and incorrect-name alia
 
 Distinguish pending data, confirmed missing players, and upstream failures. A settled missing player needs a real 404 and recovery UI; an upstream outage must not become a false 404 or endless loading title. Show honest data freshness and omit unavailable predictions cleanly.
 
-The existing watchlist uses `savedWatchlist` in localStorage and player `code` values. Inspect and validate its stored format before migration. Use exact membership, recover from missing/malformed storage, and centralize save/remove state. Test add, reload, remove, and navigation. Describe it as saved on this browser, with no implied account sync.
+The existing watchlist uses `savedWatchlist` in localStorage and player `code` values. Inspect and validate its stored format before migration. Use exact membership, recover from missing/malformed storage, and centralize save/remove state. Test add, reload, remove, and navigation. Keep the behavior browser-local without implying account sync, but do not repeat that implementation detail across profiles and saved-player cards.
 
 Preserve server-rendered player discovery while reducing homepage payload. The audit's initial target is roughly half the measured HTML and embedded payload under comparable conditions. Measure actual changes; do not call a smaller bundle proven visitor growth.
 
@@ -105,6 +123,6 @@ For URL changes, inspect HTTP status, redirect destination, canonical metadata, 
 
 Report separately what passed locally, in a browser, on the hosted site, in authenticated workflows, and on a physical device. A build, push, or HTTP 200 cannot establish all of these.
 
-Dated status, 6 September 2026: the public-origin/sitemap correction and local player alias/canonical implementation are present in the checkout. The audit records a passing build, local XML/host checks, and local 301/canonical/`og:url` checks for player aliases. Deployment, hosted cache behavior, and hosted player redirects remain unverified. Missing-player handling, homepage improvements, watchlist repair, and the blog remain planned in the documents. Recheck source and subsequent evidence before acting on this snapshot.
+Look up implementation status in the owning document listed above and verify it against current source. Do not maintain a second dated feature-status snapshot in this guide.
 
-When completing related work, update the relevant audit/plan status with the date, concrete checks, and any remaining hosted verification. Keep this guide current when a durable project decision changes. Do not mark historical live findings resolved solely from local checks, and do not turn this guide into a transcript of temporary branch or dirty-file state.
+When completing related work, update the owning document with the date, concrete checks, and any remaining hosted verification. Other documents need only a brief cross-reference where their existing summary would otherwise mislead. Keep this guide current when a durable working rule or documentation ownership changes. Do not mark historical live findings resolved solely from local checks, and do not turn this guide into a transcript of temporary branch or dirty-file state.

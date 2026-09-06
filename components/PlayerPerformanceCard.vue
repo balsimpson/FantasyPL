@@ -1,172 +1,49 @@
 <template>
-	<div class="h-full">
-		<UCard :ui="{ body: 'p-0', root: 'ring-0' }"
-			class="group relative h-full w-full overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 text-stone-50 transition duration-300 hover:-translate-y-1">
-			<div
-				class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.14),transparent_30%),radial-gradient(circle_at_110%_18%,rgba(72,214,255,0.1),transparent_24%),linear-gradient(135deg,#111317_0%,#090a0d_100%)]" />
-			<div
-				class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size[5px_5px] opacity-10" />
+  <div class="overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-stone-50">
+    <div class="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)]">
+      <header class="min-w-0 lg:col-start-1">
+        <h1 class="text-3xl font-bold leading-tight tracking-tight text-white text-balance sm:text-4xl">{{ playerFullName }}</h1>
+        <div class="mt-3 flex items-center gap-3 text-sm text-stone-300">
+          <img :src="`https://resources.premierleague.com/premierleague/badges/t${player.teamData?.code || player.team_code}.png`"
+            :alt="teamName" width="32" height="32" class="size-8 shrink-0 object-contain" />
+          <div><p class="font-medium">{{ teamName }}</p><p class="text-stone-400">{{ elementType }}</p></div>
+        </div>
+      </header>
 
-			<div class="relative z-10 flex h-full flex-col gap-4 p-4">
-				<header class="flex items-start justify-between gap-4">
-					<div class="min-w-0 space-y-2">
-						<p class="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
-							Performance
-						</p>
-						<h2 class="text-[2rem] font-black leading-[0.92] tracking-tight text-white text-balance">
-							{{ playerFullName }}
-						</h2>
-						<div class="flex flex-wrap items-center gap-3">
-							<div class="flex items-center gap-3">
-								<div class="h-10 w-10 shrink-0">
-									<img :src="`https://resources.premierleague.com/premierleague/badges/t${player.team_code}.png`"
-										:alt="teamName"
-										class="h-full w-full object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]" />
-								</div>
-								<div class="min-w-0">
-									<p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-stone-300">
-										{{ teamName }}
-									</p>
-									<p class="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-stone-500">
-										{{ elementType }}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-5 tabular-nums min-[380px]:grid-cols-3 lg:col-start-1">
+        <div v-for="stat in primaryStats" :key="stat.label">
+          <dt class="text-sm text-stone-400">{{ stat.label }}</dt>
+          <dd class="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{{ stat.value }}</dd>
+        </div>
+      </dl>
 
-					<div class="shrink-0 text-right backdrop-blur-sm">
-						<div class="text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-							Selected
-						</div>
-						<div class="font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] text-white">
-							{{ formatPercent(player.selected_by_percent) }}
-						</div>
+      <div class="border-t border-white/10 pt-5 lg:col-start-1">
+        <h2 class="text-sm font-medium text-stone-300">Gameweek transfers</h2>
+        <dl class="mt-2 grid grid-cols-2 gap-4 tabular-nums">
+          <div class="flex items-baseline gap-2"><dt class="text-sm text-stone-400">In</dt><dd class="text-lg font-semibold text-lime-200">{{ formatCompact(player.transfers_in_event) }}</dd></div>
+          <div class="flex items-baseline gap-2"><dt class="text-sm text-stone-400">Out</dt><dd class="text-lg font-semibold text-rose-200">{{ formatCompact(player.transfers_out_event) }}</dd></div>
+        </dl>
+      </div>
 
-						<div class="mt-4">
-							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-								Value
-							</p>
-							<p class="font-serif text-[1.9rem] font-black leading-none tracking-[-0.06em] text-white">
-								{{ playerPrice }}
-							</p>
-						</div>
-					</div>
-				</header>
+      <div class="lg:col-start-1">
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-4 tabular-nums min-[380px]:grid-cols-3">
+          <div v-for="stat in secondaryStats" :key="stat.label">
+            <dt class="text-sm text-stone-400">{{ stat.label }}</dt>
+            <dd class="mt-1 text-base font-semibold text-white">{{ stat.value }}</dd>
+          </div>
+        </dl>
+        <p v-if="cardTotal" class="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm tabular-nums">
+          <span class="text-stone-400">Yellow cards <strong class="ml-1 font-semibold text-amber-200">{{ yellowCards }}</strong></span>
+          <span class="text-stone-400">Red cards <strong class="ml-1 font-semibold text-rose-200">{{ redCards }}</strong></span>
+        </p>
+      </div>
 
-				<section class="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] items-center">
-					<div class="space-y-4">
-						<div class="grid grid-cols-3 gap-2">
-							<div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-2 text-center">
-								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Points</div>
-								<div
-									class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em] text-white">
-									{{ playerPoints }}
-								</div>
-							</div>
-							<div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-2 text-center">
-								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Goals</div>
-								<div
-									class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em] text-white">
-									{{ player.goals_scored }}
-								</div>
-							</div>
-							<div class="rounded-2xl border px-2 py-2 text-center transition-colors"
-								:class="formTileClass">
-								<div class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Form</div>
-								<div class="mt-1 font-serif text-[1.3rem] font-black leading-none tracking-[-0.04em]"
-									:class="formValueClass">
-									{{ player.form }}
-								</div>
-							</div>
-						</div>
-
-						<div>
-							<div
-								class="flex items-center justify-between text-[0.62rem] font-semibold uppercase tracking-[0.32em] text-stone-400">
-								<span>Transfers</span>
-								<span>{{ formatCompact(totalTransfers) }} total</span>
-							</div>
-							<div class="mt-2 flex h-2 overflow-hidden rounded-full border border-white/10 bg-white/6">
-								<div class="h-full bg-lime-300" :style="{ width: `${inPercentage}%` }" />
-								<div class="h-full bg-rose-500" :style="{ width: `${outPercentage}%` }" />
-							</div>
-							<div
-								class="mt-2 flex justify-between text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-stone-300">
-								<span>In {{ formatCompact(player.transfers_in_event) }}</span>
-								<span>Out {{ formatCompact(player.transfers_out_event) }}</span>
-							</div>
-						</div>
-
-						<div
-							class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/4 px-3 py-3">
-							<div
-								class="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.28em] text-stone-400">
-								<span
-									class="inline-flex h-8 w-6 items-center justify-center rounded-sm bg-yellow-300 font-black text-black"
-									:title="`${yellowCards} Yellow Card${yellowCards === 1 ? '' : 's'}`">
-									{{ yellowCards }}
-								</span>
-								<span
-									class="inline-flex h-8 w-6 items-center justify-center rounded-sm bg-rose-500 font-black text-white"
-									:title="`${redCards} Red Card${redCards === 1 ? '' : 's'}`">
-									{{ redCards }}
-								</span>
-								<span>{{ cardTotal ? `${cardTotal} booking${cardTotal > 1 ? 's' : ''}` : 'No bookings'
-								}}</span>
-							</div>
-						</div>
-					</div>
-
-					<div class="relative flex items-end justify-center">
-						<div class="relative w-full max-w-md">
-							<div
-								class="absolute inset-x-[8%] top-[16%] h-[72%] rounded-[999px] bg-lime-300/14 blur-3xl" />
-							<div class="absolute inset-x-[16%] bottom-[5%] h-[12%] rounded-full bg-black/50 blur-2xl" />
-							<img :src="playerImageSrc" :alt="player.web_name"
-								class="relative z-10 mx-auto w-full max-h-112 object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.5)] transition duration-300 group-hover:scale-[1.015]"
-								@error="handleImageError" />
-						</div>
-					</div>
-				</section>
-
-				<footer
-					class="grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-center text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-stone-300 sm:grid-cols-4">
-					<div class="space-y-1">
-						<span class="block">Minutes</span>
-						<span
-							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
-							{{ player.minutes }}
-						</span>
-					</div>
-					<div class="space-y-1">
-						<span class="block">Selected</span>
-						<span
-							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
-							{{ formatPercent(player.selected_by_percent) }}
-						</span>
-					</div>
-					<div class="space-y-1">
-						<span class="block">Season Value</span>
-						<span
-							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
-							{{ player.value_season }}
-						</span>
-					</div>
-					<div class="space-y-1">
-						<span class="block">ICT Rank</span>
-						<span
-							class="block font-serif text-[1.15rem] font-black leading-none tracking-[-0.04em] normal-case text-white">
-							#{{ player.ict_index_rank }}
-						</span>
-					</div>
-				</footer>
-			</div>
-		</UCard>
-	</div>
+      <div class="flex items-end justify-center lg:col-start-2 lg:row-start-1 lg:row-span-4">
+        <img :src="playerImageSrc" :alt="player.web_name" width="352" height="448" fetchpriority="high" decoding="async"
+          class="h-48 w-full object-contain sm:h-64 lg:h-96" @error="handleImageError" />
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -200,7 +77,7 @@ const teamName = computed(() => {
 const formatCost = (value) => {
 	const cost = Number(value || 0) / 10;
 
-	return `${cost.toFixed(cost % 1 === 0 ? 0 : 1)}m`;
+	return `£${cost.toFixed(cost % 1 === 0 ? 0 : 1)}m`;
 };
 
 const elementType = computed(() => elementTypeMap[props.player.element_type] || 'Unknown');
@@ -217,42 +94,6 @@ const playerPoints = computed(() => Number(props.player.total_points ?? props.pl
 const yellowCards = computed(() => Number(props.player.yellow_cards || 0));
 const redCards = computed(() => Number(props.player.red_cards || 0));
 const cardTotal = computed(() => yellowCards.value + redCards.value);
-
-const formValue = computed(() => Number(props.player.form || 0));
-
-const formCategory = computed(() => {
-	if (formValue.value >= 5) return 'good';
-	if (formValue.value >= 3) return 'average';
-	return 'bad';
-});
-
-const formTileClass = computed(() => {
-	if (formCategory.value === 'good') return 'border-lime-300/40 bg-lime-400/10';
-	if (formCategory.value === 'average') return 'border-amber-300/40 bg-amber-400/10';
-	return 'border-rose-300/40 bg-rose-400/10';
-});
-
-const formValueClass = computed(() => {
-	if (formCategory.value === 'good') return 'text-lime-200';
-	if (formCategory.value === 'average') return 'text-amber-200';
-	return 'text-rose-200';
-});
-
-const totalTransfers = computed(
-	() => Number(props.player.transfers_in_event || 0) + Number(props.player.transfers_out_event || 0)
-);
-
-const inPercentage = computed(() =>
-	totalTransfers.value === 0
-		? 50
-		: (Number(props.player.transfers_in_event || 0) / totalTransfers.value) * 100
-);
-
-const outPercentage = computed(() =>
-	totalTransfers.value === 0
-		? 50
-		: (Number(props.player.transfers_out_event || 0) / totalTransfers.value) * 100
-);
 
 const playerImageSrc = computed(
 	() => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`
@@ -272,6 +113,21 @@ const formatPercent = (value) => {
 
 	return number % 1 === 0 ? `${number.toFixed(0)}%` : `${number.toFixed(1)}%`;
 };
+
+const primaryStats = computed(() => [
+  { label: 'Price', value: playerPrice.value },
+  { label: 'Season points', value: playerPoints.value },
+  { label: 'Form', value: props.player.form ?? 'Unavailable' },
+  { label: 'Selected by', value: formatPercent(props.player.selected_by_percent) },
+  { label: 'Goals', value: props.player.goals_scored ?? 0 },
+  { label: 'Assists', value: props.player.assists ?? 0 },
+]);
+
+const secondaryStats = computed(() => [
+  { label: 'Minutes', value: props.player.minutes ?? 0 },
+  { label: 'Season value', value: props.player.value_season ?? 'Unavailable' },
+  { label: 'ICT rank', value: props.player.ict_index_rank ? `#${props.player.ict_index_rank}` : 'Unavailable' },
+]);
 
 const handleImageError = (event) => {
 	const target = event?.target;

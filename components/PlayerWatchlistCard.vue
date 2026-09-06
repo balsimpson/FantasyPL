@@ -72,10 +72,6 @@
 					</p>
 				</div>
 			</div>
-
-			<p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
-				Saved on this browser
-			</p>
 		</div>
 	</UCard>
 </template>

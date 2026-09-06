@@ -10,7 +10,7 @@
 						Watchlist
 					</h1>
 					<p class="mt-4 text-sm leading-6 text-stone-300 sm:text-base">
-						Keep the players you are weighing in one place before the next deadline. Your list is saved on this browser; no account sync is required.
+						Keep the players you are weighing in one place before the next deadline.
 					</p>
 				</div>
 
@@ -30,7 +30,7 @@
 					/>
 					<div>
 						<h2 class="text-xl font-black text-white">Loading your saved players</h2>
-						<p class="mt-1 text-sm text-stone-400">Checking this browser's watchlist and the current FPL player data.</p>
+						<p class="mt-1 text-sm text-stone-400">Loading the current FPL player data.</p>
 					</div>
 				</div>
 			</div>
@@ -113,7 +113,7 @@ const retryLoad = async () => {
 
 useSeoMeta({
 	title: "Watchlist",
-	description: "Save Fantasy Premier League players in this browser and review them before the next deadline.",
+	description: "Save Fantasy Premier League players and review them before the next deadline.",
 	robots: "noindex,follow",
 });
 </script>

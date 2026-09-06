@@ -142,6 +142,8 @@ Vercel currently limits custom events to Pro and Enterprise. Check the actual pl
 
 **Acceptance:** Search is visible in the first 844-pixel mobile viewport with no keyboard open. New visitors can find a player without knowing a manager ID. Compare player-open rate with the baseline; do not equate moving a control with proven growth.
 
+**Local implementation status (6 September 2026).** The homepage now meets the local hierarchy and interaction checks in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md): search is first, manager/deadline are secondary, discovery is consolidated, and the recap is lower down. Hosted behavior and player-open measurement remain unverified.
+
 ### 6. P1: The homepage sends far more content than its first screen needs
 
 **Measured live.** The downloaded homepage HTML was 2,539,782 bytes. The embedded Nuxt data script accounted for 1,817,421 bytes. The inspected DOM contained 306 image elements and seven groups of 20 player links.
@@ -154,6 +156,8 @@ These are HTML and element counts, not compressed browser transfer totals or 306
 
 **Acceptance:** Record before/after HTML, payload, image requests, and a mobile performance trace on the same route and conditions. Aim initially to halve the homepage HTML and embedded payload without breaking search or cards; this is a project budget, not a Google requirement. Field targets, when enough data exists, are LCP ≤2.5 seconds, INP ≤200 milliseconds, and CLS ≤0.1 at the 75th percentile. [Web Vitals](https://web.dev/articles/vitals).
 
+**Local implementation status (6 September 2026).** A homepage-only data projection preserves the full shared bootstrap contract while reducing the local SSR homepage from 2,550,303 to 447,235 bytes and the largest Nuxt data script from 1,818,063 to 398,188 bytes. The corrected visual pass renders 6 player portraits and 18 club badges with fixed dimensions and lazy loading, while server-rendered profile links fall from 140 to 6. This is not a compressed-transfer, field-performance, or hosted measurement; see [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) for the complete local record.
+
 ### 7. P1: The watchlist cannot yet support repeat visits
 
 **Initial live and source evidence.** Before this correction, the inspected live watchlist showed only its title and the site shell. The navigation link was commented out in `layouts/default.vue:18`. The current main player profile and card had no visible save action in the inspected journey.
@@ -162,13 +166,15 @@ The initial `pages/watchlist.vue:7` rendered raw player data when populated. At 
 
 **Why it matters:** A player shortlist is a natural reason to come back before the next deadline. The existing implementation cannot be promoted as a finished feature.
 
-**Change:** Centralize saved player codes in a small composable or store, validate stored arrays, and use exact membership. Render one card per saved player, add a helpful empty state, and add accessible save/remove controls to the actual player journey. Expose Watchlist in navigation. Explain that the first version is saved on this browser; do not imply account sync.
+**Change:** Centralize saved player codes in a small composable or store, validate stored arrays, and use exact membership. Render one card per saved player, add a helpful empty state, and add accessible save/remove controls to the actual player journey. Expose Watchlist in navigation. Keep the behavior browser-local without implying account sync, and avoid repeating storage details across the saved-player journey.
 
 **Acceptance:** Add two players, reload, remove one, and navigate between homepage/profile/watchlist. Confirm exact membership, no duplicate cards, and recovery from missing or malformed storage. Test the existing saved format before migrating it. Avoid creating accounts just to launch this improvement.
 
 **Local correction completed (6 September 2026).** `composables/useWatchlist.ts` now owns the `savedWatchlist` browser-local state, accepts the existing numeric and string code formats, normalizes exact codes, removes duplicates, and repairs malformed or non-array values. `components/PlayerWatchlistButton.vue` provides the accessible save/remove control used on player profiles and saved-player cards. `pages/watchlist.vue` now has a browser-local empty state, loading and data-failure states, one card per current saved player, and `noindex,follow` utility metadata. `components/PlayerWatchlistCard.vue` is a single focused card without debug output, and `layouts/default.vue` exposes the route in navigation.
 
-The local production build returned HTTP 200 for `/watchlist`, rendered `Watchlist | FPL Insights`, included the browser-local copy, and emitted `noindex`. An isolated Brave run at 390 × 844 covered the requested journey: `/player/411` redirected to `/player/erling-haaland-411`; saving Haaland stored `["223094"]` and survived reload; saving a second current player stored `["223094","154561"]` and displayed two saved cards; removing the first left `["223094"]` and one card after reload; and replacing storage with `not-json` repaired it to `[]` and rendered the empty state. The run also navigated home → profile → watchlist. A direct normalization check accepted the prior numeric-array format, deduplicated mixed numeric/string codes, and reduced malformed/non-array input to an empty list. The local preview emitted the existing Vercel Insights script 404; no watchlist-specific page errors or console errors occurred.
+The local production build returned HTTP 200 for `/watchlist`, rendered `Watchlist | FPL Insights`, included the watchlist states, and emitted `noindex`. An isolated Brave run at 390 × 844 covered the requested journey: `/player/411` redirected to `/player/erling-haaland-411`; saving Haaland stored `["223094"]` and survived reload; saving a second current player stored `["223094","154561"]` and displayed two saved cards; removing the first left `["223094"]` and one card after reload; and replacing storage with `not-json` repaired it to `[]` and rendered the empty state. The run also navigated home → profile → watchlist. A direct normalization check accepted the prior numeric-array format, deduplicated mixed numeric/string codes, and reduced malformed/non-array input to an empty list. The local preview emitted the existing Vercel Insights script 404; no watchlist-specific page errors or console errors occurred.
+
+**Copy cleanup (6 September 2026).** The profile, watchlist page, and saved-player cards no longer repeat browser-storage notices. Save/remove behavior and local persistence are unchanged; hosted behavior remains unverified.
 
 **Hosted status:** Watchlist navigation, save/remove behavior, hosted cache behavior, and deployment remain unverified on Vercel because deployment was not requested.
 
@@ -295,6 +301,7 @@ There is no defensible percentage traffic-growth target without a baseline. The 
 - [ ] Search Console ownership and analytics collection are verified separately from code installation.
 - [ ] Mobile search is visible immediately and supports keyboard operation.
 - [x] Local save/remove survives reload with exact player matching, one card per saved player, and no watchlist debug output; hosted behavior remains pending.
+- [x] Redundant browser-storage notices are removed from the profile, watchlist page, and saved-player cards; persistence behavior remains unchanged locally, and hosted verification remains pending.
 - [ ] Homepage payload and image behavior improve in repeatable measurements.
 - [ ] Player summaries, fixtures, and predictions show accurate context and freshness.
 - [ ] Utility indexing policy excludes the scheduler from all proposed changes.
@@ -307,3 +314,13 @@ There is no defensible percentage traffic-growth target without a baseline. The 
 Do not start with a visual rebrand, paid acquisition, an AI chatbot, native apps, a large CMS, paid keyword tooling, hundreds of generated articles, or accounts solely for watchlist sync. Do not spend time on meta keywords or sitemap priority values. A structured-data pass can follow the useful content, but should describe visible facts and should not promise rich-result eligibility.
 
 The owner has chosen an admin page using AI to publish data-led articles. Remaining decisions are the primary audience, available weekly review time, article storage/auth provider, desired public name/domain, current analytics plan, and the public purpose of the non-excluded utility routes. None blocks the initial sitemap, canonical, missing-player, or measurement work. A blog does not need to wait for every proposed tool page.
+
+Homepage visual follow-up, 6 September 2026: the owner rejected the sparse rows. Rich player cards, a compact utility area, an expanded recap, and matching player-profile styling are implemented locally. See HOMEPAGE_UX_PLAN.md for the current direction and verification; earlier measurements remain historical.
+
+### Player detail simplification, 6 September 2026
+
+The owner requested plain values and a page that is easier to scan. The local player profile now uses aligned label/value pairs instead of stat tiles and booking badges. The portrait and existing dark/green identity remain; all stats precede the portrait on mobile. Fixtures, recent matches, and previous seasons use divided rows without individual card backgrounds or circular scores. Labels are larger and use normal spacing. Recent matches show the gameweek instead of an internal fixture ID, display points once, and spell out Home/Away. Previous-season playing time uses exact minutes. All three scrolling lists have accessible names, keyboard focus, and visible focus outlines.
+
+Changes are confined to `pages/player/[id].vue` and its four dedicated presentation components. The data handlers, preferred player URLs, metadata, and watchlist implementation are unchanged. Existing unrelated work was preserved.
+
+Verification: the production build and `git diff --check` pass. Connected Brave checks on the local built Haaland profile at 390 × 844 and 1280 × 900 found no document horizontal overflow, no decorated definition values, and no captured browser warnings/errors. Saving by keyboard persisted after reload; removal restored the Save control. Page Down scrolled the focused fixture region. A light-preference check confirmed the existing dark player surface remains readable. The 320-pixel check exposed cramped stat columns, corrected and confirmed with a two-column layout at 320 pixels and three columns at 390 pixels, both without document overflow. Hosted Vercel behavior and physical-device execution remain unverified; no release actions were performed.

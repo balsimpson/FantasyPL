@@ -1,11 +1,6 @@
 <template>
 	<div class="relative min-h-screen overflow-hidden text-stone-50">
-		<!-- <div
-			class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.08),transparent_30%),radial-gradient(circle_at_100%_20%,rgba(72,214,255,0.06),transparent_24%),linear-gradient(135deg,#111317_0%,#090a0d_100%)]"
-		/>
-		<div
-			class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-size-[5px_5px] opacity-10"
-		/> -->
+
 
 		<div
 			v-if="pageState === 'error'"
@@ -60,7 +55,7 @@
 							class="size-7 shrink-0 animate-spin rounded-full border-2 border-white/15 border-t-primary"
 						/>
 						<div>
-							<h1 class="text-2xl font-black tracking-tight text-white sm:text-3xl">
+							<h1 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
 								Loading player details
 							</h1>
 						</div>
@@ -69,165 +64,24 @@
 			</section>
 		</div>
 
-		<div v-else class="relative mx-auto flex w-full max-w-6xl flex-col gap-6">
-			<section class="overflow-hidden rounded-4xl ">
-		<div class="relative z-10 flex flex-col gap-6 p-3 sm:p-6">
-			<div class="max-w-2xl px-5 pt-5 sm:px-6">
-				<UBreadcrumb
-					:items="breadcrumbLinks"
-					separator-icon="i-lucide-chevron-right"
-					class="pb-4"
-					:ui="{
-						root: 'max-w-full',
-						list: 'flex items-center gap-1.5 text-sm',
-						item: 'min-w-0',
-						link: 'flex items-center gap-1.5 text-stone-400 transition-colors hover:text-white',
-						linkLabel: 'truncate',
-						separator: 'flex text-stone-600',
-						separatorIcon: 'size-4',
-					}"
-				/>
-				<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-					Player overview
-				</p>
-				<h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
-					{{ playerName }}
-				</h1>
-				<p class="mt-4 max-w-xl text-sm leading-6 text-stone-300 sm:text-base">
-					{{ playerSummary }}
-				</p>
-			</div>
-
-			<!-- <div class="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
-				<div class="max-w-2xl">
-					<p class="text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-								Player overview
-							</p>
-							<h1 class="mt-3 text-4xl font-black leading-[0.92] tracking-tight text-balance text-white sm:text-6xl">
-								{{ playerName }}
-							</h1>
-							<p class="mt-4 max-w-xl text-sm leading-6 text-stone-300 sm:text-base">
-								{{ playerSummary }}
-							</p>
-						</div>
-
-						<div class="grid min-w-full gap-3 sm:min-w-[18rem] sm:grid-cols-2">
-							<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-								<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Team
-								</p>
-								<p class="mt-1 text-sm font-semibold text-white">
-									{{ playerTeam }}
-								</p>
-							</div>
-							<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-								<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Role
-								</p>
-								<p class="mt-1 text-sm font-semibold text-white">
-									{{ playerRole }}
-								</p>
-							</div>
-							<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-								<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Selected
-								</p>
-								<p class="mt-1 text-sm font-semibold text-white">
-									{{ playerSelectedBy }}
-								</p>
-							</div>
-							<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-								<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-									Value
-								</p>
-								<p class="mt-1 text-sm font-semibold text-white">
-									{{ playerPrice }}
-								</p>
-							</div>
-						</div>
-					</div> -->
-
-					<!-- <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-						<div class="rounded-[22px] border border-white/10 bg-white/4 px-4 py-3">
-							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-								Form
-							</p>
-							<p class="mt-1 font-serif text-2xl font-black leading-none text-white">
-								{{ playerForm }}
-							</p>
-						</div>
-						<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-								Minutes
-							</p>
-							<p class="mt-1 font-serif text-2xl font-black leading-none text-white">
-								{{ playerMinutes }}
-							</p>
-						</div>
-						<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-								Points
-							</p>
-							<p class="mt-1 font-serif text-2xl font-black leading-none text-white">
-								{{ playerPoints }}
-							</p>
-						</div>
-						<div class="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-							<p class="text-[0.54rem] font-semibold uppercase tracking-[0.28em] text-stone-400">
-								ICT rank
-							</p>
-							<p class="mt-1 font-serif text-2xl font-black leading-none text-white">
-								{{ playerIctRank }}
-							</p>
-						</div>
-					</div> -->
-
-					<div class="space-y-4 ">
-						<!-- <div class="flex flex-wrap items-end justify-between gap-3">
-							<div>
-								<p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-									Live summary
-								</p>
-								<p class="mt-2 max-w-xl text-sm leading-6 text-stone-300">
-									Current form, fixtures, and history in one view.
-								</p>
-							</div>
-						</div> -->
-
-						<div v-if="playerData" class="mx-auto ">
-							<PlayerPerformanceCard :player="playerData" :bootstrap="bootstrap" />
-							<div class="mx-auto mt-4 flex w-full max-w-xl flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-								<p class="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-stone-500">
-									Saved on this browser · no account sync
-								</p>
-								<PlayerWatchlistButton :player="playerData" class="shrink-0" />
-							</div>
-						</div>
-						<div
-							v-else
-							class="rounded-[28px] border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-stone-500"
-						>
-							Loading player details.
-						</div>
-					</div>
-				</div>
-			</section>
+		<div v-else class="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+      <UBreadcrumb :items="breadcrumbLinks" class="min-w-0" :ui="{ link: 'text-stone-300 hover:text-white', linkLabel: 'truncate' }" />
+      <section v-if="playerData">
+        <PlayerPerformanceCard :player="playerData" :bootstrap="bootstrap" />
+        <div class="mt-3 flex justify-end">
+          <PlayerWatchlistButton :player="playerData" />
+        </div>
+      </section>
 
 			<section class="grid gap-6 lg:grid-cols-2">
 				<div class="">
-					<div class="border-b border-white/10 px-5 pb-5 pt-5 sm:px-6">
-						<p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-							Short term
-						</p>
-						<h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-							Next Fixtures
+					<div class="border-b border-white/10 pb-4">
+						<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+							Next fixtures
 						</h2>
-						<p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-							A quick read on the path ahead and how sharp the schedule looks.
-						</p>
 					</div>
 
-					<div v-if="player && fixtureCount" class="mt-3 grid max-h-[340px] grid-cols-1 gap-2 overflow-auto p-4 sm:p-6 snap-y scroll-smooth snap-mandatory">
+					<div v-if="player && fixtureCount" aria-label="Upcoming fixtures" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
 						<PlayerFixtureCard
 							v-for="fixture in upcomingFixtures"
 							:key="fixture.id"
@@ -235,28 +89,22 @@
 							:bootstrap="bootstrap"
 						/>
 					</div>
-					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 						No upcoming fixtures available.
 					</p>
-					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 						Loading fixture data.
 					</p>
 				</div>
 
 				<div class="">
-					<div class="border-b border-white/10 px-5 pb-5 pt-5 sm:px-6">
-						<p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-							Recent form
-						</p>
-						<h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-							Recent Matches
+					<div class="border-b border-white/10 pb-4">
+						<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+							Recent matches
 						</h2>
-						<p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-							The latest games, reversed for faster scanning from newest to oldest.
-						</p>
 					</div>
 
-					<div v-if="player && recentHistory.length" class="mt-3 grid max-h-[340px] grid-cols-1 gap-2 overflow-auto p-4 sm:p-6 snap-y scroll-smooth snap-mandatory">
+					<div v-if="player && recentHistory.length" aria-label="Recent matches" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
 						<PlayerHistoryCard
 							v-for="history in recentHistory"
 							:key="history.fixture"
@@ -264,39 +112,33 @@
 							:bootstrap="bootstrap"
 						/>
 					</div>
-					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 						No recent match data available.
 					</p>
-					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 						Loading match history.
 					</p>
 				</div>
 			</section>
 
 			<section class="">
-				<div class="border-b border-white/10 px-5 pb-5 pt-5 sm:px-6">
-					<p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-						Season archive
-					</p>
-					<h2 class="mt-2 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl">
-						Previous Seasons
+				<div class="border-b border-white/10 pb-4">
+					<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+						Previous seasons
 					</h2>
-					<p class="mt-3 max-w-xl text-sm leading-6 text-stone-300">
-						Longer-term history for context when current form only tells part of the story.
-					</p>
 				</div>
 
-				<div v-if="player && pastSeasons.length" class="mt-3 grid max-h-[340px] grid-cols-1 gap-2 overflow-auto p-4 sm:p-6 snap-y scroll-smooth snap-mandatory">
+				<div v-if="player && pastSeasons.length" aria-label="Previous seasons" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
 					<PlayerSeasonCard
 						v-for="season in pastSeasons"
 						:key="season.season_name"
 						:season="season"
 					/>
 				</div>
-				<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+				<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 					No past season data available.
 				</p>
-				<p v-else class="px-5 py-6 text-sm leading-6 text-stone-500 sm:px-6">
+				<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
 					Loading season history.
 				</p>
 			</section>
