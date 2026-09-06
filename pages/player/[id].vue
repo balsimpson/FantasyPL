@@ -237,17 +237,12 @@
 </template>
 
 <script setup>
-	import { getPlayerIdFromRouteParam } from "~/composables/usePlayerRoute";
+	import { getPlayerIdFromRouteParam, getPlayerRoute } from "~/composables/usePlayerRoute";
 
 	const route = useRoute();
 	const playerId = computed(() => getPlayerIdFromRouteParam(route.params.id));
 	const playersStore = usePlayersStore();
 	const { bootstrap } = storeToRefs(playersStore);
-	const canonicalUrl = useCanonicalUrl();
-
-	useHead({
-		link: [{ rel: "canonical", href: canonicalUrl }],
-	});
 
 	const { data: player } = useFetch(() => `/api/players/${playerId.value}`);
 	await useAsyncData("bootstrap", () => playersStore.fetchPlayers());
@@ -268,6 +263,20 @@
 		}
 
 		return null;
+	});
+
+	const preferredPlayerPath = computed(() =>
+		playerData.value ? getPlayerRoute(playerData.value) : route.path
+	);
+
+	if (playerData.value && route.path !== preferredPlayerPath.value) {
+		await navigateTo(preferredPlayerPath.value, { redirectCode: 301, replace: true });
+	}
+
+	const canonicalUrl = useCanonicalUrl(preferredPlayerPath);
+
+	useHead({
+		link: [{ rel: "canonical", href: canonicalUrl }],
 	});
 
 	const elementTypeMap = {
@@ -314,6 +323,7 @@
 		ogDescription: computed(() =>
 			`See ${playerMetaName.value}'s Fantasy Premier League stats, fixtures, ownership, and form with FPL Insights.`
 		),
+		ogUrl: canonicalUrl,
 		twitterTitle: computed(() => `${playerName.value} FPL Stats, Fixtures & Ownership | FPL Insights`),
 		twitterDescription: computed(() =>
 			`Track ${playerMetaName.value}'s FPL stats, fixtures, ownership, and form in one place.`

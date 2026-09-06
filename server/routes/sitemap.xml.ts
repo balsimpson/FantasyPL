@@ -1,12 +1,32 @@
 import { getBootstrapStatic } from "~~/composables/usePremiereLeague";
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
+import { getPublicSiteOrigin } from "~/utils/site-url";
+
+const escapeXml = (value: string) =>
+	value.replace(/[<>&'"]/g, (character) => {
+		const entities: Record<string, string> = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			"'": "&apos;",
+			'"': "&quot;",
+		};
+
+		return entities[character];
+	});
 
 export default defineCachedEventHandler(
 	async (event) => {
-		const origin = getRequestURL(event).origin;
+		const {
+			public: { SITE_URL },
+		} = useRuntimeConfig(event);
+		const origin = getPublicSiteOrigin(SITE_URL);
 		const data = await getBootstrapStatic();
-		const playerUrls = (data.elements || []).map((player: any) => `${origin}${getPlayerRoute(player)}`);
-		const urls = [`${origin}/`, ...playerUrls];
+		const players = Array.isArray(data?.elements) ? data.elements : [];
+		const playerUrls = players
+			.filter((player: any) => player?.id !== undefined && player?.id !== null)
+			.map((player: any) => `${origin}${getPlayerRoute(player)}`);
+		const urls = [...new Set([`${origin}/`, ...playerUrls])];
 
 		setHeader(event, "content-type", "application/xml; charset=utf-8");
 
@@ -15,12 +35,12 @@ export default defineCachedEventHandler(
 ${urls
 			.map(
 				(url) => `  <url>
-    <loc>${url}</loc>
+    <loc>${escapeXml(url)}</loc>
   </url>`
 			)
 			.join("\n")}
 </urlset>
 `;
 	},
-	{ maxAge: 60 * 60, swr: true }
+	{ name: "sitemap-v2", maxAge: 60 * 60, swr: true }
 );

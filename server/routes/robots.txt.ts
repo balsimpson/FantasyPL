@@ -1,5 +1,10 @@
+import { getPublicSiteOrigin } from "~/utils/site-url";
+
 export default defineEventHandler((event) => {
-	const origin = getRequestURL(event).origin;
+	const {
+		public: { SITE_URL },
+	} = useRuntimeConfig(event);
+	const origin = getPublicSiteOrigin(SITE_URL);
 
 	setHeader(event, "content-type", "text/plain; charset=utf-8");
 

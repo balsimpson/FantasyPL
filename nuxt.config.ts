@@ -1,3 +1,5 @@
+import { DEFAULT_SITE_URL } from "./utils/site-url";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 	compatibilityDate: "2024-04-03",
@@ -45,7 +47,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		public: {
-			SITE_URL: process.env.NUXT_PUBLIC_SITE_URL || "https://fantasyleague.vercel.app",
+			SITE_URL: process.env.NUXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL,
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
 			CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
 			CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET,
