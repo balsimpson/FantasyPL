@@ -111,7 +111,7 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     }
     return ''
   })
-  async function generateCaption() {
+  async function generateCaption(postDraft: InstagramDraft = draft.value) {
     if (validationMessage.value || captionLoading.value) return
     const request = ++captionRequest
     captionController = new AbortController()
@@ -120,7 +120,7 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     try {
       const response = await $fetch<any>('/api/get-response', {
         method: 'POST', signal: captionController.signal,
-        body: { prompt: { task: 'Write one Instagram caption for this FPL post. Follow the post template. Use only supplied facts and the selected stats. Do not infer injuries, starting lineups, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals. Include #FPL. Return caption text only.', ...draft.value } },
+        body: { prompt: { task: 'Write one Instagram caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.', ...postDraft } },
       })
       if (request !== captionRequest) return
       if (!response?.success || typeof response.output !== 'string' || !response.output.trim()) throw new Error('No caption returned')

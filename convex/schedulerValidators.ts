@@ -11,6 +11,7 @@ export const postFields = {
   design: nullableString, draftJson: nullableString, status: postStatus,
   dueAt: nullableNumber, sentAt: nullableNumber, externalLink: nullableString,
   error: nullableString, createdAt: v.number(), updatedAt: v.number(),
+  deletedAt: v.optional(v.number()),
   source: v.union(v.literal('scheduler'), v.literal('buffer')),
 }
 export const postDocument = v.object({ _id: v.id('schedulerPosts'), _creationTime: v.number(), ...postFields })

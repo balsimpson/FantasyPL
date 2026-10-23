@@ -34,7 +34,7 @@
 						<p class="text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-stone-500">
 							{{ elementType }} · {{ teamName }}
 						</p>
-						<h2 class="mt-2 truncate text-xl font-black tracking-tight text-white sm:text-2xl">
+						<h2 class="mt-2 text-xl font-black tracking-tight text-white [overflow-wrap:anywhere] sm:text-2xl">
 							{{ playerName }}
 						</h2>
 						<p class="mt-2 text-sm text-stone-400">

@@ -2,6 +2,8 @@
 
 Read this guide before changing `/instascheduler` or its artwork, editor, asset loading, export, or scheduling code. The root [AGENTS.md](../../AGENTS.md) still applies. Current source and the user's latest instructions take priority over an older design decision here.
 
+For a visual template change, use the [template editing reference](TEMPLATE_EDITING.md) to locate the exact design component and follow a narrow edit/verification loop. This guide remains authoritative for design constraints and workflow behavior.
+
 ## Scope and file ownership
 
 The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, or growth changes unless the user requests scheduler work. Preserve unrelated changes. Use npm. Do not commit, push, publish, upload, schedule, or post without explicit authorization for that action.
@@ -10,10 +12,14 @@ The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, 
 | --- | --- |
 | `pages/instaScheduler.vue` | Editor composition, design choices, controls and preview |
 | `composables/useInstagramEditor.ts` | Selection, suggestions, visible stats, fixtures, draft and caption state |
+| `composables/useSchedulerPicks.ts` | Candidate batches, thumbnail picks and removal of unavailable players |
+| `components/SchedulerPostHistory.vue`, `components/SchedulerHistoryPlayerLink.vue`, `composables/useSchedulerPostList.ts` | Compact history rows, player linking, filters and session cache |
 | `composables/useInstagramExport.ts` | Asset readiness, PNG capture, download and explicit scheduling |
 | `utils/instagram-templates.ts` | Content formats, normalized player data, stat labels and formatting |
 | `utils/instagram-designs.ts` | Design IDs, stable club palettes and transfer calculations |
 | `components/SchedulerPostPreview.vue` | Responsive display of the fixed-size artwork |
+| `components/SchedulerTemplateEditor.vue`, `composables/useSchedulerCanvas.ts` | Inline selection, group navigation, move/resize, snapping, alignment and contextual toolbars |
+| `composables/useSchedulerLayouts.ts`, `utils/scheduler-layout.ts`, `utils/scheduler-element.ts` | Browser-saved layout overrides, undo/redo, geometry, validation and artwork transforms |
 | `components/SchedulerPostArtwork.vue` | Shared artwork shell, branding, gameweek and transfer footer |
 | `components/SchedulerPlayerDesign.vue` | A–H player layouts |
 | `components/SchedulerComparisonDesign.vue`, `components/SchedulerComparisonPortrait.vue`, `components/SchedulerComparisonStats.vue` | Distinct A–J comparison layouts, paired identities and aligned stats |
@@ -83,9 +89,15 @@ Use one normalized player record for the name, portrait, club, position and stat
 
 Keep recommendations deterministic across server rendering and client hydration. Randomizing the two renders separately caused names and portraits to disagree. Do not reintroduce that behavior.
 
+Wait for post history before showing player thumbnails. Exclude players queued on the selected channel, including pending or uncertain submissions, and players with any recorded published post on that channel, including earlier gameweeks. Remove them when history or a local submission changes. “Show more players” adds the next eight eligible candidates without replacing edited picks or repeating visible players. Buffer posts without linked player identities cannot supply player exclusions; link those players in History.
+
+Mix thumbnail picks across differential, most-bought, most-sold, budget, form and completed-gameweek standout stories. Keep the existing available-player and 90-minute eligibility checks. Differential picks need ownership below 10%, form of at least 4 and 270 season minutes. Budget picks use the same form/minutes checks and position-specific ceilings: £4.5m for goalkeepers/defenders, £6.0m for midfielders and £6.5m for forwards. In-form picks need form of at least 5 and 270 season minutes. Transfer stories use the top ten eligible players for gameweek buys or sales separately; calculate ranks before posted-player exclusions and label their eligible-player scope. Standouts need at least eight event points and a current gameweek marked finished and data checked. Skip unavailable categories instead of inventing reasons. Each pick carries its evidence and angle into the thumbnail, artwork stats and caption prompt. Buying/selling activity is a discussion angle, not a buy/sell recommendation, and gameweek transfers must never be described as 24-hour movement.
+
 Preserve the strict image-proxy path for scheduler assets. Missing images must show an honest missing-asset state, not an unrelated player. An archive fallback must preserve the same player identity. An older jersey is not proof of the wrong person, and a matching URL or successful image load is not proof of the correct person. Visually check the actual portrait before claiming the identity is verified.
 
 Preserve units and periods: price is supplied in tenths of a million; ownership is a percentage; season totals and gameweek values are different fields. Missing values must remain unavailable, not become invented zeros. Do not infer availability, injuries, starting lineups or future returns from unrelated stats.
+
+In the player thumbnail strip, overlay the selection reason on the thumbnail with a distinct icon and colour for each story angle. Keep the supporting numbers readable over a dark fade and keep these editor badges outside the exported artwork.
 
 ## Shared transfer bar
 
@@ -102,6 +114,22 @@ Artwork contains useful player information only. Do not add filler such as “So
 Caption generation is an explicit action. Use supplied facts and selected stats. Keep manual editing available. A failed or stale request must not overwrite the current draft. Do not call a paid generation endpoint merely to check a visual change. Fixture data is loaded for only the first selected player and is the only fixture list sent with the caption draft. In comparison posts, the second player’s fixtures are not fetched or included; do not describe both schedules unless the data flow changes.
 
 ## Preview, export and scheduling
+
+Keep History compact: aligned thumbnail rows, short captions with expansion, and only useful status, date and actions. Link player names to Buffer for posts with a Buffer record. Show a visual loading indicator. Retain loaded pages, filters and pagination during navigation in the same browser session. Load saved history on entry; refresh Buffer only on an explicit action, and show a compact, dismissible notice when that refresh fails. Invalidate saved history after scheduler changes.
+
+Combine status and time in one plain text label with a discreet icon and colour, without badge backgrounds or borders. Use a blue clock for scheduled posts and a green check for published posts. Use today, yesterday or tomorrow for nearby dates, and a short calendar date otherwise, in IST. Keep the full timestamp available on hover. Do not substitute creation time for an unknown publication or scheduled time.
+
+The overview shows published counts for the last 7 and 30 rolling days, plus current scheduled and failed counts, across saved history rather than the visible page or filters. Count publishing by `sentAt`; exclude undated published posts and label that omission. Failed posts can be deleted from history only. Keep their removal durable across Buffer refreshes without deleting anything in Buffer; reject deletion of any other status on the server.
+
+The single-player A–J previews support inline layout editing. Keep editor chrome outside the captured artwork. Combine layout controls, caption generation and scheduling in one dark, rounded floating toolbar above the player thumbnail strip. Keep scheduling as a distinct primary action and retain tooltips, accessible labels and disabled states. Reserve toolbar and status space; selection, group navigation, edit mode and saving must not move the preview, caption or surrounding controls. Contextual toolbars and group breadcrumbs float over the preview. Keep their menus in portals so artwork clipping does not hide them.
+
+Use a pencil and an Edit label to enter layout editing, and Done to leave it. Show snapping and artwork item controls only during editing, and show Undo and Redo only when available during editing. Show Save only for unsaved layout changes, including after leaving edit mode. Show caption generation and scheduling outside edit mode.
+
+Keep the toolbar height fixed as controls change. Animate its width smoothly from the centre, including when entering or leaving edit mode, and respect reduced-motion settings.
+
+Save layout explicitly stores overrides for the design and content format in this browser. Apply them to other players through the same draft used by the preview, thumbnails and export. Layout saving does not upload or schedule a post. Preserve the original coded layout when there are no overrides, and keep reset operations undoable.
+
+Keep individual stat values and labels editable within their groups. Use stable stat-based IDs and account for parent scaling when moving or resizing a nested part. Text alignment is a presentation change; values still come from the player data. Double-click or Enter opens a group, and the breadcrumb returns to its parent. Keep snapping bypass, keyboard nudges, undo/redo and accessible item selection available.
 
 Keep the artwork at 1080 × 1080. Scale its preview to fit the editor; export the unscaled artwork. Keep preview and export driven by the same draft and components.
 

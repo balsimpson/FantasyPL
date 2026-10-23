@@ -7,13 +7,11 @@ const id = useId().replace(/:/g, '')
   <svg viewBox="0 0 1080 760" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true" class="h-full w-full">
     <defs>
       <linearGradient :id="`${id}-wash`" x1="0" y1="0" x2="1080" y2="760" gradientUnits="userSpaceOnUse"><stop :stop-color="colour" stop-opacity="0.9" /><stop offset="1" :stop-color="dark" stop-opacity="0.15" /></linearGradient>
-      <radialGradient :id="`${id}-light`"><stop stop-color="white" stop-opacity="0.8" /><stop offset="1" stop-color="white" stop-opacity="0" /></radialGradient>
     </defs>
     <template v-if="mode === 'night'">
       <path d="M-40 270Q540 40 1120 270L1120 760H-40Z" :fill="colour" opacity="0.15" />
       <path v-for="y in [290, 350, 410, 470, 530]" :key="y" :d="`M-40 ${y} Q540 ${y - 250} 1120 ${y}`" :stroke="colour" stroke-width="2" opacity="0.3" />
       <path d="M-40 90Q540 -135 1120 90" stroke="white" stroke-width="5" opacity="0.3" />
-      <ellipse cx="60" cy="-30" rx="240" ry="100" :fill="`url(#${id}-light)`" opacity="0.45" /><ellipse cx="1040" cy="-30" rx="240" ry="100" :fill="`url(#${id}-light)`" opacity="0.45" />
       <g v-for="x in [20, 85, 150, 930, 995, 1060]" :key="x" fill="white"><rect :x="x" y="10" width="36" height="12" rx="2" opacity="0.8" /></g>
     </template>
     <template v-else-if="mode === 'club'">

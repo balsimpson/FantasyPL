@@ -1,104 +1,100 @@
 <template>
-  <section aria-labelledby="fixtures-title" class="grid min-w-0 w-full gap-5">
-    <header class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+  <section aria-labelledby="fixtures-title" class="grid w-full min-w-0 gap-4">
+    <header class="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4">
       <div>
-        <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-stone-400">
-          Upcoming fixtures
-        </p>
-        <h2 id="fixtures-title" class="mt-2 text-2xl font-black leading-none tracking-[-0.03em] text-white sm:text-4xl">
-          Next matches
-        </h2>
-        <p class="mt-2 max-w-xl text-sm leading-6 text-stone-300">
-          Kickoff times are shown in your local time.
-        </p>
+        <h2 id="fixtures-title" class="text-2xl font-black tracking-tight text-white sm:text-3xl">Upcoming fixtures</h2>
+        <p class="mt-2 text-sm leading-6 text-stone-300">Up to six matches across upcoming gameweeks.</p>
       </div>
-      <span v-if="visibleFixtures.length" class="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
-        {{ visibleFixtures.length }} next
-      </span>
+      <span v-if="!loading && !error && upcomingFixtures.length" class="text-xs text-stone-400">Scroll to browse all {{ upcomingFixtures.length }} matches</span>
     </header>
-
-    <div v-if="loading" class="min-w-0 overflow-hidden" aria-live="polite">
-      <div class="flex gap-3 py-2">
-        <div v-for="index in 3" :key="index" class="w-[18rem] shrink-0 rounded-[24px] border border-white/10 bg-white/[0.03] p-4 sm:w-[22rem]">
-          <div class="flex items-center justify-between gap-3">
-            <USkeleton class="h-3 w-12" />
-            <USkeleton class="h-3 w-20" />
-          </div>
-          <div class="mt-6 flex items-center justify-between gap-3">
-            <USkeleton class="size-10 rounded-full" />
-            <USkeleton class="h-3 w-6" />
-            <USkeleton class="size-10 rounded-full" />
-          </div>
-          <div class="mt-6 flex justify-between border-t border-white/10 pt-3">
-            <USkeleton class="h-3 w-16" />
-            <USkeleton class="h-5 w-20" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-else-if="error" class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-error/25 bg-error/10 px-4 py-4">
-      <p class="max-w-xl text-sm leading-6 text-stone-200">
-        Fixture data is unavailable right now. The list will return when the source responds.
-      </p>
+    <USkeleton v-if="loading" class="h-64 w-full rounded-xl" />
+    <div v-else-if="error" class="flex flex-wrap items-center justify-between gap-3 py-4">
+      <p class="text-sm text-stone-300">Fixture data is unavailable right now.</p>
       <UButton color="neutral" variant="outline" @click="$emit('retry')">Try again</UButton>
     </div>
-
-    <div v-else-if="!visibleFixtures.length" class="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-5">
-      <p class="text-sm text-stone-300">No upcoming fixtures are currently published.</p>
-    </div>
-
-    <div v-else class="min-w-0 overflow-hidden" aria-label="Upcoming fixture cards" role="region">
-      <AppCarousel
-        class="px-0! py-2!"
-        role="list"
-        aria-label="Upcoming fixtures"
-      >
-        <div
-          v-for="fixture in visibleFixtures"
-          :key="fixture.id"
-          class="w-[18rem] shrink-0 snap-start sm:w-[22rem]"
-          role="listitem"
-        >
-          <LazyFixtureCard elevated :fixture="fixture" :bootstrap="fixtureBootstrap" class="h-full" />
+    <p v-else-if="!gameweeks.length" class="text-sm text-stone-300">No upcoming gameweeks are currently published.</p>
+    <p v-else-if="!upcomingFixtures.length" class="text-sm text-stone-300">No fixtures are currently scheduled in the upcoming gameweeks.</p>
+    <div v-else class="grid min-w-0 grid-flow-col auto-cols-[88%] gap-3 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory sm:auto-cols-[calc((100%_-_0.75rem)/2)] lg:auto-cols-[calc((100%_-_1.5rem)/3)] [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+      role="region" aria-label="Upcoming fixture matches" tabindex="0">
+      <article v-for="match in upcomingFixtures" :key="match.id" class="min-w-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#101216]">
+        <header class="border-b border-white/10 bg-white/[0.035] px-4 py-3">
+          <h3 class="text-sm font-bold text-white">Gameweek {{ match.gameweek }}</h3>
+        </header>
+        <div class="px-3 py-3">
+          <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <img v-if="match.homeCode" :src="crestUrl(match.homeCode)" alt="" width="28" height="28" loading="lazy" decoding="async" class="size-7 shrink-0 object-contain" />
+              <span class="min-w-0 text-xs font-semibold leading-4 text-white [overflow-wrap:anywhere]" :title="match.homeTeam">{{ match.homeTeam }}</span>
+            </div>
+            <span class="text-[0.6rem] font-bold uppercase tracking-wider text-stone-500">v</span>
+            <div class="flex min-w-0 items-center justify-end gap-1.5">
+              <span class="min-w-0 text-right text-xs font-semibold leading-4 text-white [overflow-wrap:anywhere]" :title="match.awayTeam">{{ match.awayTeam }}</span>
+              <img v-if="match.awayCode" :src="crestUrl(match.awayCode)" alt="" width="28" height="28" loading="lazy" decoding="async" class="size-7 shrink-0 object-contain" />
+            </div>
+          </div>
+          <ClientOnly>
+            <div class="mt-2 flex justify-center">
+              <time v-if="match.kickoff" :datetime="match.kickoff" class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[0.62rem] font-medium tabular-nums text-stone-300">
+                <UIcon name="i-lucide-clock-3" class="size-3.5 text-stone-400" aria-hidden="true" />{{ formatKickoff(match.kickoff) }}
+              </time>
+              <span v-else class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[0.62rem] text-stone-500">
+                <UIcon name="i-lucide-clock-3" class="size-3.5" aria-hidden="true" />Kickoff TBC
+              </span>
+            </div>
+            <template #fallback>
+              <div class="mt-2 flex justify-center">
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[0.62rem] text-stone-500">
+                  <UIcon name="i-lucide-clock-3" class="size-3.5" aria-hidden="true" />{{ match.kickoff ? 'Kickoff set' : 'Kickoff TBC' }}
+                </span>
+              </div>
+            </template>
+          </ClientOnly>
+          <div class="mt-2 grid grid-cols-2 gap-2">
+            <div v-for="side in [{ label: 'Home', value: match.homeDifficulty }, { label: 'Away', value: match.awayDifficulty }]" :key="side.label"
+              class="min-w-0" :class="side.label === 'Away' ? 'text-right' : ''"
+              :aria-label="side.value === null ? `${side.label} fixture difficulty unavailable` : `${side.label} fixture difficulty ${side.value} out of 5, ${difficultyLabel(side.value)}`">
+              <div class="flex items-center gap-1.5" :class="side.label === 'Away' ? 'justify-end' : ''">
+                <span class="text-[0.56rem] font-semibold uppercase tracking-wide text-stone-500">{{ side.label }}</span>
+                <span class="text-[0.6rem] font-bold" :class="difficultyClass(side.value)">{{ side.value === null ? 'TBC' : `${side.value}/5` }}</span>
+              </div>
+              <div class="mt-1 flex max-w-24 gap-0.5" :class="side.label === 'Away' ? 'ml-auto' : ''" aria-hidden="true">
+                <span v-for="level in 5" :key="level" class="h-1.5 flex-1 rounded-full"
+                  :class="difficultySegmentClass(side.value, level)" />
+              </div>
+              <p class="mt-1 text-[0.56rem] leading-3" :class="difficultyClass(side.value)">{{ difficultyLabel(side.value) }}</p>
+            </div>
+          </div>
         </div>
-      </AppCarousel>
+      </article>
     </div>
+    <p v-if="!loading && !error && gameweeks.length" class="text-xs leading-5 text-stone-400">Fixture difficulty runs from 1 (easiest) to 5 (hardest). Kickoff times use your local time.</p>
   </section>
 </template>
 
-<script setup>
-const props = defineProps({
-  fixtures: {
-    type: Array,
-    default: () => [],
-  },
-  teams: {
-    type: Array,
-    default: () => [],
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  error: {
-    type: Boolean,
-    default: false,
-  },
-});
-
+<script setup lang="ts">
+import { getUpcomingFixtureMatches, type ShortlistFixture } from "~/utils/homepage-shortlist";
+const props = withDefaults(defineProps<{
+  fixtures: ShortlistFixture[];
+  teams: Record<string, any>[];
+  gameweeks: number[];
+  loading?: boolean;
+  error?: boolean;
+}>(), { loading: false, error: false });
 defineEmits(["retry"]);
-
-const fixtureBootstrap = computed(() => ({ teams: props.teams }));
-
-const visibleFixtures = computed(() =>
-  [...props.fixtures]
-    .filter((fixture) => fixture && fixture.id)
-    .sort((a, b) => {
-      const aTime = a.kickoff_time ? new Date(a.kickoff_time).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = b.kickoff_time ? new Date(b.kickoff_time).getTime() : Number.MAX_SAFE_INTEGER;
-      return (a.event || Number.MAX_SAFE_INTEGER) - (b.event || Number.MAX_SAFE_INTEGER) || aTime - bTime;
-    })
-    .slice(0, 6),
-);
+const upcomingFixtures = computed(() => getUpcomingFixtureMatches(props.gameweeks, props.fixtures, props.teams));
+const crestUrl = (code: number) => `https://resources.premierleague.com/premierleague/badges/t${code}.png`;
+const formatKickoff = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Kickoff TBC' : new Intl.DateTimeFormat(undefined, {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(date);
+};
+const difficultyClass = (value: number | null) => value === null
+  ? 'text-stone-500'
+  : value <= 2 ? 'text-lime-200' : value >= 4 ? 'text-rose-200' : 'text-amber-100';
+const difficultyLabel = (value: number | null) => value === null ? 'Difficulty TBC'
+  : value <= 2 ? 'Easier' : value >= 4 ? 'Harder' : 'Medium';
+const difficultySegmentClass = (value: number | null, level: number) => value === null || level > value
+  ? 'bg-white/10'
+  : value <= 2 ? 'bg-lime-300' : value >= 4 ? 'bg-rose-300' : 'bg-amber-200';
 </script>

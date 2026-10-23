@@ -22,6 +22,10 @@ yarn install
 bun install
 ```
 
+## Homepage player trends
+
+The homepage shows deterministic FPL-stat sections for differentials (lowest selected ownership), most sold, and most bought players. They use the existing current-data snapshot and make no AI/provider requests. See [the homepage plan](HOMEPAGE_UX_PLAN.md) for ranking and verification details.
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:

@@ -7,49 +7,82 @@ export function schedulerClientError(error: unknown) {
 }
 
 export function useSchedulerPostList(search: Ref<string>, status: Ref<string>) {
-  const posts = ref<SchedulerPostRecord[]>([])
-  const loading = ref(false)
-  const syncing = ref(false)
-  const error = ref('')
-  const syncError = ref('')
-  const cursor = ref<string | null>(null)
-  const hasMore = ref(false)
-  const providerCursor = ref<string | null>(null)
-  const hasOlder = ref(false)
+  type Page = { posts: SchedulerPostRecord[]; cursor: string | null; hasMore: boolean; loading: boolean; error: string; revision: number; request: number }
+  const pages = useState<Record<string, Page>>('scheduler-history-pages', () => ({}))
+  const provider = useState('scheduler-history-provider', () => ({ syncing: false, error: '', cursor: null as string | null, hasOlder: false }))
+  const deleting = ref('')
+  const deleteError = ref('')
   const revision = useState('scheduler-history-revision', () => 0)
-  let request = 0
+  const key = computed(() => JSON.stringify([search.value.trim(), status.value]))
+  const page = computed(() => pages.value[key.value])
+  const posts = computed(() => page.value?.posts ?? [])
+  const loading = computed(() => page.value?.loading ?? true)
+  const syncing = computed(() => provider.value.syncing)
+  const error = computed(() => page.value?.error ?? '')
+  const syncError = computed(() => provider.value.error)
+  const hasMore = computed(() => page.value?.hasMore ?? false)
+  const hasOlder = computed(() => provider.value.hasOlder)
 
   async function load(more = false) {
-    const current = ++request
-    loading.value = true
-    error.value = ''
-    if (!more) { cursor.value = null; hasMore.value = false }
+    pages.value[key.value] ??= { posts: [], cursor: null, hasMore: false, loading: false, error: '', revision: -1, request: 0 }
+    const currentPage = pages.value[key.value]!
+    if (more && (currentPage.loading || !currentPage.hasMore)) return
+    more = more && currentPage.revision === revision.value
+    const current = ++currentPage.request
+    const currentRevision = revision.value
+    currentPage.loading = true
+    currentPage.error = ''
     try {
-      const result = await $fetch('/api/scheduler/history', { query: { search: search.value, status: status.value === 'all' ? '' : status.value, cursor: more ? cursor.value || '' : '' }, retry: 0 })
-      if (current !== request) return
+      const result = await $fetch('/api/scheduler/history', { query: { search: search.value.trim(), status: status.value === 'all' ? '' : status.value, cursor: more ? currentPage.cursor || '' : '' }, retry: 0 })
+      if (current !== currentPage.request) return
       const incoming = result.page as SchedulerPostRecord[]
-      posts.value = more ? [...posts.value, ...incoming.filter(item => !posts.value.some(existing => existing._id === item._id))] : incoming
-      cursor.value = result.continueCursor
-      hasMore.value = !result.isDone
-    } catch (cause) { if (current === request) error.value = schedulerClientError(cause) }
-    finally { if (current === request) loading.value = false }
+      currentPage.posts = more ? [...currentPage.posts, ...incoming.filter(item => !currentPage.posts.some(existing => existing._id === item._id))] : incoming
+      currentPage.cursor = result.continueCursor
+      currentPage.hasMore = !result.isDone
+      currentPage.revision = currentRevision
+    } catch (cause) { if (current === currentPage.request) currentPage.error = schedulerClientError(cause) }
+    finally { if (current === currentPage.request) currentPage.loading = false }
   }
   async function sync(older = false) {
     if (syncing.value) return
-    syncing.value = true
-    syncError.value = ''
+    provider.value.syncing = true
+    provider.value.error = ''
     try {
-      const result = await $fetch('/api/scheduler/sync', { method: 'POST', body: { cursor: older ? providerCursor.value : null }, retry: 0 })
-      providerCursor.value = result.cursor
-      hasOlder.value = result.hasMore
+      const result = await $fetch('/api/scheduler/sync', { method: 'POST', body: { cursor: older ? provider.value.cursor : null }, retry: 0 })
+      provider.value.cursor = result.cursor
+      provider.value.hasOlder = result.hasMore
       revision.value++
-    } catch (cause) { syncError.value = schedulerClientError(cause) }
-    finally { syncing.value = false; await load() }
+    } catch (cause) { provider.value.error = schedulerClientError(cause) }
+    finally {
+      await load()
+      provider.value.syncing = false
+      if (!page.value || (page.value.revision !== revision.value && !page.value.error)) await load()
+    }
   }
+  async function initialize() {
+    if (syncing.value || page.value?.loading) return
+    if (!page.value || page.value.revision !== revision.value) await load()
+  }
+  async function deleteFailed(post: SchedulerPostRecord) {
+    if (post.status !== 'failed' || deleting.value) return
+    deleting.value = post._id
+    deleteError.value = ''
+    try {
+      await $fetch('/api/scheduler/delete-failed', { method: 'POST', body: { postId: post._id }, retry: 0 })
+      for (const cached of Object.values(pages.value)) {
+        cached.posts = cached.posts.filter(item => item._id !== post._id)
+        cached.request++
+        cached.loading = false
+      }
+      revision.value++
+    } catch (cause) { deleteError.value = schedulerClientError(cause) }
+    finally { deleting.value = '' }
+  }
+  function dismissSyncError() { provider.value.error = '' }
   watch([search, status], (_, __, onCleanup) => {
-    request++
-    const timer = setTimeout(() => load(), 300)
+    const timer = setTimeout(() => initialize(), 300)
     onCleanup(() => clearTimeout(timer))
   })
-  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, revision }
+  watch(revision, () => { if (!syncing.value) void load() }, { flush: 'sync' })
+  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteFailed, dismissSyncError }
 }

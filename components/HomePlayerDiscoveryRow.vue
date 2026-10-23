@@ -3,7 +3,7 @@
     <NuxtLink
       :to="getPlayerRoute(player)"
       :aria-label="`Open ${player.web_name} profile`"
-      class="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 px-3 py-3.5 transition hover:bg-white/[0.05] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:grid-cols-[3.5rem_minmax(0,1fr)_5rem_8rem] sm:px-4"
+      class="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-3 px-3 py-3.5 transition hover:bg-white/[0.05] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:grid-cols-[3.5rem_minmax(0,1fr)_5rem_8rem] sm:items-center sm:px-4"
     >
       <span class="relative flex h-14 w-14 items-end justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(200,255,61,0.2),transparent_58%),linear-gradient(145deg,#1a2422,#0b1111)]">
         <span class="absolute left-1.5 top-1.5 z-20 inline-flex min-w-5 items-center justify-center rounded-full border border-white/15 bg-black/50 px-1 py-0.5 text-[0.62rem] font-black tabular-nums text-white backdrop-blur-sm">
@@ -33,10 +33,10 @@
       </span>
 
       <span class="min-w-0">
-        <span class="block truncate text-base font-semibold text-white group-hover:text-primary">
+        <span class="block text-base font-semibold text-white [overflow-wrap:anywhere] group-hover:text-primary">
           {{ player.web_name }}
         </span>
-        <span class="mt-1 block truncate text-sm text-stone-400">
+        <span class="mt-1 block text-sm text-stone-400 [overflow-wrap:anywhere]">
           {{ team?.name || "Team unavailable" }} · {{ positionLabel }}
         </span>
         <span class="mt-2 flex min-w-0 items-baseline justify-between gap-2 sm:hidden">

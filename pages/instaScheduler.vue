@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { instagramDesigns, type InstagramDesignId } from '~/utils/instagram-designs'
 import '~/assets/css/instagram-artwork.css'
-import { type InstagramDraft, type InstagramPlayer } from '~/utils/instagram-templates'
+import { type InstagramDraft } from '~/utils/instagram-templates'
+import type { SchedulerPostPick as PostPick } from '~/composables/useSchedulerPicks'
 import SchedulerPostPreview from '~/components/SchedulerPostPreview.vue'
+import SchedulerPickReason from '~/components/SchedulerPickReason.vue'
 import SchedulerPostHistory from '~/components/SchedulerPostHistory.vue'
+import SchedulerTemplateEditor from '~/components/SchedulerTemplateEditor.vue'
 
 definePageMeta({ layout: false })
 useHead({ title: 'Instagram scheduler' })
@@ -14,26 +17,26 @@ const { data, status, error, refresh } = await useAsyncData('instagram-editor-pl
   return response
 })
 
-type PostPick = {
-  id: number
-  player: InstagramPlayer
-  designId: InstagramDesignId
-  caption: string
-}
 type BufferJob = { jobId: string; playerName: string; channelId: string; channel: string; state: 'sending' | 'unknown' }
 
 const excludedPlayerCodes = ref<number[]>([])
 const view = ref<'create' | 'history'>('create')
 const historySearch = ref('')
 const allowRepeat = ref(false)
-const postPicks = ref<PostPick[]>([])
+const picksReady = ref(false)
+const picksMounted = ref(false)
 const bufferJobs = ref<Record<number, BufferJob>>({})
 const schedulingError = ref('')
 const queueNotice = ref('')
 const activePickId = ref<number | null>(null)
-const activePick = computed(() => postPicks.value.find(pick => pick.id === activePickId.value))
 const toast = useToast()
-const { players, designId, templateId, selectedPlayers, candidates, togglePlayer, draft, draftKey, validationMessage, caption, captionLoading, captionError, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
+const { players, designId, templateId, selectedPlayers, togglePlayer, draft, draftKey, validationMessage, caption, captionLoading, captionError, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
+const { postPicks, hasMorePicks, showMorePicks: loadMorePicks } = useSchedulerPicks(players, picksReady, computed(() => Object.keys(bufferJobs.value).map(Number)), excludedPlayerCodes, computed(() => data.value?.currentGameweek ?? null))
+const pickList = useTemplateRef<HTMLElement>('pickList')
+const activePick = computed(() => postPicks.value.find(pick => pick.id === activePickId.value))
+const layoutKey = computed(() => `${activePick.value?.designId ?? designId.value}:spotlight`)
+const layoutEditor = useSchedulerLayouts(layoutKey)
+const editingLayout = ref(false)
 const preview = useTemplateRef('preview')
 const activeDraft = computed<InstagramDraft>(() => activePick.value ? pickDraft(activePick.value) : draft.value)
 const activeDraftKey = computed(() => JSON.stringify(activeDraft.value))
@@ -48,44 +51,48 @@ const canExport = computed(() => !validationMessage.value && assetsReady.value &
 const canScheduleActive = computed(() => Boolean(activePick.value?.caption.trim()) && !bufferJobs.value[activePick.value?.id ?? -1] && schedulingConfigured.value && historyReady.value && assetsReady.value && !busy.value && !captionLoading.value && (!repeatMessage.value || allowRepeat.value))
 
 watch(history.excludedCodes, codes => { excludedPlayerCodes.value = codes }, { immediate: true })
+watch([history.ready, history.error, picksMounted], ([ready, error, mounted]) => {
+  if (!mounted) return
+  if (ready || error) picksReady.value = ready
+}, { immediate: true })
 watch(draftKey, () => { allowRepeat.value = false })
 watch(caption, value => {
   if (activePick.value) activePick.value.caption = value
 }, { flush: 'sync' })
 
-watch(candidates, items => {
-  if (postPicks.value.length || !items.length) return
-  postPicks.value = items.slice(0, 8).map((player: InstagramPlayer, index) => ({
-    id: player.id,
-    player,
-    designId: instagramDesigns[index % instagramDesigns.length]!.id,
-    caption: '',
-  }))
+watch(postPicks, () => {
+  if (activePick.value) return
   const first = postPicks.value[0]
-  if (!first) return
-  activePickId.value = first.id
-  if (selectedPlayers.value[0]?.id !== first.id) togglePlayer(first.id)
-  designId.value = first.designId
-}, { immediate: true })
-
-watch(players, currentPlayers => {
-  if (!currentPlayers.length || !postPicks.value.length) return
-  const playersById = new Map(currentPlayers.map(player => [player.id, player]))
-  for (const pick of postPicks.value) {
-    const currentPlayer = playersById.get(pick.id)
-    if (currentPlayer) pick.player = currentPlayer
+  if (first) {
+    void activatePick(first)
+  } else {
+    const selectedId = selectedPlayers.value[0]?.id
+    activePickId.value = null
+    if (selectedId) togglePlayer(selectedId)
+    caption.value = ''
   }
-})
+}, { deep: false, immediate: true })
 
 function pickDraft(pick: PostPick): InstagramDraft {
   return {
     ...draft.value,
     design: pick.designId,
+    layout: layoutEditor.layouts.value[`${pick.designId}:spotlight`] ?? {},
     template: 'spotlight',
     headline: pick.player.fullName,
+    story: pick.story,
+    stats: pick.stats,
     players: [pick.player],
     fixtures: [],
   }
+}
+
+async function showMorePicks() {
+  const nextIndex = postPicks.value.length
+  loadMorePicks()
+  await nextTick()
+  const nextPick = pickList.value?.children[nextIndex] as HTMLElement | undefined
+  nextPick?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' })
 }
 
 async function activatePick(pick: PostPick) {
@@ -127,6 +134,8 @@ async function scheduleActive() {
   const result = await schedule(filename.value, caption.value, allowRepeat.value)
   if (failed.value || !result) return
   if (result.alreadyScheduled) {
+    excludedPlayerCodes.value = [...new Set([...excludedPlayerCodes.value, scheduledPick.player.code])]
+    history.revision.value++
     const confirmation = bufferConfirmation(scheduledPick.player.name, result.post.channel, result.post.dueAt, result.post.status)
     toast.add({ title: result.post.status === 'published' ? 'Already published' : 'Already in Buffer', description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6000 })
     removeScheduledPick(scheduledPick.id)
@@ -135,6 +144,7 @@ async function scheduleActive() {
   }
   if (result.queued && result.jobId) {
     bufferJobs.value[scheduledPick.id] = { jobId: result.jobId, playerName: scheduledPick.player.name, channelId: result.post.channelId, channel: result.post.channel, state: 'sending' }
+    removeScheduledPick(scheduledPick.id)
     toast.add({ title: 'Sending to Buffer', description: `${scheduledPick.player.name} · @${result.post.channel.replace(/^@/, '')}`, color: 'primary', icon: 'i-lucide-send', duration: 4000 })
   }
 }
@@ -189,6 +199,8 @@ async function pollBufferJobs() {
       const playerId = Number(entry[0])
       const job = entry[1]
       if (status.status === 'scheduled' || status.status === 'published') {
+        const player = players.value.find(item => item.id === playerId)
+        if (player) excludedPlayerCodes.value = [...new Set([...excludedPlayerCodes.value, player.code])]
         delete bufferJobs.value[playerId]
         const confirmation = bufferConfirmation(job.playerName, job.channel, status.dueAt, status.status)
         toast.add({ title: status.status === 'published' ? 'Post published' : 'Added to Buffer', description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6500 })
@@ -213,6 +225,7 @@ async function pollBufferJobs() {
 }
 
 onMounted(() => {
+  picksMounted.value = true
   pollTimer = setInterval(() => { void pollBufferJobs() }, 1800)
 })
 onScopeDispose(() => {
@@ -243,11 +256,11 @@ onScopeDispose(() => {
         <SchedulerPostHistory v-else-if="view === 'history'" class="min-h-0 flex-1 overflow-auto px-4 pb-4 sm:px-6" :players="players" :initial-search="historySearch" />
 
         <section v-else class="flex min-h-0 flex-1 flex-col">
-          <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto px-3 py-2">
+          <div class="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto px-3 pt-2 pb-24">
             <div class="flex h-5 w-[min(45vh,78vw)] max-w-[660px] items-center truncate text-xs font-medium text-success" role="status" aria-live="polite">
               <span v-if="queueNotice" class="truncate">{{ queueNotice }}</span>
             </div>
-            <article v-if="activePick" class="w-[min(45vh,78vw)] max-w-[660px] overflow-hidden rounded-xl border border-default bg-default shadow-sm">
+            <article v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] overflow-hidden rounded-xl border border-default bg-default shadow-sm">
               <header class="flex items-center justify-between px-3 py-2.5">
                 <div class="flex min-w-0 items-center gap-2.5">
                   <div class="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 p-[2px]">
@@ -260,7 +273,17 @@ onScopeDispose(() => {
                 </div>
                 <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" size="xs" aria-label="Post options" />
               </header>
-              <SchedulerPostPreview :key="activePreviewKey" ref="preview" :draft="activeDraft" />
+              <SchedulerTemplateEditor :key="activePreviewKey" ref="preview" v-model:editing="editingLayout" :draft="activeDraft" :editor="layoutEditor" :disabled="busy || Boolean(bufferJobs[activePick.id])" toolbar-target="#scheduler-post-toolbar">
+                <template #actions>
+                  <span class="mx-0.5 h-4 w-px shrink-0 bg-white/15" aria-hidden="true" />
+                  <UTooltip :text="captionLoading ? 'Generating caption…' : 'Generate caption'">
+                    <UButton icon="i-lucide-sparkles" color="neutral" variant="ghost" class="size-9 justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white" :aria-label="captionLoading ? 'Generating caption' : 'Generate caption'" :loading="captionLoading" :disabled="!activePick || captionLoading || busy || Boolean(bufferJobs[activePick?.id ?? -1])" @click="generateCaption(activeDraft)" />
+                  </UTooltip>
+                  <UTooltip text="Schedule to Buffer">
+                    <UButton icon="i-lucide-send" color="primary" class="ml-1 size-11 justify-center rounded-full ring-2 ring-zinc-900" aria-label="Schedule to Buffer" :loading="busy && phase !== 'Creating PNG…'" :disabled="!canScheduleActive" @click="scheduleActive" />
+                  </UTooltip>
+                </template>
+              </SchedulerTemplateEditor>
               <div class="flex items-center gap-3 px-3 py-2">
                 <UIcon name="i-lucide-heart" class="size-5 text-highlighted" aria-hidden="true" />
                 <UIcon name="i-lucide-message-circle" class="size-5 text-highlighted" aria-hidden="true" />
@@ -289,7 +312,10 @@ onScopeDispose(() => {
                 <p v-if="!caption && !captionLoading" class="text-xs text-muted">Your generated caption will appear here.</p>
               </div>
             </article>
-            <div v-else class="flex aspect-square w-[min(45vh,78vw)] max-w-[660px] items-center justify-center text-sm text-muted">No post picks are available.</div>
+            <div v-else class="flex aspect-square w-[min(45vh,78vw)] max-w-[660px] flex-col items-center justify-center gap-3 text-center text-sm text-muted" role="status">
+              <template v-if="historyError"><p>Post history could not load. Retry to find players you can post.</p><UButton label="Retry history" color="neutral" variant="soft" @click="history.refresh()" /></template>
+              <span v-else>{{ picksReady ? 'No unposted players match the current picks.' : 'Checking queued and posted players…' }}</span>
+            </div>
 
             <div class="flex w-[min(45vh,78vw)] max-w-[660px] items-center justify-center gap-3">
               <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Previous template" :disabled="busy || !activePick || Boolean(bufferJobs[activePick?.id ?? -1])" @click="cycleTemplate(-1)" />
@@ -302,25 +328,27 @@ onScopeDispose(() => {
             </div>
             <UAlert v-if="repeatMessage" color="warning" :title="repeatMessage" class="w-full max-w-[660px]" />
             <UCheckbox v-if="repeatMessage" v-model="allowRepeat" label="Allow this repeat post" :disabled="busy" />
-            <div class="flex w-[min(45vh,78vw)] max-w-[660px] items-center justify-between gap-3">
-              <UButton icon="i-lucide-sparkles" color="primary" variant="soft" size="md" :label="captionLoading ? 'Generating…' : 'Generate caption'" :loading="captionLoading" :disabled="!activePick || captionLoading || busy || Boolean(bufferJobs[activePick?.id ?? -1])" @click="generateCaption" />
-              <UButton icon="i-lucide-send" color="primary" size="md" label="Schedule to Buffer" :loading="busy && phase !== 'Creating PNG…'" :disabled="!canScheduleActive" @click="scheduleActive" />
-            </div>
             <p class="h-5 w-[min(45vh,78vw)] max-w-[660px] truncate text-xs" :class="failed || schedulingError ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError) }}</p>
           </div>
 
-          <footer class="shrink-0 border-t border-default bg-default/95 px-3 pb-2 pt-2 sm:px-5">
-            <div class="mx-auto flex max-w-6xl gap-2 overflow-x-auto overscroll-x-contain px-2 py-2">
+          <footer class="relative z-40 shrink-0 border-t border-default bg-default/95 px-3 pb-2 pt-2 sm:px-5">
+            <div id="scheduler-post-toolbar" class="pointer-events-none absolute inset-x-0 bottom-full flex justify-center px-2 pb-4" />
+            <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-2">
+              <p class="text-xs text-muted">Post ideas · Differentials, transfers, value and form</p>
+              <UButton label="Show more players" icon="i-lucide-plus" color="neutral" variant="ghost" size="sm" :disabled="!hasMorePicks || busy" @click="showMorePicks" />
+            </div>
+            <div v-if="picksReady" ref="pickList" class="mx-auto flex max-w-6xl gap-2 overflow-x-auto overscroll-x-contain px-2 py-2">
               <article v-for="pick in postPicks" :key="`${pick.id}:${pick.player.photoUrl}:${pick.designId}`" class="relative w-24 shrink-0 sm:w-28 lg:w-32">
-                <button type="button" class="block w-full overflow-hidden rounded-lg bg-elevated text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" :class="activePickId === pick.id ? 'ring-2 ring-primary' : 'ring-1 ring-default hover:ring-primary/50'" :aria-label="'Preview ' + pick.player.name + ', ' + instagramDesigns.find(item => item.id === pick.designId)?.name + ' template'" :aria-current="activePickId === pick.id ? 'true' : undefined" :disabled="busy" @click="activatePick(pick)">
+                <button type="button" class="relative block w-full overflow-hidden rounded-lg bg-elevated text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" :class="activePickId === pick.id ? 'ring-2 ring-primary' : 'ring-1 ring-default hover:ring-primary/50'" :aria-label="'Preview ' + pick.player.name + ', ' + pick.story.label + ', ' + pick.story.evidence" :title="pick.story.scope ?? pick.story.evidence" :aria-current="activePickId === pick.id ? 'true' : undefined" :disabled="busy" @click="activatePick(pick)">
                   <SchedulerPostPreview :key="`${pick.id}:${pick.player.code}:${pick.player.photoUrl}:${pick.designId}`" :draft="pickDraft(pick)" />
+                  <SchedulerPickReason :story="pick.story" />
                 </button>
                 <span v-if="bufferJobs[pick.id]?.state === 'sending'" class="absolute inset-x-1 top-1 rounded bg-black/70 px-1.5 py-1 text-center text-[10px] font-medium text-white" role="status">Sending to Buffer…</span>
                 <span v-else-if="bufferJobs[pick.id]?.state === 'unknown'" class="absolute inset-x-1 top-1 rounded bg-amber-600 px-1.5 py-1 text-center text-[10px] font-medium text-white">Check Buffer</span>
                 <span v-else-if="pick.caption" class="absolute right-1 top-1 size-2.5 rounded-full bg-primary ring-2 ring-white" :aria-label="'Caption ready for ' + pick.player.name" />
                 <p class="truncate px-1 pt-1 text-[10px] text-muted">{{ pick.player.name }} · {{ instagramDesigns.find(item => item.id === pick.designId)?.name }}</p>
               </article>
-              <div v-if="!postPicks.length && status !== 'pending'" class="py-8 text-sm text-muted">No post picks are available.</div>
+              <div v-if="!postPicks.length && status !== 'pending'" class="py-8 text-sm text-muted">No unposted players match the current picks.</div>
             </div>
           </footer>
         </section>

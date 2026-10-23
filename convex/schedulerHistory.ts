@@ -14,10 +14,11 @@ const activeStatuses = new Set(['submitting', 'scheduled', 'unknown', 'published
 async function getActivity(ctx: QueryCtx | MutationCtx, channelId: string, codes: number[], gameweek: number | null, season: string | null) {
   const week = gameweek === null || season === null ? [] : await ctx.db.query('schedulerPostPlayers').withIndex('by_channel_and_season_and_gameweek', q => q.eq('channelId', channelId).eq('season', season).eq('gameweek', gameweek)).take(2000)
   const queues = await Promise.all(queuedStatuses.map(status => ctx.db.query('schedulerPostPlayers').withIndex('by_channel_and_status', q => q.eq('channelId', channelId).eq('status', status)).take(2000)))
-  if (week.length === 2000 || queues.some(rows => rows.length === 2000)) throw new ConvexError('There are too many posts to check safely. Narrow the history before scheduling.')
+  const publishedHistory = await ctx.db.query('schedulerPostPlayers').withIndex('by_channel_and_status', q => q.eq('channelId', channelId).eq('status', 'published')).take(2000)
+  if (week.length === 2000 || publishedHistory.length === 2000 || queues.some(rows => rows.length === 2000)) throw new ConvexError('There are too many posts to check safely. Narrow the history before scheduling.')
   const queued = queues.flat()
   const published = week.filter(row => row.status === 'published')
-  const excludedCodes = [...new Set([...queued, ...published].map(row => row.playerCode))]
+  const excludedCodes = [...new Set([...queued, ...publishedHistory].map(row => row.playerCode))]
   const requested = [...new Set([...excludedCodes, ...codes])]
   const players = await Promise.all(requested.map(async code => {
     const latest = codes.includes(code) ? await ctx.db.query('schedulerPostPlayers').withIndex('by_channel_and_player_and_status', q => q.eq('channelId', channelId).eq('playerCode', code).eq('status', 'published')).order('desc').first() : null
@@ -53,14 +54,48 @@ export const list = query({
     const search = args.search.trim()
     if (search) {
       const rows = await ctx.db.query('schedulerPosts').withSearchIndex('search_history', q => {
-        const scoped = q.search('searchText', search).eq('channelId', args.channelId)
+        const scoped = q.search('searchText', search).eq('channelId', args.channelId).eq('deletedAt', undefined)
         return args.status ? scoped.eq('status', args.status) : scoped
       }).paginate(args.paginationOpts)
       return rows
     }
     return args.status
-      ? ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_createdAt', q => q.eq('channelId', args.channelId).eq('status', args.status!)).order('desc').paginate(args.paginationOpts)
-      : ctx.db.query('schedulerPosts').withIndex('by_channel_and_createdAt', q => q.eq('channelId', args.channelId)).order('desc').paginate(args.paginationOpts)
+      ? ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_deletedAt_and_createdAt', q => q.eq('channelId', args.channelId).eq('status', args.status!).eq('deletedAt', undefined)).order('desc').paginate(args.paginationOpts)
+      : ctx.db.query('schedulerPosts').withIndex('by_channel_and_deletedAt_and_createdAt', q => q.eq('channelId', args.channelId).eq('deletedAt', undefined)).order('desc').paginate(args.paginationOpts)
+  },
+})
+
+export const overview = query({
+  args: { secret: v.string(), channelId: v.string() },
+  returns: v.object({ published7Days: v.number(), published30Days: v.number(), scheduled: v.number(), failed: v.number(), undatedPublished: v.boolean(), asOf: v.number() }),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const asOf = Date.now()
+    const day = 86_400_000
+    const [published, scheduled, failed, undated] = await Promise.all([
+      ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_deletedAt_and_sentAt', q => q.eq('channelId', args.channelId).eq('status', 'published').eq('deletedAt', undefined).gte('sentAt', asOf - 30 * day).lte('sentAt', asOf)).take(2001),
+      ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_deletedAt_and_createdAt', q => q.eq('channelId', args.channelId).eq('status', 'scheduled').eq('deletedAt', undefined)).take(2001),
+      ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_deletedAt_and_createdAt', q => q.eq('channelId', args.channelId).eq('status', 'failed').eq('deletedAt', undefined)).take(2001),
+      ctx.db.query('schedulerPosts').withIndex('by_channel_and_status_and_deletedAt_and_sentAt', q => q.eq('channelId', args.channelId).eq('status', 'published').eq('deletedAt', undefined).eq('sentAt', null)).first(),
+    ])
+    if ([published, scheduled, failed].some(rows => rows.length === 2001)) throw new ConvexError('There are too many posts to summarize safely.')
+    return { published7Days: published.filter(post => post.sentAt! >= asOf - 7 * day).length, published30Days: published.length, scheduled: scheduled.length, failed: failed.length, undatedPublished: Boolean(undated), asOf }
+  },
+})
+
+export const deleteFailed = mutation({
+  args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const post = await ctx.db.get(args.postId)
+    if (!post || post.channelId !== args.channelId) throw new ConvexError('The history record was not found.')
+    if (post.status !== 'failed') throw new ConvexError('Only failed posts can be deleted from history.')
+    if (post.deletedAt !== undefined) return null
+    await ctx.db.patch(post._id, { deletedAt: Date.now(), updatedAt: Date.now() })
+    const players = await ctx.db.query('schedulerPostPlayers').withIndex('by_postId', q => q.eq('postId', post._id)).take(6)
+    for (const player of players) await ctx.db.delete(player._id)
+    return null
   },
 })
 
@@ -212,10 +247,12 @@ export const sync = mutation({
     if (args.posts.length > 50) throw new ConvexError('Refresh no more than fifty posts at once.')
     for (const incoming of args.posts) {
       let existing = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_bufferPostId', q => q.eq('channelId', args.channelId).eq('bufferPostId', incoming.bufferPostId)).unique()
+      if (existing?.deletedAt !== undefined) continue
       if (!existing && incoming.imageUrl) {
         const candidates = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_imageUrl', q => q.eq('channelId', args.channelId).eq('imageUrl', incoming.imageUrl)).take(20)
         existing = candidates.find(post => !post.bufferPostId && post.caption === incoming.caption) ?? null
       }
+      if (existing?.deletedAt !== undefined) continue
       const patch = { ...incoming, searchText: `${existing?.players.map(item => item.name).join(' ') ?? ''} ${incoming.caption}`, updatedAt: Date.now() }
       if (existing) {
         await ctx.db.patch(existing._id, { ...patch, error: incoming.status === 'failed' ? existing.error : null })

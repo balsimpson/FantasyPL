@@ -24,14 +24,16 @@ async function save() {
 </script>
 
 <template>
-  <div>
-    <UButton v-if="!open" size="xs" color="neutral" variant="ghost" icon="i-lucide-user-round-plus" :label="post.players.length ? 'Edit linked players' : 'Link players'" @click="open = true" />
-    <form v-else class="mt-3 space-y-3" @submit.prevent="save">
-      <UFormField label="Players in this post" class="w-full"><USelectMenu v-model="codes" :items="items" multiple value-key="value" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
-      <UFormField label="Season" description="Use the season this post covered, such as 2026/27." class="w-full"><UInput v-model="season" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
-      <UFormField label="Gameweek" description="Leave blank if you do not know the gameweek." class="w-full"><UInput v-model="gameweek" type="number" min="1" max="100" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
+  <div :class="open ? 'w-full' : ''">
+    <UButton v-if="!open" size="xs" color="neutral" variant="link" class="p-0" icon="i-lucide-user-round-plus" :label="post.players.length ? 'Edit players' : 'Link players'" @click="open = true" />
+    <form v-else class="mt-2 grid gap-3" @submit.prevent="save">
+      <UFormField label="Players" class="w-full"><USelectMenu v-model="codes" :items="items" multiple value-key="value" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <UFormField label="Season" class="w-full"><UInput v-model="season" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
+        <UFormField label="Gameweek (optional)" class="w-full"><UInput v-model="gameweek" type="number" min="1" max="100" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
+      </div>
       <p v-if="error" role="alert" class="text-sm text-error">{{ error }}</p>
-      <div class="flex gap-2"><UButton type="submit" label="Save players" size="sm" :disabled="!codes.length || codes.length > 5" :loading="busy" /><UButton label="Cancel" size="sm" color="neutral" variant="ghost" :disabled="busy" @click="open = false" /></div>
+      <div class="flex gap-2"><UButton type="submit" label="Save" size="sm" :disabled="!codes.length || codes.length > 5" :loading="busy" /><UButton label="Cancel" size="sm" color="neutral" variant="ghost" :disabled="busy" @click="open = false" /></div>
     </form>
   </div>
 </template>

@@ -1,7 +1,16 @@
 import type { InstagramDesignId, InstagramPalette } from './instagram-designs'
+import type { SchedulerLayout } from './scheduler-layout'
 
 export type InstagramTemplateId = 'spotlight' | 'comparison' | 'shortlist' | 'fixtures' | 'transfers'
-export type InstagramStatKey = 'now_cost' | 'form' | 'total_points' | 'event_points' | 'selected_by_percent' | 'goals_scored' | 'assists' | 'minutes' | 'points_per_game'
+export type InstagramStatKey = 'now_cost' | 'form' | 'total_points' | 'event_points' | 'selected_by_percent' | 'goals_scored' | 'assists' | 'minutes' | 'points_per_game' | 'transfers_in_event' | 'transfers_out_event'
+
+export interface InstagramPostStory {
+  id: string
+  label: string
+  evidence: string
+  captionFocus: string
+  scope?: string
+}
 
 export interface InstagramPlayer {
   id: number
@@ -29,6 +38,8 @@ export interface InstagramFixture {
   difficulty: number | null
 }
 export interface InstagramDraft {
+  story?: InstagramPostStory
+  layout?: SchedulerLayout
   season?: string | null
   design: InstagramDesignId
   palette: InstagramPalette
@@ -54,6 +65,7 @@ export const instagramStats: { value: InstagramStatKey, label: string }[] = [
   { value: 'selected_by_percent', label: 'Ownership' }, { value: 'goals_scored', label: 'Goals' },
   { value: 'assists', label: 'Assists' }, { value: 'minutes', label: 'Minutes' },
   { value: 'points_per_game', label: 'Points per game' },
+  { value: 'transfers_in_event', label: 'GW transfers in' }, { value: 'transfers_out_event', label: 'GW transfers out' },
 ]
 const numberOrNull = (value: unknown) => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value)
 
@@ -82,6 +94,7 @@ export function formatInstagramStat(player: InstagramPlayer, key: InstagramStatK
   if (key === 'now_cost') return `£${(value / 10).toFixed(1)}m`
   if (key === 'selected_by_percent') return `${value.toFixed(1)}%`
   if (key === 'form' || key === 'points_per_game') return value.toFixed(1)
+  if (key === 'transfers_in_event' || key === 'transfers_out_event') return value.toLocaleString('en-GB', { notation: 'compact', maximumFractionDigits: 1 })
   return value.toLocaleString('en-GB')
 }
 export function instagramStatLabel(key: InstagramStatKey) {

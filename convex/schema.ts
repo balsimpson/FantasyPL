@@ -6,11 +6,14 @@ export default defineSchema({
   schedulerPosts: defineTable(postFields)
     .index('by_channel_and_createdAt', ['channelId', 'createdAt'])
     .index('by_channel_and_status_and_createdAt', ['channelId', 'status', 'createdAt'])
+    .index('by_channel_and_deletedAt_and_createdAt', ['channelId', 'deletedAt', 'createdAt'])
+    .index('by_channel_and_status_and_deletedAt_and_createdAt', ['channelId', 'status', 'deletedAt', 'createdAt'])
+    .index('by_channel_and_status_and_deletedAt_and_sentAt', ['channelId', 'status', 'deletedAt', 'sentAt'])
     .index('by_channel_and_bufferPostId', ['channelId', 'bufferPostId'])
     .index('by_channel_and_requestId', ['channelId', 'requestId'])
     .index('by_channel_and_fingerprint', ['channelId', 'fingerprint'])
     .index('by_channel_and_imageUrl', ['channelId', 'imageUrl'])
-    .searchIndex('search_history', { searchField: 'searchText', filterFields: ['channelId', 'status'] }),
+    .searchIndex('search_history', { searchField: 'searchText', filterFields: ['channelId', 'status', 'deletedAt'] }),
   schedulerPostPlayers: defineTable({
     postId: v.id('schedulerPosts'), channelId: v.string(), playerCode: v.number(),
     gameweek: nullableNumber, season: nullableString, status: postStatus, createdAt: v.number(),

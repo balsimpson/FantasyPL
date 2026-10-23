@@ -2,19 +2,19 @@
 
 Created: 6 September 2026.
 
-Status: visual direction revised and implemented locally on 6 September 2026 after owner feedback. Restore the portrait-card identity, compact the introduction and utility controls, enrich the recap, and match the player profile. See the latest verification entry below. Hosted Vercel behavior, authenticated manager use, analytics, and physical-device checks remain unverified.
+Status: homepage search, discovery, rule-based player trend sections, and a six-match upcoming-fixture list are implemented locally as of 23 October 2026. The owner directed that homepage AI calls be removed, factual Differential/Most sold/Most bought sections be shown together, and no more than six fixtures appear in the homepage match list. Preserve the portrait-card identity, use the available viewport width, keep player names in full, and reveal secondary controls on demand. Hosted Vercel behavior, authenticated manager use, analytics, and physical-device checks remain separate.
 
 ## Purpose and relationship to the audit
 
 Help a visitor find a player immediately, understand the next deadline, and discover a useful shortlist without scrolling through every dataset. Casual and newer FPL managers remain the working audience assumption.
 
-Read this alongside [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md), [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md), and [AGENTS.md](AGENTS.md). The audit supplies the growth priorities and earlier evidence. This plan adds a concrete homepage order, presentation choices, and implementation checkpoints.
+Read this alongside [DESIGN.md](DESIGN.md), [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md), [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md), and [AGENTS.md](AGENTS.md). `DESIGN.md` owns the shared visual direction, content rail, and presentation rules. This plan owns the homepage order, behavior, and implementation checkpoints; the audit supplies growth priorities and earlier evidence.
 
 | Recommendation | Existing coverage | Detail added here |
 | --- | --- | --- |
 | Search immediately after a short introduction | Audit section 5 | First-screen composition and search states |
 | Secondary manager lookup and compact deadline | Audit section 5 | Placement, form behavior, and deadline fallback |
-| Fewer initially displayed players | Audit section 6 | One portrait-card discovery carousel with a selected category |
+| Fewer initially displayed players | Audit section 6 | One portrait-card discovery carousel with optional position/price filters |
 | Readable labels and accessible forms | Audit section 11 | Typography hierarchy, simultaneous stats, and keyboard checks |
 | Watchlist entry and useful saved-player journey | Audit section 7 | Reuse current work and verify before promoting it |
 | Freshness and understandable data | Audit sections 8 and 10 | Context beside rankings, transfers, and fixtures |
@@ -23,7 +23,7 @@ Read this alongside [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md), [BLOG_GROWTH_P
 
 ## Evidence and current state
 
-Before this implementation, `pages/index.vue` placed the introduction, manager lookup, countdown, gameweek summary, and upcoming fixtures before player search. Search was followed by ownership, transfers in/out, and separate position sections with repeated carousels. The local implementation now puts the labelled search directly after the introduction, places the compact deadline and manager lookup second, consolidates discovery into one category-controlled portrait-card carousel with six initial players, and keeps fixtures before the recap. The blog remains omitted until published content exists.
+Before this implementation, `pages/index.vue` placed the introduction, manager lookup, countdown, gameweek summary, and upcoming fixtures before player search. Search was followed by ownership, transfers in/out, and separate position sections with repeated carousels. The current local implementation puts the labelled search directly after the introduction, keeps the compact deadline visible, and reveals manager lookup through Open your team. Returning visitors see up to four saved players. Discovery uses a portrait-card carousel with six initial players and optional position, price, and stat-ranking controls. Three compact, rule-based sections show low-ownership differentials, most sold, and most bought players together. The fixture carousel shows the next six individual matches; player cards retain their three-gameweek fixture runs. The blog remains omitted until published content exists.
 
 Historical evidence from the earlier row-based implementation: the comparable local SSR measurement changed from 2,550,303 to 447,235 HTML bytes and from 1,818,063 to 398,188 bytes for the largest Nuxt data script. That earlier pass rendered 24 fixed-dimension lazy images (6 player portraits and 18 club badges), compared with 314 image tags and 140 player-image URLs in the old homepage, and keeps 6 meaningful profile links instead of 140 repeated card links. The response keeps the full player catalog's decision fields in a homepage-only projection (`/api/homepage-data`) while leaving the shared `/api/bootstrap-static` contract intact. These are local response measurements, not compressed transfer or field-performance results.
 
@@ -37,13 +37,15 @@ The local route was reviewed in Brave at 390 × 844, 430 × 932, a 195-pixel CSS
 | --- | --- | --- |
 | 1 | Compact header | Preserve existing identity and assets. Keep working navigation visible. Add links for future destinations only when those destinations exist. |
 | 2 | Introduction and player search | One concise heading and a full-width labelled search field, alongside each other on desktop and stacked on mobile. Omit repeated instructions. This is the primary starting action. |
-| 3 | Deadline and manager lookup | A compact next-deadline block and secondary team lookup. Include help locating a manager ID. |
-| 4 | Player discovery | A portrait-card carousel with a selected category, concise ranking context, points, goals, form, gameweek transfers, minutes, ownership, and assists. |
-| 5 | Upcoming fixtures | Compact schedule with date/time, home/away context, and a difficulty explanation wherever difficulty is shown. |
-| 6 | Recent analysis | A few relevant published articles linked to supporting player pages, once the blog is available. Omit the section until real content exists. |
-| 7 | Gameweek recap and footer | Show the current/previous gameweek below the primary tools, using average/highest points, transfers, captain portraits, and chip usage. Include real data-source and methodology information when available. |
+| 3 | Deadline and manager lookup | A compact next-deadline block; team lookup is closed until Open your team is selected. |
+| 4 | Saved players | Up to four current saved players for returning visitors, linked to profiles and the existing watchlist. |
+| 5 | Player discovery | A portrait-card carousel with optional position, maximum price, and stat ranking. Show price, form, season points/minutes, availability flags, and the next three gameweeks. |
+| 6 | Player trends | Show Differential, Most sold, and Most bought rankings together, calculated from current FPL ownership and gameweek transfer counts. |
+| 7 | Upcoming fixtures | Show up to the next six individual matches across the upcoming gameweeks, with gameweek, kickoff, home/away difficulty, and team names. |
+| 8 | Recent analysis | A few relevant published articles linked to supporting player pages, once the blog is available. Omit the section until real content exists. |
+| 9 | Gameweek recap and footer | Show the current/previous gameweek below the primary tools, using average/highest points, transfers, captain portraits, and chip usage. Include real data-source and methodology information when available. |
 
-On mobile, use this single-column reading order. On wider screens, the deadline sits beside the heading and manager lookup sits beside search. On mobile, show the heading, search, manager lookup, then deadline. Keep search ahead of team lookup in keyboard order. Search results must appear directly below their field.
+On mobile, use this single-column reading order. On wider screens, the deadline sits beside the heading and manager lookup sits beside search. On mobile, show the heading, search, collapsed team lookup, then deadline. Keep search ahead of team lookup in keyboard order. Search results must appear directly below their field.
 
 The first 390 × 844 viewport, with the keyboard closed, must contain the header, short introduction, visible search label, and entire search control. The deadline should be compact, but fitting every secondary task into that first screen is not required.
 
@@ -63,27 +65,37 @@ The first 390 × 844 viewport, with the keyboard closed, must contain the header
 
 - Replace the large countdown presentation on this route with a compact date/time and optional remaining-time display. Show the timezone explicitly.
 - Do not invent a next deadline when the data contains none. Display an honest unavailable/end-of-season state based on verified data.
-- Preserve "Open team" as a secondary action, with a visible Manager ID label and concise help explaining where to find the ID. Verify the current official instructions before writing that help.
+- Keep the manager form inside the closed-by-default Open your team disclosure. Preserve "Open team" as a secondary action, with a visible Manager ID label and concise help explaining where to find the ID. Verify the current official instructions before writing that help.
 - Trim input and validate a non-empty numeric ID before navigation. Keep ID values as strings unless the existing contract requires conversion.
 - Give invalid submissions inline feedback. Use real disabled/submitting states when appropriate, rather than opacity and pointer-event styling alone.
 - Keep fields full width. Mobile controls should stack without overflow.
 
 ### Player discovery
 
-Consolidate the repeated homepage player sections into one compact discovery section. Use a clearly labelled category control for the existing ownership, transfer, and position views. Preserve the useful categories; avoid adding another layer of filters in this pass.
+Use one discovery section. Player search remains the only visible input on initial load. Keep Position, Max price (£m), and Rank by inside the closed-by-default Filter players disclosure. Show active filters in the result summary even when the controls are closed.
 
-- Start with a small visible subset. Choose the exact count during rendered verification so the list is useful without becoming another long homepage.
-- Use the existing rich player cards at desktop and mobile sizes. Keep large portraits and badges, several simultaneous stats, and visible previous/next controls. Six initial cards retain a limited initial render; an explicit Show all action exposes the rest of the current shortlist.
-- State what the list ranks and which period the metric covers. Popularity is not a buy recommendation.
-- Check the existing scored-subset-then-sort behavior before changing headings or sorting. The label must describe the actual candidate set, not imply a whole-catalog ranking when only a subset was sorted.
-- Switching category must update the cards and ranking label, with a visible selected state and keyboard support.
-- Keep meaningful initial player links in server-rendered HTML. Do not make all discovery dependent on a client-only interaction.
-- Complete lists belong on useful browse destinations as those are implemented. Do not add a broken "View all" link or silently expand this task into building `/players`.
-- Reuse the existing watchlist control and state if save actions are included. Verify them first; do not create a second persistence mechanism.
+- Apply exact position and maximum-price filtering to the full current catalog before ranking. Price uses FPL tenths of a million; accept £3.0m to £20.0m in £0.1m steps, or blank for any price. Invalid values show inline feedback and an empty result state.
+- Retain form, season points, ownership, and gameweek transfer-in/out rankings. Form is the initial ranking. These rankings are factual FPL statistics, not predictions.
+- Render six initial portrait cards with meaningful profile links in server HTML. Show more adds six. Use complete cards at each breakpoint and visible previous/next controls.
+- Use the full available homepage width, including its navigation. Player names wrap in full in cards, search results, saved links, and the recap. Never use ellipsis or line clamping for names.
+- Reuse the existing watchlist button and persistence. Keep save buttons outside profile links. Returning visitors can resume through Your saved players without another data request.
+- Show the next three gameweeks, all opponents in a double, home/away, FDR, and unknown kickoff times. Do not treat missing fixture data as a blank gameweek.
+- Do not make homepage AI/provider requests or generate player recommendations or explanations. Keep the player orderings calculable from the displayed FPL fields.
+
+### Player trend sections
+
+- Render three sections together after the main discovery carousel: Differentials, Most sold this gameweek, and Most bought this gameweek. Use the compact player rows with complete names and preferred profile links.
+- Differentials rank the lowest `selected_by_percent` first. Break ownership ties by form descending, season points descending, then player ID ascending. Display the ownership percentage; lower ownership is not a prediction or endorsement.
+- Most sold and Most bought rank positive `transfers_out_event` and `transfers_in_event` values descending, respectively. Break ties by season points descending, then player ID ascending. Display the raw gameweek transfer count and omit players with missing or zero counts.
+- Show up to six players per section. If the source has no relevant ownership or transfer values, show a section-specific unavailable or no-transfers message instead of zeros.
+- These sections use the existing homepage FPL snapshot and require no extra request, model, provider credential, or client-supplied evidence.
+
+The homepage-only snapshot includes actual data-fetch timestamps and only its needed fields and three-gameweek fixtures. An upstream fixture failure does not remove player search; partial fixture responses are not cached, so retry can recover. The shared bootstrap, shared fixtures response, and scheduler contracts stay unchanged. FDR uses [FPL's 1–5 scale](https://www.premierleague.com/en/news/4675603/ranked-who-has-the-best-and-worst-opening-fixtures); it is not a scoring probability.
 
 ### Fixtures, analysis, and recap
 
-- Reduce fixture presentation to the information needed to understand the schedule. Show unknown kickoff times honestly, and retain multiple fixtures where relevant rather than assuming one per team per gameweek. The homepage currently uses compact badge-based cards with local kickoff labels and omits the separate FDR pill row.
+- Show at most six matchups in the homepage Upcoming fixtures carousel, ordered by gameweek and then kickoff time. Include gameweek, both teams, kickoff or TBC, and separate home/away difficulty. Do not provide a Show all control in this section.
+- Player cards still show all opponents in the next three gameweeks, including every match in double gameweeks. Mark unknown times and unassigned slots without inventing dates.
 - Where difficulty is displayed, accompany color and numbers with a readable explanation. Verify the source scale before assigning descriptions; do not compress home and away values into one unreadable label.
 - Link to a complete fixtures destination only once it exists. Avoid blocking the homepage work on building `/fixtures`.
 - Add recent analysis only after the blog supports published content. Follow the blog plan for evidence, timestamps, authorship, and publication rules. Never show draft or invented articles to fill the layout.
@@ -109,7 +121,7 @@ Keep `pages/index.vue` focused on composing the sections. Extract cohesive logic
 | --- | --- |
 | `pages/index.vue` | Reorder sections, shorten introduction, compose search and secondary tasks, consolidate discovery, and consume the homepage-only projection |
 | `server/api/homepage-data.ts` | Return only homepage-required player, event, and team fields without changing the shared bootstrap response |
-| `components/HomeDeadlinePanel.vue`, `components/HomeManagerLookup.vue`, `components/HomePlayerDiscovery.vue`, `components/HomePlayerDiscoveryRow.vue`, `components/HomeFixtureList.vue` | Keep the homepage sections focused and independently stateful |
+| `components/HomeDeadlinePanel.vue`, `components/HomeManagerLookup.vue`, `components/HomePlayerDiscovery.vue`, `components/HomePlayerDiscoveryRow.vue`, `components/HomePlayerTrends.vue`, `components/HomeFixtureList.vue` | Keep the homepage sections focused and independently stateful |
 | `components/CountdownTimer.vue` | Inspect shared usage before adding a compact variant or replacing only the homepage presentation |
 | `components/GameWeekCardNew.vue` | Move its homepage placement; adjust internal presentation only if needed |
 | `components/AppCarousel.vue`, `components/PlayerCardNew.vue` | Inspect shared consumers; use a homepage-specific row if changing the shared card would affect unrelated routes |
@@ -136,11 +148,11 @@ Keep the scheduler excluded. No rebrand, new account system, new prediction mode
 
 ### Pass 2: Discovery and readability
 
-- [x] Consolidate repeated player sections with a clear category control and rich portrait cards.
-- [x] Verify ranking semantics, metric units/periods, preferred player links, and category switching.
+- [x] Consolidate repeated player sections with focused filters and rich portrait cards.
+- [x] Verify ranking semantics, metric units/periods, preferred player links, and filter changes.
 - [x] Keep fixtures below player discovery and move the gameweek recap lower down.
 - [x] Simplify heading hierarchy, duplicate labels, spacing, and card nesting.
-- [x] Verify any reused save action through add, reload, remove, and navigation; this homepage does not add a second save control, save/remove behavior remains unchanged, and redundant browser-storage notices are removed from the profile and watchlist presentation.
+- [x] Verify any reused save action through add, reload, remove, and navigation; the current homepage cards reuse the existing save control and browser-local state. Save, reload, watchlist navigation, and removal were checked locally.
 
 ### Pass 3: Performance and completion
 
@@ -154,7 +166,6 @@ Keep the scheduler excluded. No rebrand, new account system, new prediction mode
 
 - [ ] Add a small published-article selection and Blog navigation when the blog is ready.
 - [ ] Connect complete player and fixture lists when their browse destinations exist.
-- [ ] Add decision summaries only when their inputs, freshness, and uncertainty can be explained accurately.
 
 ## Acceptance and reporting
 
@@ -169,7 +180,7 @@ Verify the actual `/` route in connected Brave, using the current dark presentat
 - [x] Essential labels and controls have a rendered visual contrast review. Difficulty remains understandable without color alone; this is not a formal WCAG audit.
 - [x] Category changes show the correct data and labels; initial HTML retains useful player links.
 - [x] Unknown deadlines/fixtures and unavailable stats do not produce invented values or misleading empty states.
-- [x] Existing watchlist state remains intact, this homepage includes no new save action, and the profile/watchlist UI does not repeat browser-storage implementation details.
+- [x] Homepage save actions reuse existing watchlist state, survive reload, and are reflected on the watchlist page. Storage implementation details are not repeated in public cards.
 - [x] No navigation points to unfinished destinations and no unpublished article content appears.
 - [x] Build and relevant local checks pass, with before/after measurements recorded.
 
@@ -202,3 +213,28 @@ Refinement verification: build and diff checks passed. Brave screenshots at 1275
 Recap grouping and fixture alignment, 6 September 2026: points, transfers, and chip plays now share one evenly aligned summary grid. Captain portraits sit beside their own labels, with a centre divider and internal spacing separating the two summaries. The homepage fixture rail stays inside the content gutter; removing negative margins also avoids snap alignment shifting the first card to the viewport edge.
 
 Grouping/alignment verification: build and diff checks passed. Brave checks at 1275 and 390 pixels confirmed the first fixture card matches the heading gutter exactly (32 and 16 pixels respectively), with no page overflow. All seven recap summary values share one baseline on desktop and reflow into aligned columns on mobile. Desktop/mobile screenshots confirmed each captain portrait is grouped with its own name and stats. Port 3010 now serves this build; hosted/device verification remains open.
+
+
+### 23 October 2026: initial transfer shortlist and AI suggestions (superseded)
+
+The initial 23 October implementation added an optional OpenRouter decision-service path alongside the transfer shortlist. The owner later directed that all AI calls be removed from the homepage and replaced with simultaneous FPL-stat ranking sections; that direction supersedes this implementation. The scheduler and its pre-existing changes were preserved. No dependency, account, publication, deployment, commit, or push was added.
+
+Local checks: `npm run build` passes with the existing Browserslist/sourcemap warnings. Targeted Node assertions cover full-catalog budget/position filtering, home/away FDR, gameweek horizon, blank/double weeks, unknown times, eligibility, valid/weak/malformed scores, invalid query parameters, missing credentials, provider failures, upstream catalog/fixture outages, secret-safe responses, partial-data cache rejection, and snapshot-specific cache keys. Provider responses were stubbed for these assertions.
+
+Connected Brave checks: desktop at effective CSS viewports 1280 × 900 and 1920 × 900, plus the browser's full desktop size, has no document horizontal overflow. Search results, active filters, invalid and empty budgets, keyboard disclosure toggles, complete player names, saved-player add/reload/watchlist/remove, and a controlled suggestions response were checked. The first search remains visible at 390 × 843. Light/dark preference and reduced-motion checks preserve readable controls. Temporary network interception and size/media overrides were cleared. The normal browser screenshot wrapper added blank capture margins at this browser's zoom; a native capture shows the complete viewport, and the owner confirmed the view is now fine. The page scrolls to the footer; the card rail has no vertical overflow.
+
+Local SSR after trimming unused homepage fields: 412,171 HTML bytes and 343,772 bytes for the largest JSON script. These are uncompressed local response sizes with the then-current catalog, not measured visitor growth or an exact comparison with another gameweek.
+
+At that time live provider verification was pending because the checkout had no `OPENROUTER_API_KEY`. The homepage provider path has since been removed; hosted behavior, analytics delivery, authenticated manager use, and physical-device behavior remain unverified. No release is authorized by these checks.
+
+### 23 October 2026: recap visual update
+
+Redesigned the homepage gameweek recap locally. Summary values use a simpler open layout, and captain spotlights use the player's club palette, larger portrait, and compact player stats. `git diff --check` passed. Browser and hosted verification remain open.
+
+### 23 October 2026: rule-based player trends
+
+Owner direction superseded the optional AI suggestions. The homepage now shows Differential, Most sold, and Most bought sections together, calculated from FPL ownership and gameweek transfer fields. The homepage OpenRouter endpoint, decision helper, runtime key mapping, and setup instructions were removed. The main portrait-card discovery list and its stat filters remain.
+
+Local verification: `npm run build`, targeted ranking assertions, `git diff --check`, and the Impeccable detector passed. The connected browser and production site were not available for this revision. Hosted data freshness, analytics delivery, authenticated manager access, and physical-device behavior remain unverified.
+
+Production-preview SSR: `/` returned HTTP 200 with all three trend headings rendered, and the removed `/api/homepage-shortlist` route returned 404. The uncompressed response measured 565,351 HTML bytes and 343,923 bytes for its largest JSON script, versus 412,171 and 343,772 before the trend sections. The rendered page contained 26 player-profile links and 128 image tags; the new compact-row images use lazy loading. This is a content/markup increase of 153,180 HTML bytes and 151 JSON bytes, not a field-performance result. Compressed transfer and visitor performance remain unmeasured. The build retained existing Browserslist, sourcemap, and font-path warnings.

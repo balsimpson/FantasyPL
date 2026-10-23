@@ -10,8 +10,8 @@
 			>
 				Skip to content
 			</a>
-			<div class="flex flex-col w-full mx-auto max-w-7xl">
-				<nav class="flex items-center justify-between px-3 sm:px-6 py-4">
+			<div class="flex flex-col w-full mx-auto" :class="route.path === '/' ? 'max-w-none' : 'max-w-7xl'">
+				<nav class="flex items-center justify-between py-4" :class="route.path === '/' ? 'px-4 sm:px-6 lg:px-8' : 'px-3 sm:px-6'">
 					<NuxtLink
 						to="/"
 						class="group inline-flex items-center gap-2 text-white/90 transition duration-200 ease-in-out hover:text-white"
@@ -36,3 +36,7 @@
 		</div>
 	</div>
 </template>
+
+<script setup>
+const route = useRoute();
+</script>

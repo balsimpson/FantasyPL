@@ -20,11 +20,14 @@ Read the relevant existing document before proposing work or creating another pl
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | Repository-wide working rules, boundaries, and pointers to topic documents |
 | [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) | Site-wide growth priorities, original audit evidence, and discovery/data/retention findings outside the dedicated plans |
-| [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, section order, UX/UI requirements, affected files, implementation checklist, and homepage verification evidence |
+| [DESIGN.md](DESIGN.md) | Homepage visual direction, shared content width, spacing, and presentation rules |
+| [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, behavior, affected files, implementation checklist, and homepage verification evidence |
 | [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
 | [Scheduler guide](docs/instascheduler/AGENTS.md) | Instagram scheduler design, player assets, preview, export and scheduling rules |
 
-For homepage work, read `HOMEPAGE_UX_PLAN.md` first and use the audit for its supporting evidence. The homepage plan supplies the detailed layout decisions absent from the original audit. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
+The [scheduler template editing reference](docs/instascheduler/TEMPLATE_EDITING.md) is a quick component map and scoped edit workflow; the scheduler guide remains authoritative for design and behavior requirements.
+
+For homepage work, read `HOMEPAGE_UX_PLAN.md` first and use the audit for its supporting evidence. `DESIGN.md` supplies the shared visual direction; the homepage plan remains the authority for structure, behavior, and implementation status. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
 
 - Update the primary document in place when requirements, decisions, or completion status change. Do not create another audit, plan, checklist, or status file for the same topic unless the user explicitly requests it.
 - Keep detailed recommendations, acceptance checks, and verification evidence in the owning document. Elsewhere, use a short cross-reference instead of copying them. Keep this guide focused on durable working rules.
@@ -47,7 +50,7 @@ Use this order when asked to choose the next growth task:
 5. Build the admin-backed blog alongside these improvements. Do not wait for every proposed tool page.
 6. Expand fixtures, player browsing, comparisons, and distribution based on observed demand.
 
-Keep the scheduler outside growth work. Do not change `pages/instaScheduler.vue`, its workflow, integrations, or indexing behavior unless explicitly requested. Before authorized scheduler work, read [docs/instascheduler/AGENTS.md](docs/instascheduler/AGENTS.md); it also applies to scheduler components, composables, utilities, assets and integration handlers outside that directory. Shared API changes must preserve its existing contracts. Read shared consumers only as needed to check compatibility. Do not send test requests to posting, upload, webhook, or other side-effect endpoints.
+Keep the scheduler outside growth work. Do not change `pages/instaScheduler.vue`, its workflow, integrations, or indexing behavior unless explicitly requested. Before authorized scheduler work, read [docs/instascheduler/AGENTS.md](docs/instascheduler/AGENTS.md); it also applies to scheduler components, composables, utilities, assets and integration handlers outside that directory. For a visual template change, use [docs/instascheduler/TEMPLATE_EDITING.md](docs/instascheduler/TEMPLATE_EDITING.md) to go directly to the relevant component before broadening the search. Shared API changes must preserve existing contracts. Read shared consumers only as needed to check compatibility. Do not send test requests to posting, upload, webhook, or other side-effect endpoints.
 
 Defer a visual rebrand, paid acquisition, chatbot, native app, large CMS, mass-generated articles, and accounts solely for watchlist sync unless the user changes scope. Confirm the intended public purpose of `/test`, `/instagram`, and `/fifa` before changing their access or indexing policy.
 
@@ -60,7 +63,9 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | Location | Responsibility |
 | --- | --- |
 | `pages/index.vue` | Homepage composition, manager lookup, player search, and ranked player lists; consumes the homepage-only data projection |
-| `components/Home*.vue`, `components/GameWeekCardNew.vue` | Focused homepage deadline, lookup, discovery, fixture, and recap presentation |
+| `components/Home*.vue`, `components/GameWeekCardNew.vue` | Homepage deadline, collapsed lookup/filters, saved-player links, portrait shortlists, six upcoming matchups, three-gameweek player fixture runs, and recap |
+| `composables/useHomepageShortlist.ts`, `utils/homepage-shortlist.ts` | Full-catalog price/position filtering, stat ranking, rule-based player trends, and gameweek/fixture grouping |
+| `server/utils/homepage-data.ts`, `server/api/homepage-data.ts` | Homepage-only FPL snapshot; the shared bootstrap contract remains unchanged |
 | `pages/player/[id].vue` | Player profile, fixtures, history, and metadata |
 | `pages/manager/[id].vue` | Manager and team journey |
 | `pages/watchlist.vue`, `components/PlayerWatchlistCard.vue` | Existing incomplete saved-player experience |
@@ -83,6 +88,7 @@ Available scripts are `npm run dev`, `npm run build`, `npm run preview`, and `np
 - Do not commit, push, publish, deploy, delete, post, contact others, purchase services, or change external accounts without explicit authorization. An approved local implementation does not authorize a release.
 - Continue routine authorized work without repeated confirmation. Ask only when an unresolved choice changes scope or side effects. If delegation is needed and permitted, use Luna subagents only.
 - Use Nuxt UI where appropriate and Tailwind for layout and styling. Prefer one visual layer over nested cards. Keep inputs and textareas full width at both the component root and inner control. Use real workflow-specific copy and placeholders.
+- On the homepage, use the available viewport width and reveal secondary inputs on demand. Keep player names in full with wrapping; never use ellipsis or line clamping. Calculate Differential, Most sold, and Most bought sections from current FPL ownership and transfer counts; keep their ranking rules in `HOMEPAGE_UX_PLAN.md` and do not add homepage AI/provider calls.
 - Keep pages focused on composition. Extract cohesive state, filtering, URL handling, and formatting into small composables, stores, or utilities. Avoid growing the homepage or player page into another monolithic file.
 - Preserve useful server-rendered HTML. Profile serialized data before trimming shared responses, and check all consumers before changing fields, validators, identity, or units.
 - Keep secrets server-only. Do not print `.env` values or move model credentials into public runtime configuration.

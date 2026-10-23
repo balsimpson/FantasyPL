@@ -1,6 +1,6 @@
 <template>
   <div class="relative min-h-screen text-stone-50">
-    <main id="main-content" class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+    <main id="main-content" class="mx-auto flex w-full flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
       <section aria-labelledby="home-title" class="grid min-w-0 gap-x-8 gap-y-5 border-b border-white/10 pb-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
           <h1 id="home-title" class="order-0 max-w-xl text-3xl font-black leading-tight tracking-[-0.03em] text-white sm:text-4xl">
             Find your next FPL player
@@ -51,10 +51,10 @@
                   class="group flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-white/[0.06] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
                   <span class="min-w-0">
-                    <span class="block truncate text-base font-semibold text-white">
+                    <span class="block text-base font-semibold text-white [overflow-wrap:anywhere]">
                       {{ player.first_name }} {{ player.second_name }}
                     </span>
-                    <span class="mt-1 block truncate text-sm text-stone-400">
+                    <span class="mt-1 block text-sm text-stone-400 [overflow-wrap:anywhere]">
                       {{ player.web_name }} · {{ getTeamInfo(player.team, bootstrap)?.name || 'Team unavailable' }}
                     </span>
                   </span>
@@ -75,10 +75,27 @@
           :loading="bootstrapPending"
           :error="bootstrapFailed"
         />
-        <HomeManagerLookup class="order-2 md:order-3" />
+        <details class="order-2 min-w-0 md:order-3">
+          <summary class="w-fit cursor-pointer rounded-md py-2 text-sm font-semibold text-stone-300 hover:text-white focus-visible:outline-2 focus-visible:outline-lime-300">Open your team</summary>
+          <HomeManagerLookup class="mt-3" />
+        </details>
       </section>
 
+      <HomeSavedPlayers v-if="!bootstrapFailed && !bootstrapPending" :players="bootstrap?.elements || []" />
+
       <HomePlayerDiscovery
+        :players="bootstrap?.elements || []"
+        :teams="bootstrap?.teams || []"
+        :fixtures="fixturesList"
+        :gameweeks="shortlistGameweeks"
+        :fixtures-available="!fixturesFailed && !bootstrapPending"
+        :fetched-at="bootstrap?.fetchedAt"
+        :loading="bootstrapPending"
+        :error="bootstrapFailed"
+        @retry="retryBootstrap"
+      />
+
+      <HomePlayerTrends
         :players="bootstrap?.elements || []"
         :teams="bootstrap?.teams || []"
         :loading="bootstrapPending"
@@ -89,18 +106,20 @@
       <HomeFixtureList
         :fixtures="fixturesList"
         :teams="bootstrap?.teams || []"
-        :loading="fixturesPending"
+        :gameweeks="shortlistGameweeks"
+        :loading="bootstrapPending"
         :error="fixturesFailed"
-        @retry="retryFixtures"
+        @retry="retryBootstrap"
       />
 
-      <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" />
+      <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
     </main>
   </div>
 </template>
 
 <script setup>
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
+import { getShortlistGameweeks } from "~/utils/homepage-shortlist";
 
 definePageMeta({
   keepalive: true,
@@ -133,20 +152,12 @@ const {
   refresh: refreshBootstrap,
 } = await useAsyncData("homepage-bootstrap", () => $fetch("/api/homepage-data"));
 
-const {
-  data: fixtures,
-  pending: fixturesPending,
-  error: fixturesRequestError,
-  refresh: refreshFixtures,
-} = await useLazyAsyncData("fixtures", () => $fetch("/api/fixtures"));
-
 const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
 const bootstrapFailed = computed(() => !bootstrapPending.value && Boolean(bootstrapRequestError.value || !hasPlayerCatalog.value));
 
-const fixturesList = computed(() => (Array.isArray(fixtures.value) ? fixtures.value : []));
-const fixturesFailed = computed(() =>
-  !fixturesPending.value && Boolean(fixturesRequestError.value || !Array.isArray(fixtures.value)),
-);
+const fixturesList = computed(() => Array.isArray(bootstrap.value?.fixtures) ? bootstrap.value.fixtures : []);
+const fixturesFailed = computed(() => !bootstrapPending.value && !Array.isArray(bootstrap.value?.fixtures));
+const shortlistGameweeks = computed(() => getShortlistGameweeks(bootstrap.value?.events || []));
 
 const nextGameweek = computed(() => {
   if (!Array.isArray(bootstrap.value?.events)) return null;
@@ -210,7 +221,4 @@ const retryBootstrap = async () => {
   await refreshBootstrap();
 };
 
-const retryFixtures = async () => {
-  await refreshFixtures();
-};
 </script>

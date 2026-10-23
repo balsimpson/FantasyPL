@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vSchedulerElement } from '~/utils/scheduler-element'
 import type { InstagramDraft, InstagramPlayer, InstagramStatKey } from '~/utils/instagram-templates'
 import { formatInstagramStat, instagramStatLabel, instagramFixtureColors } from '~/utils/instagram-templates'
 import { getInstagramClubTheme, getInstagramStatSignals, getInstagramStatSignalColor } from '~/utils/instagram-designs'
@@ -9,12 +10,16 @@ import SchedulerPlayerPhoto from '~/components/SchedulerPlayerPhoto.vue'
 import SchedulerTransferBar from '~/components/SchedulerTransferBar.vue'
 import SchedulerClubGraphics from '~/components/SchedulerClubGraphics.vue'
 const props = defineProps<{ draft: InstagramDraft }>()
+const element = (id: string, label: string) => ({ id, label, layout: props.draft.layout })
 const main = computed(() => props.draft.players[0])
 const theme = computed(() => getInstagramClubTheme(main.value?.clubCode ?? 0, props.draft.palette))
 const dark = computed(() => ['matchday', 'night', 'analyst', 'hero'].includes(props.draft.design))
 const colours = computed(() => ({
   backgroundColor: ['analyst', 'hero'].includes(props.draft.design) ? '#080e1b' : dark.value ? theme.value.dark : props.draft.design === 'editorial' ? '#f8f5ee' : props.draft.design === 'contrast' ? theme.value.complementary.paper : theme.value.paper,
   color: dark.value ? '#faf9f5' : props.draft.design === 'contrast' ? theme.value.complementary.ink : theme.value.ink,
+  backgroundImage: props.draft.design === 'night'
+    ? 'radial-gradient(ellipse 22% 14% at 5.5% 92%, rgba(255, 255, 255, 0.36), transparent 100%), radial-gradient(ellipse 22% 14% at 96.3% 92%, rgba(255, 255, 255, 0.36), transparent 100%)'
+    : undefined,
 }))
 const transfers = computed(() => {
   const players = props.draft.players
@@ -30,11 +35,14 @@ function statSignalColor(player: InstagramPlayer, key: InstagramStatKey) {
 <template>
   <article class="relative flex h-[1080px] w-[1080px] flex-col overflow-hidden font-sans" :style="colours" :aria-label="`${main?.fullName ?? draft.headline} post preview`" data-post-artwork :data-post-format="draft.template" :data-club-code="main?.clubCode" :data-design-id="draft.design">
     <header class="relative z-20 flex h-[92px] shrink-0 items-center justify-between px-12 pt-1">
-      <span class="text-[20px] font-semibold tracking-tight opacity-55">FPL Insights</span>
-      <span class="font-[FPLNumbers] text-[26px] font-semibold">{{ draft.gameweek ? `GW ${draft.gameweek}` : 'FPL' }}</span>
+      <div class="flex items-center gap-5">
+        <span v-scheduler-element="element('brand', 'Brand')" class="text-[20px] font-semibold tracking-tight opacity-55">FPL Insights</span>
+        <span v-if="draft.story" class="text-[24px] font-semibold">{{ draft.story.label }}</span>
+      </div>
+      <span v-scheduler-element="element('gameweek', 'Gameweek')" class="font-[FPLNumbers] text-[26px] font-semibold">{{ draft.gameweek ? `GW ${draft.gameweek}` : 'FPL' }}</span>
     </header>
 
-    <div class="relative h-[848px] shrink-0 overflow-hidden">
+    <div class="relative h-[848px] shrink-0">
       <SchedulerPlayerDesign v-if="main && ['spotlight', 'transfers'].includes(draft.template)" :draft="draft" />
 
       <SchedulerComparisonDesign v-else-if="draft.template === 'comparison'" :draft="draft" />
@@ -58,7 +66,7 @@ function statSignalColor(player: InstagramPlayer, key: InstagramStatKey) {
     </div>
 
     <footer class="relative z-20 mt-auto shrink-0 px-12 pb-4">
-      <SchedulerTransferBar :incoming="transfers.incoming" :outgoing="transfers.outgoing" :combined="draft.players.length > 1" :dark="dark" />
+      <SchedulerTransferBar v-scheduler-element="element('transfers', 'Transfer bar')" :incoming="transfers.incoming" :outgoing="transfers.outgoing" :combined="draft.players.length > 1" :dark="dark" />
     </footer>
   </article>
 </template>
