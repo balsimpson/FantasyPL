@@ -1,4 +1,4 @@
-export const DEFAULT_SITE_URL = "https://fantasyleague.vercel.app";
+export const DEFAULT_SITE_URL = "https://sportsync.in";
 
 const DEFAULT_SITE_ORIGIN = new URL(DEFAULT_SITE_URL).origin;
 

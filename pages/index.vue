@@ -132,15 +132,16 @@ useHead({
 });
 
 useSeoMeta({
-  title: "Fantasy Premier League Stats, Fixtures & Ownership",
+  title: "FPL Player Stats, Fixtures & Transfer Trends",
   description:
-    "Compare Fantasy Premier League player stats, fixtures, ownership, transfers, and form in one clean dashboard to make faster weekly decisions and spot trends.",
-  ogTitle: "Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights",
+    "Find your next FPL player. Compare prices, form, ownership and upcoming fixtures, then save your shortlist before the next gameweek deadline.",
+  ogTitle: "Make your next transfer count | FPL Insights",
   ogDescription:
-    "Track player stats, fixtures, ownership, transfers, and form with a clean FPL dashboard built for faster weekly decisions.",
-  twitterTitle: "Fantasy Premier League Stats, Fixtures & Ownership | FPL Insights",
+    "Find your next FPL player. Compare prices, form, ownership and upcoming fixtures, then save your shortlist before the next gameweek deadline.",
+  ogUrl: canonicalUrl,
+  twitterTitle: "Make your next transfer count | FPL Insights",
   twitterDescription:
-    "Fantasy Premier League stats, fixtures, ownership, and form in one clean dashboard.",
+    "Find your next FPL player. Compare prices, form, ownership and upcoming fixtures, then save your shortlist before the next gameweek deadline.",
 });
 
 const playerQuery = ref("");

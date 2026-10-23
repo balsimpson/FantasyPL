@@ -8,7 +8,7 @@ Before editing, confirm the working directory, Git remote, branch, dirty state, 
 
 - Expected checkout: `/Users/balsimpson/Documents/Projects/FantasyPL`.
 - Expected remote: `https://github.com/balsimpson/FantasyPL.git`.
-- Declared public site: `https://fantasyleague.vercel.app`, hosted on Vercel. This does not establish the deployed commit or authenticated Vercel project configuration.
+- Approved canonical public site: `https://sportsync.in` (owner decision, 24 October 2026). Hosting remains on Vercel; the previous address is `https://fantasyleague.vercel.app`. Domain attachment, redirects, deployed commit, and authenticated Vercel settings require separate verification. Keep `NUXT_PUBLIC_SITE_URL` aligned with the approved canonical origin.
 - The branch was `main` when this guide was created. Check it each session; do not switch branches automatically.
 - Use npm only. Keep `package-lock.json` aligned with intentional dependency changes. The README's alternative package-manager examples are not the project preference.
 

@@ -2,7 +2,7 @@
 
 A simplified data view for Fantasy PL newbies.
 
-You can see it in action [here](https://fantasyleague.vercel.app)!
+The approved canonical site is [sportsync.in](https://sportsync.in). Domain setup and hosted verification are pending.
 
 ## Setup
 

@@ -20,18 +20,6 @@ export default defineNuxtConfig({
 			meta: [
 				{ name: "viewport", content: "width=device-width, initial-scale=1" },
 				{
-					property: "og:image",
-					content: "https://fantasyleague.vercel.app/twitter_large_image.png",
-				},
-				{
-					name: "twitter:card",
-					content: "summary_large_image",
-				},
-				{
-					name: "twitter:image",
-					content: "https://fantasyleague.vercel.app/twitter_large_image.png",
-				},
-				{
 					name: "keywords",
 					content:
 						"Fantasy Premier League, FPL, player transfers, statistics, decision-making, football, soccer, fantasy sports",
