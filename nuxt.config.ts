@@ -46,6 +46,10 @@ export default defineNuxtConfig({
 	  css: ['~/assets/css/main.css'],
 	runtimeConfig: {
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
+		BUFFER_API_KEY: process.env.BUFFER_API_KEY || "",
+		BUFFER_CHANNEL_ID: process.env.BUFFER_CHANNEL_ID || "",
+		CONVEX_URL: process.env.CONVEX_URL || "",
+		SCHEDULER_SERVICE_TOKEN: process.env.SCHEDULER_SERVICE_TOKEN || "",
 		public: {
 			SITE_URL: process.env.NUXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL,
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,

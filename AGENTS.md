@@ -22,6 +22,7 @@ Read the relevant existing document before proposing work or creating another pl
 | [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) | Site-wide growth priorities, original audit evidence, and discovery/data/retention findings outside the dedicated plans |
 | [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, section order, UX/UI requirements, affected files, implementation checklist, and homepage verification evidence |
 | [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
+| [Scheduler guide](docs/instascheduler/AGENTS.md) | Instagram scheduler design, player assets, preview, export and scheduling rules |
 
 For homepage work, read `HOMEPAGE_UX_PLAN.md` first and use the audit for its supporting evidence. The homepage plan supplies the detailed layout decisions absent from the original audit. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
 
@@ -46,7 +47,7 @@ Use this order when asked to choose the next growth task:
 5. Build the admin-backed blog alongside these improvements. Do not wait for every proposed tool page.
 6. Expand fixtures, player browsing, comparisons, and distribution based on observed demand.
 
-Keep the scheduler outside growth work. Do not change `pages/instaScheduler.vue`, its workflow, integrations, or indexing behavior unless explicitly requested. Shared API changes must preserve its existing contracts. Read shared consumers only as needed to check compatibility. Do not send test requests to posting, upload, webhook, or other side-effect endpoints.
+Keep the scheduler outside growth work. Do not change `pages/instaScheduler.vue`, its workflow, integrations, or indexing behavior unless explicitly requested. Before authorized scheduler work, read [docs/instascheduler/AGENTS.md](docs/instascheduler/AGENTS.md); it also applies to scheduler components, composables, utilities, assets and integration handlers outside that directory. Shared API changes must preserve its existing contracts. Read shared consumers only as needed to check compatibility. Do not send test requests to posting, upload, webhook, or other side-effect endpoints.
 
 Defer a visual rebrand, paid acquisition, chatbot, native app, large CMS, mass-generated articles, and accounts solely for watchlist sync unless the user changes scope. Confirm the intended public purpose of `/test`, `/instagram`, and `/fifa` before changing their access or indexing policy.
 

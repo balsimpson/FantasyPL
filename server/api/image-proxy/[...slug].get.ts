@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const response = await fetch(imageUrl.toString(), {
+    let response = await fetch(imageUrl.toString(), {
       headers: {
         Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -34,6 +34,14 @@ export default defineEventHandler(async (event) => {
       },
       redirect: 'follow',
     })
+
+    // Some players only have the archived headshot. Keep the same player code.
+    if (!response.ok && query.strict === '1') {
+      const code = imageUrl.pathname.match(/\/photos\/players\/250x250\/p(\d+)\.png$/)?.[1]
+      if (code) {
+        response = await fetch(`https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`)
+      }
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
@@ -54,6 +62,9 @@ export default defineEventHandler(async (event) => {
     return Buffer.from(arrayBuffer)
   } catch (error) {
     console.warn('Image proxy fallback:', error instanceof Error ? error.message : error)
+    if (query.strict === '1') {
+      throw createError({ statusCode: 502, statusMessage: 'Player photo unavailable' })
+    }
     return sendRedirect(event, '/fallback.png', 302)
   }
 })

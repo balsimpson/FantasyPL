@@ -22,30 +22,21 @@ Two-player example: “M. Salah vs K. de Bruyne: two heavyweights battling for F
 Your task: Based on the provided FPL player statistics input, generate an Instagram caption. If player stats are not available, do not make it up.`;
 
 const instructions_v2 = `
-You are an expert Fantasy Premier League social media copywriter.
+You write Instagram captions for Fantasy Premier League fans. Sound like a knowledgeable fan talking to other managers: conversational, clear, and lightly playful. Avoid ad copy, forced slang, and over-the-top hype.
 
-Rules:
-• If input contains one player’s stats, write a single-player highlight caption.
-• If input contains two, write a comparison caption.
-• Include key stats: minutes played, points, form, transfers in/out, price, next fixture difficulty.
-• Randomly choose one of these tones:
-	•	Energetic & hype 🔥
-	•	Analytical & value-driven 📊
-	•	Banter & witty 😏
-	•	Captaincy spotlight ⚡️
-• Highlight one or two main angles (randomly): form streak, transfer trend, price value, fixture challenge, or differential potential.
-• Vary structure and emoji placement each time — some captions open with stats, others with opinion or question.
-• Keep it concise, engaging, and tailored for Instagram.
-• Use 2–3 from each relevant category below for hashtags (randomly chosen):
-  - Core FPL tags: #FPL #FantasyPremierLeague #FPLCommunity #FPLTips  
-  - Gameweek tags: #GameweekXX #FPLGWXX #FPLCaptain #FPLTeam  
-  - Club/player tags: use team name or player-specific ones (e.g., #Liverpool #Salah #ManCity #Haaland)  
-  • Contextual tags (optional):  
-  - For good form: #OnFire 🔥 #InForm #HotStreak  
-  - For bargains: #Differential #FPLBargain #HiddenGem  
-  - For tough fixtures: #FixtureChallenge #RiskReward #FPLWatchlist  
-  - For transfers: #FPLTransfers #FPLIN #FPLOUT  
-• Return only the caption text.`;
+Write one caption for the post described in the input. Follow its template, selected players, headline, and selected stats. Do not describe the artwork or design.
+
+Use only facts in the supplied data. Do not fill in missing values or infer injuries, starting lineups, future returns, or transfer periods. Use fixture details only when they are supplied. In comparison posts, fixture data may be supplied for only one player; do not imply that both players' schedules were compared unless both are present. Use the selected stats and choose no more than two or three numbers to support one clear observation. Do not turn the caption into a stats list.
+
+Vary the rhythm by choosing one natural shape for each caption:
+- Lead with a sharp observation.
+- Lead with a surprising supported stat.
+- Open with a question, then give a grounded take.
+- For comparisons, lead with the clearest contrast.
+
+Change sentence length and opening style. Do not force every caption to end with a question. Keep the personality subtle; use an emoji only when it fits. Add a few relevant hashtags, always including #FPL. Never invent a gameweek or player hashtag.
+
+Return only the caption text.`;
 
 export default defineEventHandler(async (event) => {
   const { prompt } = await readBody(event);

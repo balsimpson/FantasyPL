@@ -11,12 +11,6 @@ export const getSmartRecommendations = (players: any[]) => {
     // 2. Filter available players only
     const available = scored.filter(p => p.status === 'a');
 
-    // Helper to pick random items from an array
-    const pickRandom = (arr: any[], count: number) => {
-        const shuffled = [...arr].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
-    };
-
     // 3. Define Buckets
 
     // A. The Essentials (Top 20 by Score) - High performing, reliable
@@ -57,10 +51,8 @@ export const getSmartRecommendations = (players: any[]) => {
         const validCandidates = candidates.filter(p => !selectedIds.has(p.id));
 
         if (validCandidates.length > 0) {
-            // Pick one random from the top candidates of this category
-            // We pick from the top 5 of the valid candidates to ensure quality while keeping variety
-            const topBatch = validCandidates.slice(0, 5);
-            const winner = topBatch[Math.floor(Math.random() * topBatch.length)];
+            // Keep SSR and hydration identical so the name and image refer to the same player.
+            const winner = validCandidates[0];
 
             selectedIds.add(winner.id);
             recommendations.push({
@@ -77,7 +69,7 @@ export const getSmartRecommendations = (players: any[]) => {
     addRecommendation('Form King', formKings);
     addRecommendation('Rising Star', risingStars);
 
-    // Add a couple more randoms from top overall to fill it out
+    // Fill the remaining suggestions without changing order during hydration
     addRecommendation('Top Performer', topOverall);
     addRecommendation('Under the Radar', differentials);
 
