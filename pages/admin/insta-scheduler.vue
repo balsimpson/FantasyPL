@@ -8,8 +8,8 @@ import SchedulerPickReason from '~/components/SchedulerPickReason.vue'
 import SchedulerPostHistory from '~/components/SchedulerPostHistory.vue'
 import SchedulerTemplateEditor from '~/components/SchedulerTemplateEditor.vue'
 
-definePageMeta({ layout: false })
-useHead({ title: 'Instagram scheduler' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
+useHead({ title: 'InstaScheduler' })
 
 const { data, status, error, refresh } = await useAsyncData('instagram-editor-players', async () => {
   const response = await $fetch<any>('/api/players/get-all')
@@ -236,12 +236,12 @@ onScopeDispose(() => {
 </script>
 
 <template>
-  <UApp>
-    <main class="h-dvh overflow-hidden bg-default text-default selection:bg-primary/20">
-      <div class="flex h-full flex-col">
+    <main class="h-full min-h-0 overflow-hidden bg-default text-default selection:bg-primary/20">
+      <div class="flex h-full min-h-0 flex-col">
         <header class="site-content-rail flex shrink-0 items-center justify-between py-3">
           <div class="flex items-center gap-3">
-            <UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to FPL Insights" />
+            <UDashboardSidebarCollapse />
+            <UButton to="/admin/articles" icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to articles" />
             <h1 class="text-sm font-semibold text-highlighted sm:text-base">Post picks <span class="font-normal text-muted">· GW{{ draft.gameweek ?? '—' }}</span></h1>
           </div>
           <div class="flex items-center gap-1">
@@ -354,5 +354,4 @@ onScopeDispose(() => {
         </section>
       </div>
     </main>
-  </UApp>
 </template>

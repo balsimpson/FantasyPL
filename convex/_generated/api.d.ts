@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as articleEdits from "../articleEdits.js";
 import type * as articleJobValidators from "../articleJobValidators.js";
 import type * as articleJobs from "../articleJobs.js";
 import type * as articleProvider from "../articleProvider.js";
@@ -15,6 +16,7 @@ import type * as articleResearch from "../articleResearch.js";
 import type * as articleResearchValidators from "../articleResearchValidators.js";
 import type * as articleValidators from "../articleValidators.js";
 import type * as articles from "../articles.js";
+import type * as managerShares from "../managerShares.js";
 import type * as schedulerHistory from "../schedulerHistory.js";
 import type * as schedulerValidators from "../schedulerValidators.js";
 
@@ -25,6 +27,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  articleEdits: typeof articleEdits;
   articleJobValidators: typeof articleJobValidators;
   articleJobs: typeof articleJobs;
   articleProvider: typeof articleProvider;
@@ -32,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   articleResearchValidators: typeof articleResearchValidators;
   articleValidators: typeof articleValidators;
   articles: typeof articles;
+  managerShares: typeof managerShares;
   schedulerHistory: typeof schedulerHistory;
   schedulerValidators: typeof schedulerValidators;
 }>;

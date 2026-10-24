@@ -1,7 +1,29 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
 const { user, clear } = useUserSession()
 const route = useRoute()
+const isScheduler = computed(() => route.path === '/admin/insta-scheduler')
+const showNewArticle = computed(() => !isScheduler.value && !route.path.startsWith('/admin/articles'))
+const pageTitle = computed(() => {
+  if (route.path.startsWith('/admin/articles/')) return 'Article editor'
+  if (route.path.startsWith('/admin/articles')) return 'Articles'
+  if (route.path.startsWith('/admin/insta-scheduler')) return 'InstaScheduler'
+  if (route.path.startsWith('/admin/sharing')) return 'Sharing'
+  return 'Workspace'
+})
+
+const navigation = computed<NavigationMenuItem[][]>(() => [[
+  { label: 'Articles', icon: 'i-lucide-files', to: '/admin/articles' },
+  { label: 'New article', icon: 'i-lucide-file-plus-2', to: '/admin/articles/new' },
+], [
+  { label: 'InstaScheduler', icon: 'i-lucide-instagram', to: '/admin/insta-scheduler' },
+  { label: 'Sharing', icon: 'i-lucide-share-2', to: '/admin/sharing' },
+  { label: 'View site', icon: 'i-lucide-arrow-up-right', to: '/' },
+]])
+
 useSeoMeta({ robots: 'noindex, nofollow' })
+
 async function signOut() {
   await clear()
   await navigateTo('/admin/login')
@@ -10,35 +32,73 @@ async function signOut() {
 
 <template>
   <UApp>
-    <div class="min-h-screen bg-default text-default lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]">
+    <UDashboardGroup storage="cookie" storage-key="fpl-admin-workspace" class="h-dvh bg-default text-default">
       <a href="#admin-content" class="sr-only z-50 rounded-md bg-primary p-3 text-inverted focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
-      <aside class="border-b border-default bg-muted/40 px-5 py-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-r lg:border-b-0 lg:py-7">
-        <NuxtLink to="/admin/articles" class="flex items-center gap-2 text-lg font-bold tracking-tight text-highlighted">
-          <UIcon name="i-lucide-notebook-pen" class="size-6 text-primary" />
-          FPL Insights
-        </NuxtLink>
-        <p class="mt-1 text-sm text-muted">Content workspace</p>
-        <nav aria-label="Admin navigation" class="mt-5 flex items-center gap-2 lg:mt-10 lg:block">
-          <UButton to="/admin/research" label="Research" icon="i-lucide-search" :variant="route.path.startsWith('/admin/research') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:w-full" />
-          <UButton to="/admin/articles" label="Articles" icon="i-lucide-files" :variant="route.path.startsWith('/admin/articles') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
-          <UButton to="/admin/sharing" label="Sharing" icon="i-lucide-share-2" :variant="route.path.startsWith('/admin/sharing') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
-          <UButton to="/" label="View site" icon="i-lucide-arrow-up-right" variant="ghost" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
-        </nav>
-        <div class="mt-auto hidden pt-6 text-sm text-muted lg:block">
-          <p>Write, preview and save.</p>
-          <p class="mt-1">Your drafts stay private.</p>
-        </div>
-      </aside>
-      <div class="min-w-0">
-        <header class="flex min-h-16 items-center justify-end gap-3 border-b border-default px-5 sm:px-8">
-          <span v-if="user" class="text-sm text-muted">{{ user.login }}</span>
-          <UColorModeButton />
-          <UButton v-if="user" label="Sign out" color="neutral" variant="ghost" size="sm" @click="signOut" />
-        </header>
-        <main id="admin-content" class="mx-auto w-full max-w-[96rem] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          <slot />
-        </main>
-      </div>
-    </div>
+
+      <UDashboardSidebar
+        id="workspace"
+        collapsible
+        resizable
+        :min-size="14"
+        :max-size="26"
+        :default-size="18"
+        :collapsed-size="5"
+        class="bg-muted/30"
+        :ui="{ footer: 'justify-between' }"
+      >
+        <template #header="{ collapsed }">
+          <NuxtLink to="/admin/articles" class="flex w-full min-w-0 items-center gap-2 text-base font-bold tracking-tight text-highlighted" :class="collapsed ? 'justify-center' : ''" :aria-label="collapsed ? 'FPL Insights workspace' : undefined">
+            <UIcon name="i-lucide-notebook-pen" class="size-5 shrink-0 text-primary" />
+            <span v-if="!collapsed" class="truncate">FPL Insights</span>
+          </NuxtLink>
+        </template>
+
+        <template #default="{ collapsed }">
+          <UNavigationMenu :items="navigation" :collapsed="collapsed" :tooltip="collapsed" orientation="vertical" class="w-full" :ui="{ link: collapsed ? 'justify-center px-0' : 'justify-start' }" />
+        </template>
+
+        <template #footer="{ collapsed }">
+          <div class="flex min-w-0 flex-1 items-center gap-2">
+            <UAvatar v-if="user && !collapsed" :alt="user.login" size="sm" icon="i-lucide-user-round" />
+            <span v-if="user && !collapsed" class="min-w-0 flex-1 truncate text-sm text-muted">{{ user.login }}</span>
+          </div>
+          <UButton
+            :icon="collapsed ? 'i-lucide-log-out' : undefined"
+            :label="collapsed ? undefined : 'Sign out'"
+            color="neutral"
+            variant="ghost"
+            :aria-label="collapsed ? 'Sign out' : undefined"
+            :class="collapsed ? 'mx-auto' : ''"
+            @click="signOut"
+          />
+        </template>
+      </UDashboardSidebar>
+
+      <UDashboardPanel class="h-dvh min-h-0 min-w-0" :ui="{ body: isScheduler ? 'min-h-0 overflow-hidden gap-0 p-0' : undefined }">
+        <template v-if="!isScheduler" #header>
+          <UDashboardNavbar :title="pageTitle">
+            <template #leading>
+              <UDashboardSidebarCollapse />
+            </template>
+            <template #right>
+              <UTooltip v-if="showNewArticle" text="New article">
+                <UButton to="/admin/articles/new" icon="i-lucide-plus" color="neutral" variant="ghost" aria-label="New article" />
+              </UTooltip>
+              <UColorModeButton />
+            </template>
+          </UDashboardNavbar>
+        </template>
+
+        <template #body>
+          <main
+            id="admin-content"
+            class="mx-auto w-full max-w-[96rem] px-5 py-7 sm:px-8 lg:px-10 lg:py-9"
+            :class="isScheduler ? 'h-full max-w-none overflow-hidden p-0' : 'min-h-full'"
+          >
+            <slot />
+          </main>
+        </template>
+      </UDashboardPanel>
+    </UDashboardGroup>
   </UApp>
 </template>

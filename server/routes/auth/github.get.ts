@@ -7,7 +7,7 @@ export default defineOAuthGitHubEventHandler({
       return sendRedirect(event, '/admin/login?error=access')
     }
     await replaceUserSession(event, { user: { githubId: String(user.id), login: user.login, name: user.name || user.login, avatarUrl: user.avatar_url } })
-    return sendRedirect(event, '/admin/research')
+    return sendRedirect(event, '/admin/articles#research')
   },
   onError(event) {
     return sendRedirect(event, '/admin/login?error=login')

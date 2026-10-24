@@ -10,6 +10,7 @@ export default defineEventHandler((event) => {
 
 	return `User-agent: *
 Allow: /
+Disallow: /api/
 Sitemap: ${origin}/sitemap.xml
 `;
 });

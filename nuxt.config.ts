@@ -35,6 +35,26 @@ export default defineNuxtConfig({
 		},
 	},
 	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image", "nuxt-auth-utils", "@vite-pwa/nuxt"],
+	vite: {
+		optimizeDeps: {
+			include: [
+				"@tiptap/core",
+				"@tiptap/vue-3",
+				"@tiptap/pm/changeset",
+				"@tiptap/pm/commands",
+				"@tiptap/pm/dropcursor",
+				"@tiptap/pm/gapcursor",
+				"@tiptap/pm/history",
+				"@tiptap/pm/keymap",
+				"@tiptap/pm/model",
+				"@tiptap/pm/schema-list",
+				"@tiptap/pm/state",
+				"@tiptap/pm/tables",
+				"@tiptap/pm/transform",
+				"@tiptap/pm/view",
+			],
+		},
+	},
 	pwa: {
 		registerType: "autoUpdate",
 		manifest: {

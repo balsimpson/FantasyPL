@@ -1,9 +1,11 @@
-import { articleText, emptyArticle, validateArticleDraft, type SavedArticle } from '~/shared/articles'
+import { articleText, emptyArticle, validateArticleDraft, type ArticleNode, type SavedArticle } from '~/shared/articles'
 
 export function useArticleEditor(id: string) {
   const draft = ref(emptyArticle())
   const articleId = ref(id === 'new' ? '' : id)
   const version = ref(0)
+  const status = ref<'draft' | 'published'>('draft')
+  const publishedVersion = ref(0)
   const savedAt = ref<number | null>(null)
   const savedSnapshot = ref(JSON.stringify(draft.value))
   const saving = ref(false)
@@ -11,6 +13,7 @@ export function useArticleEditor(id: string) {
   const loadError = ref('')
   const loading = ref(id !== 'new')
   const conflict = ref(false)
+  const cleanupSourceNoteOnMount = ref(false)
   const dirty = computed(() => JSON.stringify(draft.value) !== savedSnapshot.value)
   const wordCount = computed(() => articleText(draft.value.body).trim().split(/\s+/).filter(Boolean).length)
   const requestFetch = useRequestFetch()
@@ -24,10 +27,19 @@ export function useArticleEditor(id: string) {
     try {
       const article = await requestFetch<SavedArticle>(`/api/admin/articles/${id}`)
       const { title, slug, excerpt, template, season, gameweek, body } = article
-      draft.value = { title, slug, excerpt, template, season, gameweek, body }
+      draft.value = { title, slug, excerpt, template, season, gameweek, body, sources: article.sources || [] }
       version.value = article.version
+      status.value = article.status
+      publishedVersion.value = article.publishedVersion || 0
       savedAt.value = article.updatedAt
       savedSnapshot.value = JSON.stringify(draft.value)
+      if (body.type === 'doc' && Array.isArray(body.content)) {
+        const content = body.content.filter((node: ArticleNode) => !(node.type === 'paragraph' && articleText(node).trimStart().startsWith('Source: official FPL data, captured ')))
+        if (content.length !== body.content.length) {
+          draft.value.body = { ...body, content }
+          cleanupSourceNoteOnMount.value = true
+        }
+      }
     } catch (error: any) { loadError.value = error.data?.statusMessage || 'This article could not be loaded. Please try again.' }
     finally { loading.value = false }
   }
@@ -45,6 +57,8 @@ export function useArticleEditor(id: string) {
       const snapshot = pendingSave
       const article = await $fetch<SavedArticle>(`/api/admin/articles/${articleId.value}`, { method: 'PUT', body: { requestId: snapshot.requestId, expectedVersion: snapshot.expectedVersion, draft: snapshot.draft } })
       version.value = article.version
+      status.value = article.status
+      publishedVersion.value = article.publishedVersion || 0
       savedAt.value = article.updatedAt
       // Compare the submitted content, not text typed while the request was in flight.
       savedSnapshot.value = snapshot.fingerprint
@@ -63,7 +77,13 @@ export function useArticleEditor(id: string) {
     event.preventDefault()
     event.returnValue = ''
   }
-  onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+  onMounted(() => {
+    window.addEventListener('beforeunload', beforeUnload)
+    if (cleanupSourceNoteOnMount.value) {
+      cleanupSourceNoteOnMount.value = false
+      void save()
+    }
+  })
   onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
-  return { draft, articleId, version, savedAt, saving, saveError, loadError, loading, conflict, dirty, wordCount, load, save }
+  return { draft, articleId, version, status, publishedVersion, savedAt, saving, saveError, loadError, loading, conflict, dirty, wordCount, load, save }
 }

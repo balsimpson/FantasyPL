@@ -16,6 +16,9 @@ export default defineSchema({
     .index('by_requestedBy_and_createdAt', ['requestedBy', 'createdAt']),
   articles: defineTable(articleFields)
     .index('by_articleId', ['articleId'])
+    .index('by_slug', ['slug'])
+    .index('by_publishedSlug_and_status', ['publishedSlug', 'status'])
+    .index('by_status_and_publishedAt', ['status', 'publishedAt'])
     .index('by_updatedAt', ['updatedAt']),
   articleRevisions: defineTable({
     ...draftFields, articleId: v.string(), version: v.number(), savedAt: v.number(), savedBy: v.string(),

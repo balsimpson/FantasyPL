@@ -421,7 +421,8 @@ export async function getPlayerInfoDetails(id: number) {
 export async function getUpcomingFixtures(count: number = 12) {
 	try {
 		const url = "https://fantasy.premierleague.com/api/fixtures";
-		const fixtures: any[] = await $fetch(url);
+		const fetchFpl = $fetch as unknown as (url: string) => Promise<any[]>;
+		const fixtures: any[] = await fetchFpl(url);
 
 		const upcomingFixtures = fixtures.filter((fixture) => !fixture.finished);
 		return count ? upcomingFixtures.slice(0, count) : upcomingFixtures;

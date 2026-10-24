@@ -22,6 +22,7 @@
 					</NuxtLink>
 					<div class="ml-auto flex items-center gap-2">
 					<ManagerTeamMenu />
+					<NuxtLink to="/blog" class="rounded-sm px-1.5 py-2 text-sm font-medium text-stone-300 transition-colors hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300">Articles</NuxtLink>
 					<NuxtLink
 						to="/watchlist"
 						:aria-label="savedPlayerCount ? `Watchlist, ${savedPlayerCount} saved ${savedPlayerCount === 1 ? 'player' : 'players'}` : 'Watchlist'"

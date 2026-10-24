@@ -24,18 +24,28 @@ export interface ArticleDraft {
   season: string
   gameweek: number | null
   body: ArticleNode
+  sources: { title: string; url: string }[]
 }
 export interface SavedArticle extends ArticleDraft {
   articleId: string
   version: number
   updatedAt: number
   createdAt: number
-  status: 'draft'
+  status: 'draft' | 'published'
+  publishedSlug?: string
+  publishedAt?: number
+  publishedVersion?: number
 }
-export type ArticleSummary = Omit<SavedArticle, 'body'> & { generation?: { jobId: string; status: 'queued' | 'writing' | 'ready' | 'failed'; error: string | null; updatedAt: number } | null }
+export type ArticleSummary = Omit<SavedArticle, 'body' | 'sources'> & { generation?: { jobId: string; status: 'queued' | 'writing' | 'ready' | 'failed'; error: string | null; updatedAt: number } | null }
+export interface PublishedArticle extends ArticleDraft {
+  author: string
+  publishedAt: number
+  updatedAt: number
+  dataCapturedAt?: string
+}
 
 export function emptyArticle(): ArticleDraft {
-  return { title: '', slug: '', excerpt: '', template: 'guide', season: '', gameweek: null, body: { type: 'doc', content: [{ type: 'paragraph' }] } }
+  return { title: '', slug: '', excerpt: '', template: 'guide', season: '', gameweek: null, sources: [], body: { type: 'doc', content: [{ type: 'paragraph' }] } }
 }
 
 export function articleSlug(title: string) {
@@ -112,5 +122,16 @@ export function validateArticleDraft(value: unknown): ArticleDraft {
   }
   const body = node(input.body, 0)
   if (!body.content?.length) body.content = [{ type: 'paragraph' }]
-  return { title: input.title as string, slug: input.slug as string, excerpt: input.excerpt as string, template: input.template as ArticleTemplate, season: input.season as string, gameweek: input.gameweek as number | null, body }
+  const sources = input.sources === undefined ? [] : input.sources
+  if (!Array.isArray(sources) || sources.length > 20) throw new Error('Add no more than 20 article sources.')
+  const cleanSources = sources.map(source => {
+    if (!source || typeof source !== 'object') throw new Error('Check the article sources.')
+    const item = source as Record<string, unknown>
+    if (typeof item.title !== 'string' || item.title.length > 200 || typeof item.url !== 'string' || item.url.length > 2000) throw new Error('Check the article source title and URL.')
+    if (item.url.trim()) {
+      try { const url = new URL(item.url); if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error() } catch { throw new Error('Each source needs a valid HTTP or HTTPS URL.') }
+    }
+    return { title: item.title.trim(), url: item.url.trim() }
+  })
+  return { title: input.title as string, slug: input.slug as string, excerpt: input.excerpt as string, template: input.template as ArticleTemplate, season: input.season as string, gameweek: input.gameweek as number | null, body, sources: cleanSources }
 }

@@ -2,7 +2,7 @@ import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
 import type { api } from '../../convex/_generated/api'
 import { getBufferInstagramChannel } from './buffer'
-export const schedulerApi = anyApi as typeof api
+export const schedulerApi = anyApi as unknown as typeof api
 
 export function schedulerDatabase() {
   const config = useRuntimeConfig()

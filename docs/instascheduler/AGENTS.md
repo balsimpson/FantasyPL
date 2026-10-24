@@ -10,7 +10,7 @@ The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, 
 
 | Source | Responsibility |
 | --- | --- |
-| `pages/instaScheduler.vue` | Editor composition, design choices, controls and preview |
+| `pages/admin/insta-scheduler.vue` | Editor composition, design choices, controls and preview inside the authenticated admin workspace |
 | `composables/useInstagramEditor.ts` | Selection, suggestions, visible stats, fixtures, draft and caption state |
 | `composables/useSchedulerPicks.ts` | Candidate batches, thumbnail picks and removal of unavailable players |
 | `components/SchedulerPostHistory.vue`, `components/SchedulerHistoryPlayerLink.vue`, `composables/useSchedulerPostList.ts` | Compact history rows, player linking, filters and session cache |
