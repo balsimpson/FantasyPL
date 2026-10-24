@@ -72,9 +72,7 @@ useHead({ style: [], link: [] });
 
 		<div :style="{ position: 'absolute', left: '40px', top: '162px', width: '750px', height: '422px', border: '1px solid #315b40', borderRadius: '18px', backgroundColor: '#102a1d' }" />
 		<div :style="{ position: 'absolute', left: '56px', top: '178px', width: '718px', height: '390px', border: '1px solid #294c36', borderRadius: '12px' }" />
-		<div :style="{ position: 'absolute', left: '57px', top: '372px', width: '716px', height: '1px', backgroundColor: '#294c36' }" />
-		<div :style="{ position: 'absolute', left: '364px', top: '326px', width: '104px', height: '104px', border: '1px solid #294c36', borderRadius: '50%' }" />
-		<div :style="{ position: 'absolute', left: '411px', top: '373px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#355c42' }" />
+		<div :style="{ position: 'absolute', left: '57px', top: '386px', width: '716px', height: '1px', backgroundColor: '#294c36' }" />
 
 		<div :style="{ position: 'absolute', left: '68px', top: '184px', color: '#e6eee7', fontSize: '13px', fontWeight: 700, letterSpacing: '1.6px' }">STARTING XI</div>
 		<div :style="{ position: 'absolute', left: '682px', top: '182px', width: '74px', color: '#a8e76a', fontSize: '17px', fontWeight: 700, textAlign: 'right' }">{{ formation }}</div>

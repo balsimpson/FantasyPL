@@ -354,3 +354,9 @@ Local checks: `npm run build`, `git diff --check`, synthetic sale-price/Free Hit
 `pages/manager/[id].vue` now emits manager-specific SSR title, description, canonical `og:url`, and large-card Twitter metadata. Nuxt OG Image v5 renders a manager-specific 1200 × 630 PNG with the current starting XI, formation, captain/vice-captain, and gameweek/season stats. Canonical and image origins use the configured `https://sportsync.in` site URL; generated images are cached for one hour.
 
 Local verification: `npm run build` and `git diff --check` pass. Built HTML for manager 1 had one `og:image` and `twitter:image`, with canonical and `og:url` set to `https://sportsync.in/manager/1`. The local image route returned `200 image/png` at 1200 × 630, and its rendered template contained the manager/team details. Hosted Vercel and browser visual verification remain pending; no deployment was performed.
+
+### Manager share-image layout correction, 24 October 2026
+
+Owner review found the first generated image compressed the player rows and overlapped the stats. The template now uses fixed 1200 × 630 positioning, four explicit formation rows on a pitch surface, and one separated stat rail with overall points/rank, gameweek points/rank, captain, and vice-captain. The pitch divider sits between player rows. The manager API data was intact; the layout was the cause.
+
+Local verification: final `npm run build` and `git diff --check` passed; the Impeccable detector returned no findings. Built-server checks for manager 5689801 returned one `og:image` and one `twitter:image`, canonical `https://sportsync.in/manager/5689801`, and a `200 image/png` at 1200 × 630. The rendered template contained all 11 starters and both captain details. The current FPL response for that ID differs in name/team from the submitted screenshot. Browser visual and hosted Vercel checks remain pending; no deployment was performed.
