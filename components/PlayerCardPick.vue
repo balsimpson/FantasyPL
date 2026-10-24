@@ -1,97 +1,75 @@
 <template>
-	<div class="col-span-1 text-center">
-		<article class="group relative w-36 overflow-visible transition duration-300 hover:-translate-y-0.5">
-			<div class="relative z-10 pt-2">
-				<img
-					v-if="playerCode"
-					:src="imageUrl"
-					class="-mb-5 h-40 w-full bg-transparent object-contain object-top transition duration-300 group-hover:scale-105"
-					:alt="playerName"
-					loading="lazy"
-					decoding="async"
-				/>
-				<div
-					v-else
-					class="-mb-5 flex h-40 w-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-[0.28em] text-white/40"
-				>
-					No image
-				</div>
-
-				<div class="absolute left-2 top-18 flex flex-col gap-1">
-					<span
-						v-if="pick?.is_captain"
-						class="inline-flex items-center rounded-full bg-teal-500/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow"
-					>
-						Captain
-					</span>
-					<span
-						v-if="pick?.is_vice_captain"
-						class="inline-flex items-center rounded-full bg-amber-300/95 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-900 shadow"
-					>
-						Vice
-					</span>
-				</div>
-
-				<div class="absolute left-1/2 -translate-x-1/2 bottom-2 rounded-full bg-zinc-900/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-					{{ totalPoints }} pts
+	<article class="group relative flex h-full min-w-0 flex-col text-white" :class="compact ? 'text-center' : 'overflow-hidden rounded-xl border border-white/10 bg-[#101216]'" :style="cardStyle">
+		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative block min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+			<div class="relative overflow-hidden" :class="compact ? 'h-20 sm:h-28' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
+				<img :src="imageUrl" :alt="playerName" width="220" height="280" loading="lazy" decoding="async" class="h-full w-full object-contain object-bottom transition-transform duration-300 motion-safe:group-hover:scale-[1.04]" @error="useFallbackImage" />
+				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
+				<PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" :compact="compact" class="absolute left-1 top-1 z-10" :class="compact ? 'flex-col' : ''" />
+				<span v-if="pick.is_captain || pick.is_vice_captain" class="absolute top-1 grid size-6 place-items-center rounded-full text-[0.65rem] font-black sm:size-7 sm:text-xs" :class="[compact ? 'right-1' : 'right-12', pick.is_captain ? 'bg-primary text-inverted' : 'bg-amber-200 text-stone-950']" :aria-label="pick.is_captain ? 'Captain' : 'Vice captain'" :title="pick.is_captain ? 'Captain' : 'Vice captain'">{{ pick.is_captain ? 'C' : 'V' }}</span>
+				<div v-if="!compact" class="absolute inset-x-3 bottom-2">
+          <p class="text-[0.65rem] text-stone-300">{{ pick.team?.name || pick.element_type }}</p>
+					<h3 class="mt-1 text-base font-bold leading-tight text-white [overflow-wrap:anywhere]">{{ playerName }}</h3><PlayerAge :player="player" compact class="mt-1 text-white/80" />
 				</div>
 			</div>
-
-			<div class="relative z-0 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.025] px-2 pb-2 pt-6 text-left shadow-lg ring-1 ring-white/10">
-				<p v-if="news" class="text-[10px] leading-snug text-amber-200">
-						{{ news }}
-					</p>
-				
-<div class="flex items-center justify-between mt-2">
-	<p class="truncate text-sm font-semibold text-white">
-		{{ playerName }}
-	</p>
-
-	<div class="flex items-center justify-between gap-2 text-[10px] font-medium text-white/80">
-		<span class="rounded-full bg-emerald-400/90 px-2 py-0.5 text-[11px] font-semibold text-zinc-950 shadow-sm">
-			{{ costLabel }}
-		</span>
-		<span v-if="multiplier > 1" class="text-teal-300">
-			x{{ multiplier }}
-		</span>
-	</div>
-</div>
-
-
-				<div class="mt-3 text-center text-xs capitalize text-muted">Predicted</div>
-				<div v-if="predictions.length" class="mt-1 flex items-center justify-center gap-1 text-[10px] font-semibold text-zinc-300">
-					<template v-for="(item, index) in predictions" :key="item.gw ?? index">
-						<span class="min-w-6 text-center">{{ Number(item.predicted_pts ?? 0).toFixed(1) }}</span>
-						<span v-if="index < predictions.length - 1" class="h-3 w-px bg-white/25"></span>
-					</template>
+			<template v-if="compact">
+				<p class="rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white [overflow-wrap:anywhere] sm:px-1 sm:text-xs">{{ playerName }}</p>
+        <p class="flex flex-wrap items-center justify-center gap-x-1 rounded-b-md bg-[#07140f]/95 px-0.5 py-1 text-[0.6rem] tabular-nums text-emerald-100 sm:text-xs"><span>£{{ costLabel }}</span><span aria-hidden="true">·</span><span class="font-bold text-primary">{{ totalPoints }}<span class="sr-only"> season</span> pts</span></p>
+			</template>
+		</NuxtLink>
+		<PlayerWatchlistButton v-if="!compact" :player="player" class="absolute right-1 top-1 z-10" />
+		<div v-if="!compact" class="flex flex-1 flex-col px-3 pb-3 sm:px-4 sm:pb-4">
+			<dl class="grid grid-cols-3 items-end gap-2">
+				<div><dt class="text-[0.65rem] text-stone-400">Current price</dt><dd class="mt-1 text-sm font-semibold tabular-nums">£{{ costLabel }}</dd></div>
+				<div class="text-center"><dt class="text-[0.65rem] text-stone-400">Season pts</dt><dd class="mt-1 text-xl font-bold tabular-nums text-[var(--club-light)]">{{ totalPoints }}</dd></div>
+				<div class="text-right"><dt class="text-[0.65rem] text-stone-400">{{ expectedPointsLabel }}</dt><dd class="mt-1 text-xl font-bold tabular-nums text-white" :title="expectedPoints == null ? 'FPL has not supplied expected points for the next gameweek.' : 'FPL expected points for the next gameweek'">{{ expectedPoints == null ? '—' : expectedPoints.toFixed(1) }}</dd></div>
+			</dl>
+			<dl v-if="detailed" class="mt-3 grid grid-cols-3 gap-x-2 gap-y-3 border-t border-white/10 pt-3 text-center">
+				<div v-for="stat in playerStats" :key="stat.label" class="min-w-0">
+					<dt class="text-[0.65rem] text-stone-400">{{ stat.label }}</dt>
+					<dd class="mt-1 text-base font-bold tabular-nums text-white">{{ stat.value }}</dd>
 				</div>
-			</div>
-		</article>
-	</div>
+			</dl>
+			<p v-if="news" class="mt-3 flex items-start gap-2 border-t border-white/10 pt-3 text-xs leading-5 text-amber-200"><UIcon name="i-lucide-triangle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ news }}</p>
+			<p v-if="multiplier > 1" class="mt-2 text-xs text-primary">Points multiplier ×{{ multiplier }}</p>
+			<ManagerPlayerInsights v-if="detailed" :player="player" :events="events" :teams="teams" />
+		</div>
+	</article>
 </template>
 
 <script setup>
+import { getPlayerRoute } from '~/composables/usePlayerRoute';
+import { getInstagramClubTheme } from '~/utils/instagram-designs';
 const props = defineProps({
-	pick: {
-		type: Object,
-		required: true,
-	},
+	pick: { type: Object, required: true },
+	compact: { type: Boolean, default: false },
+	detailed: { type: Boolean, default: false },
+	events: { type: Array, default: () => [] },
+	teams: { type: Array, default: () => [] },
 });
-
-const player = computed(() => props.pick?.element ?? {});
-const playerCode = computed(() => player.value?.code ?? null);
-const playerName = computed(() => player.value?.web_name || "Unknown player");
-const news = computed(() => player.value?.news || "");
-const totalPoints = computed(() => Number(player.value?.total_points ?? 0));
-const multiplier = computed(() => Number(props.pick?.multiplier ?? 1));
-const costLabel = computed(() => {
-	const cost = Number(player.value?.now_cost ?? 0) / 10;
-	if (!Number.isFinite(cost)) return "-";
-
-	return `${cost.toFixed(cost % 1 === 0 ? 0 : 1)}m`;
+const player = computed(() => props.pick.element ?? {});
+const playerName = computed(() => [player.value.first_name, player.value.second_name].filter(Boolean).join(' ') || player.value.web_name || 'Unknown player');
+const totalPoints = computed(() => player.value.total_points ?? '—');
+const multiplier = computed(() => Number(props.pick.multiplier ?? 1));
+const costLabel = computed(() => player.value.now_cost == null ? '—' : `${(Number(player.value.now_cost) / 10).toFixed(1)}m`);
+const news = computed(() => player.value.news || '');
+const expectedPoints = computed(() => {
+	const value = props.pick.expectedPoints;
+	return !props.pick.expectedPointsGameweek || value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 });
-const imageUrl = computed(
-	() => `https://resources.premierleague.com/premierleague25/photos/players/110x140/${playerCode.value}.png`
-);
-const predictions = computed(() => (Array.isArray(props.pick?.predictions) ? props.pick.predictions : []));
+const expectedPointsLabel = computed(() => props.pick.expectedPointsGameweek ? `Expected · GW ${props.pick.expectedPointsGameweek}` : 'Expected points');
+const displayStat = (value, decimals = 0, suffix = '') => value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(Number(value))}${suffix}`;
+const playerStats = computed(() => [
+	{ label: 'Form', value: displayStat(player.value.form, 1) },
+	{ label: 'Points / game', value: displayStat(player.value.points_per_game, 1) },
+	{ label: 'Selected by', value: displayStat(player.value.selected_by_percent, 1, '%') },
+	{ label: 'Minutes', value: displayStat(player.value.minutes) },
+	{ label: 'Goals', value: displayStat(player.value.goals_scored) },
+	{ label: 'Assists', value: displayStat(player.value.assists) },
+]);
+const theme = computed(() => getInstagramClubTheme(Number(props.pick.team?.code)));
+const cardStyle = computed(() => ({ '--club-wash': `${theme.value.primary}66`, '--club-light': theme.value.light }));
+const fallbackImage = ref(false);
+watch(() => player.value.code, () => { fallbackImage.value = false; });
+const imageUrl = computed(() => fallbackImage.value || !player.value.code ? '/fallback.png' : `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.value.code}.png`);
+const useFallbackImage = () => { fallbackImage.value = true; };
 </script>

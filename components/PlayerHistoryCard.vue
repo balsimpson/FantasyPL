@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center gap-3 py-4">
     <img v-if="opponentTeam" :src="`https://resources.premierleague.com/premierleague/badges/t${opponentTeam.code}.png`"
-      :alt="opponentTeam.name" width="28" height="28" loading="lazy" class="size-7 shrink-0 object-contain" />
+      :alt="opponentTeam.name" width="28" height="28" loading="lazy" class="size-7 shrink-0 self-start object-contain" />
     <div class="min-w-0 flex-1">
       <p class="text-sm font-semibold text-white">{{ opponentTeam?.name || 'Unknown team' }}</p>
       <p class="mt-1 text-sm text-stone-400">Gameweek {{ history.round }} · {{ history.was_home ? 'Home' : 'Away' }}</p>

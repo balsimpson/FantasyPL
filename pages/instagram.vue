@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-[#050816] text-white">
-    <div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div class="site-content-rail flex w-full flex-col gap-6 py-6">
       <div class="flex flex-col gap-3">
         <p class="text-[0.62rem] font-semibold uppercase tracking-[0.34em] text-white/45">Instagram builder</p>
         <h1 class="text-4xl font-black leading-[0.95] tracking-[-0.05em] text-balance sm:text-5xl">
@@ -31,7 +31,7 @@
                        :alt="item.player.web_name" class="w-[90%] h-[90%] object-contain object-bottom" @error="handleImageError" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="truncate text-sm font-bold text-white">{{ item.player.web_name }}</h3>
+                  <div class="flex flex-wrap items-center gap-2"><h3 class="text-sm font-bold text-white">{{ item.player.web_name }}</h3><PlayerAge :player="item.player" compact class="text-white/70" /></div>
                   <p class="truncate text-xs text-white/50">{{ item.teamName }} · {{ item.positionLabel }}</p>
                 </div>
                 <div class="text-right shrink-0">

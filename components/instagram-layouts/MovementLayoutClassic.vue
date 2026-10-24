@@ -46,6 +46,7 @@
             <h1 class="max-w-xl text-7xl font-black leading-[0.88] tracking-[-0.08em] text-balance">
               {{ player.web_name }}
             </h1>
+            <PlayerAge :player="player" artwork class="mt-2 text-white/75" />
           </div>
 
           <div class="grid grid-cols-3 gap-6 border-y border-white/10 py-5 items-end">

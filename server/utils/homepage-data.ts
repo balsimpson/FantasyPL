@@ -1,9 +1,10 @@
 import { getShortlistGameweeks } from "../../utils/homepage-shortlist";
 
 const playerFields = [
-  "id", "code", "first_name", "second_name", "web_name", "team", "element_type", "now_cost",
+  "id", "code", "first_name", "second_name", "web_name", "birth_date", "team", "element_type", "now_cost",
   "selected_by_percent", "transfers_in_event", "transfers_out_event", "form", "total_points",
   "points_per_game", "goals_scored", "assists", "clean_sheets", "minutes", "starts", "status",
+  "yellow_cards", "red_cards",
   "expected_goals_conceded_per_90", "saves_per_90", "expected_goals_per_90", "expected_assists_per_90",
 ];
 const eventFields = ["id", "name", "deadline_time", "finished", "is_current", "is_next", "chip_plays",
@@ -34,7 +35,7 @@ export const getHomepageData = defineCachedFunction(async () => {
     fixturesFetchedAt: hasFixtures ? fixtureResult!.fetchedAt : null,
   };
 }, {
-  name: "homepage-data-v4",
+  name: "homepage-data-v6",
   maxAge: 600,
   swr: false,
   validate: (entry) => Array.isArray(entry.value?.fixtures),

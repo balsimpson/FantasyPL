@@ -25,7 +25,7 @@
         <div class="relative z-10 flex min-w-0 flex-1 flex-col justify-between p-4 sm:p-5">
         <div class="max-w-[58%] min-w-0">
             <p class="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[var(--club-light)]">{{ captain.label }}</p>
-            <h3 class="mt-2 text-2xl font-black leading-tight tracking-tight text-white [overflow-wrap:anywhere]">{{ captain.player?.web_name || captain.name || 'Unavailable' }}</h3>
+            <h3 class="mt-2 text-2xl font-black leading-tight tracking-tight text-white [overflow-wrap:anywhere]">{{ captain.player?.web_name || captain.name || 'Unavailable' }}</h3><PlayerAge :player="captain.player" class="mt-1 text-white/80" />
             <p v-if="captain.player" class="mt-1 text-xs font-medium text-white/75">{{ teamName(captain.player) }}</p>
           </div>
           <div v-if="captain.player" class="mt-5 grid max-w-[58%] grid-cols-3 gap-2">

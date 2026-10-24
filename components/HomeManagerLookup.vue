@@ -1,13 +1,11 @@
 <template>
-  <section aria-labelledby="manager-lookup-title" class="min-w-0">
-    <h2 id="manager-lookup-title" class="sr-only">Open a team</h2>
-    <form class="w-full" novalidate @submit.prevent="submitManagerId">
+  <section aria-label="Manager lookup" class="min-w-0">
+    <form class="w-full space-y-4" novalidate @submit.prevent="submitManagerId">
       <UFormField
         label="Manager ID"
         :error="managerError || undefined"
-        :ui="{ root: 'w-full', label: 'text-sm font-semibold text-stone-200', help: 'text-xs text-stone-400', error: 'mt-2 text-sm text-error' }"
+        :ui="{ root: 'w-full', label: 'text-xs font-medium text-stone-300', error: 'mt-2 text-sm text-error' }"
       >
-        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <UInput
           id="manager-id"
           v-model="managerId"
@@ -16,42 +14,47 @@
           autocomplete="off"
           placeholder="e.g. 123456"
           :aria-invalid="Boolean(managerError)"
-          class="w-full"
+          class="h-11 w-full"
           :ui="{
-            root: 'w-full',
-            base: 'w-full rounded-xl border border-accented bg-default h-12 text-base font-medium text-highlighted placeholder:text-muted hover:bg-elevated focus:border-primary/60 focus:ring-2 focus:ring-primary/25'
+            root: 'h-11 w-full',
+            base: 'h-11 w-full rounded-md border border-white/25 bg-[#181d1c] px-3 text-base font-medium text-white shadow-none ring-0 placeholder:text-stone-500 hover:border-white/40 hover:bg-[#202624] hover:text-white focus:border-lime-300 focus:bg-[#181d1c] focus:text-white focus:ring-2 focus:ring-lime-300/25'
           }"
           @input="managerError = ''"
         />
+      </UFormField>
       <UButton
         type="submit"
         color="primary"
+        variant="solid"
+        trailing-icon="i-lucide-arrow-right"
         :loading="isSubmitting"
         :disabled="isSubmitting || !managerId.trim()"
-        class="h-12 justify-center px-4"
+        class="h-11 w-full justify-center rounded-md bg-lime-300 px-4 text-sm font-semibold text-zinc-950 hover:bg-lime-200 disabled:bg-lime-300/25 disabled:text-lime-100/60"
       >
         Open team
       </UButton>
-        </div>
-      </UFormField>
     </form>
-    <p class="mt-1 text-xs text-stone-400">Find the ID in your FPL team URL, after /entry/.</p>
   </section>
 </template>
 
 <script setup>
+const emit = defineEmits(["opened"]);
 const managerId = ref("");
 const managerError = ref("");
 const isSubmitting = ref(false);
 
 onMounted(() => {
-  managerId.value = localStorage.getItem("savedManagerId") || "";
+  try {
+    managerId.value = localStorage.getItem("savedManagerId") || "";
+  } catch {
+    managerId.value = "";
+  }
 });
 
 const submitManagerId = async () => {
-  const normalizedId = managerId.value.trim();
+  const normalizedId = managerId.value.trim().replace(/^0+(?=\d)/, "");
 
-  if (!/^\d+$/.test(normalizedId) || Number(normalizedId) < 1) {
+  if (!/^\d+$/.test(normalizedId) || !Number.isSafeInteger(Number(normalizedId)) || Number(normalizedId) < 1) {
     managerError.value = "Enter a valid numeric Manager ID.";
     return;
   }
@@ -60,6 +63,7 @@ const submitManagerId = async () => {
 
   try {
     await navigateTo(`/manager/${normalizedId}`);
+    emit("opened");
   } finally {
     isSubmitting.value = false;
   }

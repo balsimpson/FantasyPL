@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { InstagramPlayer } from '~/utils/instagram-templates'
-const props = withDefaults(defineProps<{ player: InstagramPlayer, width: number, maxSize?: number, singleLine?: boolean }>(), { maxSize: 150, singleLine: false })
+const props = withDefaults(defineProps<{ player: InstagramPlayer, width: number, maxSize?: number, singleLine?: boolean, showAge?: boolean }>(), { maxSize: 150, singleLine: false, showAge: true })
 const lines = computed(() => props.singleLine ? [props.player.fullName] : [props.player.firstName, props.player.lastName])
 const sizes = ref<number[]>([])
 const state = ref('loading')
@@ -24,5 +24,6 @@ watch(() => [props.player.id, props.width, props.maxSize, props.singleLine], () 
 <template>
   <h2 :data-asset-state="state" :aria-label="player.fullName" class="font-[FPLDisplay] font-normal uppercase leading-[1.08] tracking-[-0.025em]" :style="{ width: `${width}px` }">
     <span v-for="(line, index) in lines" :key="index" class="block whitespace-nowrap" :style="{ fontSize: `${sizes[index] ?? Math.min(maxSize, width / Math.max(line.length * 0.6, 1))}px` }">{{ line }}</span>
+    <PlayerAge v-if="showAge" :player="player" artwork class="mt-1 align-top" />
   </h2>
 </template>

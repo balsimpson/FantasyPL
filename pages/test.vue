@@ -1,5 +1,5 @@
 <template>
-	<div>
+	<div class="site-content-rail py-8">
 		<p v-if="loading">Loading...</p>
 		<p v-else-if="error">Error: {{ error }}</p>
 		<div v-else-if="data">

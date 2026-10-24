@@ -13,37 +13,49 @@
         <span class="max-w-[75%] rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--club-light)] backdrop-blur-sm">{{ sectionLabel }}</span>
         <img v-if="team?.code" :src="`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`" :alt="team.name" width="44" height="44" loading="lazy" decoding="async" class="size-11 rounded-full bg-white/95 p-1.5 object-contain shadow-lg" />
       </header>
+      <PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-4 top-16 z-10" />
       <div class="absolute inset-x-4 bottom-4 z-10 flex items-end justify-between gap-2">
         <div class="min-w-0">
           <p class="text-xs font-semibold uppercase tracking-[0.12em] text-white/75">{{ team?.name || 'Club unavailable' }} · {{ positionLabel }}</p>
-          <h3 class="mt-1 text-[1.75rem] font-black leading-none tracking-tight text-white [overflow-wrap:anywhere]">{{ player.web_name }}</h3>
+          <div class="mt-1 flex flex-wrap items-center gap-2"><h3 class="text-[1.75rem] font-black leading-none tracking-tight text-white [overflow-wrap:anywhere]">{{ player.web_name }}</h3><PlayerAge :player="player" class="text-white/80" /></div>
         </div>
         <span class="shrink-0 rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold tabular-nums text-white">£{{ (player.now_cost / 10).toFixed(1) }}m</span>
       </div>
     </NuxtLink>
 
     <div class="flex flex-1 flex-col px-4 pb-4">
-      <div class="grid grid-cols-[1fr_auto] items-end gap-3 border-b border-white/10 py-4">
-        <div>
-          <p class="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-stone-400">{{ leadStat.label }}</p>
-          <p class="mt-1 font-serif text-[2.5rem] font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">{{ leadStat.value }}</p>
+      <div class="border-b border-white/10 py-4">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-stone-400">{{ leadStat.label }}</p>
+        <div class="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <p class="font-serif text-[2.5rem] font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">{{ leadStat.value }}</p>
+          <div class="flex min-h-10 items-center justify-end gap-2">
+            <p v-if="player.status && player.status !== 'a'" class="flex max-w-28 items-center gap-1.5 text-xs leading-4" :class="availability.color">
+              <UIcon :name="availability.icon" class="size-3.5 shrink-0" aria-hidden="true" />
+              <span>{{ availability.label }}</span>
+            </p>
+            <PlayerWatchlistButton v-if="sortKey === 'form'" :player="player" />
+          </div>
         </div>
-        <p v-if="player.status && player.status !== 'a'" class="max-w-28 pb-1 text-right text-xs leading-4 text-amber-200">{{ availabilityLabel }}</p>
       </div>
 
-      <dl class="grid grid-cols-3 divide-x divide-white/10 border-b border-white/10 py-2.5 text-center">
-        <div v-for="stat in secondaryStats" :key="stat.label" class="px-1">
-          <dt class="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-stone-400">{{ stat.label }}</dt>
-          <dd class="mt-1 font-serif text-lg font-bold tabular-nums text-white">{{ stat.value }}</dd>
-        </div>
-      </dl>
+      <div class="flex min-w-0 items-center gap-2 border-b border-white/10 py-2.5">
+        <dl class="grid min-w-0 flex-1 grid-cols-3 divide-x divide-white/10 text-center">
+          <div v-for="stat in secondaryStats" :key="stat.label" class="px-1">
+            <dt class="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-stone-400">{{ stat.label }}</dt>
+            <dd class="mt-1 font-serif text-lg font-bold tabular-nums text-white">{{ stat.value }}</dd>
+          </div>
+        </dl>
+        <PlayerWatchlistButton v-if="sortKey !== 'form'" :player="player" />
+      </div>
 
       <div class="mt-3">
         <p class="mb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-stone-400">Upcoming fixtures</p>
         <HomeFixtureRun v-if="fixturesAvailable && gameweeks.length" :run="fixtureRun" />
         <p v-else class="text-xs text-stone-400">{{ gameweeks.length ? 'Fixture data is unavailable.' : 'No upcoming gameweeks are published.' }}</p>
       </div>
-      <PlayerWatchlistButton :player="player" class="mt-3 w-full justify-center rounded-lg border border-white/15 bg-white/[0.04] text-sm font-semibold text-stone-200 transition hover:border-[var(--club-primary)] hover:bg-white/[0.08] hover:text-white [&>span]:justify-center" />
+      <div class="mt-auto pt-3">
+        <SchedulerTransferBar :incoming="transfersIn" :outgoing="transfersOut" dark compact />
+      </div>
     </div>
   </article>
 </template>
@@ -56,6 +68,9 @@ const props = defineProps<{ player: ShortlistPlayer; teams: Record<string, any>[
 const team = computed(() => props.teams.find((item) => item.id === props.player.team));
 const positionLabel = computed(() => ["", "Goalkeeper", "Defender", "Midfielder", "Forward"][props.player.element_type] || "Player");
 const sectionLabel = computed(() => ({ form: 'Form leaders', total_points: 'Season points', selected_by_percent: 'Most selected', transfers_in_event: 'Most bought this gameweek', transfers_out_event: 'Most sold this gameweek' }[props.sortKey] || 'Player shortlist'));
+const validTransferCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+const transfersIn = computed(() => validTransferCount(props.player.transfers_in_event));
+const transfersOut = computed(() => validTransferCount(props.player.transfers_out_event));
 const formatTransferCount = (value: unknown) => value == null || !Number.isFinite(Number(value))
   ? '—'
   : new Intl.NumberFormat('en-GB', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(value));
@@ -74,8 +89,14 @@ const clubTheme = computed(() => getInstagramClubTheme(Number(team.value?.code))
 const cardStyle = computed(() => ({ '--club-wash': `${clubTheme.value.primary}55`, '--club-light': clubTheme.value.light, '--club-primary': clubTheme.value.primary }));
 const pitchStyle = computed(() => ({ backgroundImage: `linear-gradient(90deg, transparent 49.7%, rgba(255,255,255,.12) 50%, transparent 50.3%), linear-gradient(0deg, transparent 49.7%, rgba(255,255,255,.12) 50%, transparent 50.3%)` }));
 const fixtureRun = computed(() => getTeamFixtureRun(props.player.team, props.fixtures, props.teams, props.gameweeks));
-const availabilityLabels: Record<string, string> = { d: "Flagged doubtful by FPL", i: "Flagged injured by FPL", s: "Flagged suspended by FPL", u: "Flagged unavailable by FPL", n: "Not available in FPL" };
-const availabilityLabel = computed(() => availabilityLabels[props.player.status] || "Availability unconfirmed");
+const availabilityStatuses: Record<string, { label: string; icon: string; color: string }> = {
+  d: { label: "Doubtful", icon: "i-lucide-circle-help", color: "text-amber-200" },
+  i: { label: "Injured", icon: "i-lucide-bandage", color: "text-rose-300" },
+  s: { label: "Suspended", icon: "i-lucide-ban", color: "text-rose-300" },
+  u: { label: "Unavailable", icon: "i-lucide-user-round-minus", color: "text-stone-400" },
+  n: { label: "Unavailable", icon: "i-lucide-user-round-x", color: "text-stone-400" },
+};
+const availability = computed(() => availabilityStatuses[props.player.status] || { label: "Status unconfirmed", icon: "i-lucide-circle-help", color: "text-amber-200" });
 const fallbackImage = ref(false);
 const imageSrc = computed(() => fallbackImage.value || !props.player.code ? "/fallback.png" : `https://resources.premierleague.com/premierleague25/photos/players/110x140/${props.player.code}.png`);
 const useFallbackImage = () => { fallbackImage.value = true; };

@@ -22,10 +22,7 @@
               <p class="text-3xl">{{ teamName1 }}</p>
               <p class="text-4xl font-extrabold">{{ elementType1 }}</p>
               <!-- <p class="mt-24 text-3xl">Age</p> -->
-              <p class="text-3xl font-bold">
-                {{ getAge(player1.birth_date) }}
-                <span class="opacity-50">yrs</span>
-              </p>
+              <PlayerAge :player="player1" artwork class="mt-2" />
             </div>
           </div>
         </div>
@@ -50,10 +47,7 @@
               <p class="text-3xl">{{ teamName2 }}</p>
               <p class="text-4xl font-extrabold">{{ elementType2 }}</p>
 
-              <p class="text-3xl font-bold">
-                {{ getAge(player2.birth_date) }}
-                <span class="opacity-50">yrs</span>
-              </p>
+              <PlayerAge :player="player2" artwork class="mt-2" />
             </div>
             <img
               :src="`https://resources.premierleague.com/premierleague/badges/t${player2.team_code}.png`"
@@ -460,22 +454,6 @@ function getDifficultyColors(difficulty) {
   return colors[difficulty];
 }
 
-const getAge = (birthDate) => {
-  if (!birthDate) return 0;
-
-  const today = new Date();
-  const birth = new Date(birthDate);
-
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-
-  // If birthday hasn't occurred this year yet, subtract 1
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-
-  return age;
-};
 </script>
 
 <style scoped></style>

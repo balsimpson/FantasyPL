@@ -20,7 +20,7 @@ const nameSize = computed(() => Math.min(86, 820 / Math.max(1, player.value.full
       <SchedulerArtworkAsset v-scheduler-element="element('crest', 'Club crest')" :src="player.crestUrl" :label="`${player.club} crest`" class="h-[95px] w-[95px] shrink-0 text-[40px]" />
       <div v-scheduler-element="element('club-details', 'Club details')" ><p class="text-[31px] font-bold">{{ player.club }}</p><p class="mt-2 text-[22px] tracking-[0.12em] uppercase">{{ player.position }}</p></div>
     </div>
-    <h2 v-scheduler-element="element('player-name', 'Player name')" class="absolute top-[170px] left-12 max-w-[455px] font-bold leading-[1.05] tracking-tight break-words" :style="{ fontSize: `${nameSize}px` }">{{ player.fullName }}</h2>
+    <h2 v-scheduler-element="element('player-name', 'Player name')" class="absolute top-[170px] left-12 max-w-[455px] font-bold leading-[1.05] tracking-tight break-words" :style="{ fontSize: `${nameSize}px` }">{{ player.fullName }}<br /><PlayerAge :player="player" artwork class="mt-2" /></h2>
     <SchedulerStatGrid :layout="draft.layout" v-scheduler-element="element('stats', 'Stats')" :player="player" :stats="draft.stats" :columns="2" :accent="theme.light" class="absolute top-[345px] left-6 w-[475px]" />
     <div class="absolute top-[120px] right-6 bottom-[58px] w-[535px] rounded-t-[40px] border border-white/15 bg-white/5" />
     <SchedulerPlayerPhoto v-scheduler-element="element('portrait', 'Player photo')" :player="player" class="absolute right-6 bottom-[58px] h-[730px] w-[550px] text-[65px]" />

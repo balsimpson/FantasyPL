@@ -5,9 +5,11 @@
 </template>
 
 <script setup lang="ts">
+import { getPlayerAge } from "~/utils/player-age";
 	// Props to make the card dynamic
 	const props = defineProps({
 		playerName: { type: String },
+        birthDate: { type: String, default: null },
 		playerPrice: { type: String },
 		playerImage: { type: String },
 		team: { type: String },
@@ -123,6 +125,12 @@
 		ctx.fillText(props.team, 170, 160);
 		ctx.font = "48px Arial";
 		ctx.fillText(props.position, 170, 210);
+
+        const age = getPlayerAge(props.birthDate);
+        if (age !== null) {
+            ctx.font = "24px Arial";
+            ctx.fillText(`${age} yrs`, 170, 245);
+        }
 
 		// Points and form
 		drawStat(ctx, "Points", props.points, 360);

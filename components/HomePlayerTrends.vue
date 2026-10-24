@@ -15,7 +15,7 @@
       class="min-w-0"
       :aria-labelledby="`player-trend-${section.id}-title`"
     >
-      <header class="mb-3 border-b border-white/10 pb-3">
+      <header class="mb-3 border-b border-white/10 pb-3 lg:min-h-24">
         <h2 :id="`player-trend-${section.id}-title`" class="text-xl font-bold tracking-tight text-white">{{ section.title }}</h2>
         <p class="mt-1 text-sm leading-5 text-stone-400">{{ section.description }}</p>
       </header>
@@ -53,7 +53,7 @@ const sections = computed(() => [
   {
     id: "differentials",
     title: "Differentials",
-    description: "Lowest FPL ownership first; form and season points break ties.",
+    description: "Up to 10% owned, ranked by form, then season points.",
     metricKey: "selected_by_percent",
     metricLabel: "owned",
     players: rankedPlayers.value.differentials,
@@ -92,7 +92,9 @@ const hasMetricData = (key: string) => props.players.some((player) =>
 );
 
 const emptyMessage = (section: (typeof sections.value)[number]) => {
-  if (section.metricKey === "selected_by_percent") return "Ownership data is not available right now.";
+  if (section.metricKey === "selected_by_percent") return hasMetricData(section.metricKey)
+    ? "No low-owned players with recent form are available."
+    : "Ownership data is not available right now.";
   return hasMetricData(section.metricKey)
     ? "No transfers have been recorded in this gameweek yet."
     : "Gameweek transfer data is not available right now.";

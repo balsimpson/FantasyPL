@@ -19,6 +19,7 @@ export interface InstagramPlayer {
   fullName: string
   firstName: string
   lastName: string
+  birthDate?: string | null
   clubCode: number
   crestUrl: string
   club: string
@@ -78,6 +79,7 @@ export function normalizeInstagramPlayer(player: any, teams: any[]): InstagramPl
     id: player.id, code: player.code, name: player.web_name,
     fullName: `${player.first_name} ${player.second_name}`,
     firstName: player.first_name, lastName: player.second_name, clubCode,
+    birthDate: typeof player.birth_date === 'string' ? player.birth_date : null,
     crestUrl: `/api/image-proxy/club-${clubCode}?url=${encodeURIComponent(crest)}&strict=1`,
     club: teams.find(team => team.id === player.team)?.name ?? 'Club unavailable',
     position: ({ 1: 'Goalkeeper', 2: 'Defender', 3: 'Midfielder', 4: 'Forward' } as Record<number, string>)[player.element_type] ?? 'Position unavailable',

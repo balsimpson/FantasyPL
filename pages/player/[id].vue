@@ -1,10 +1,10 @@
 <template>
-	<div class="relative min-h-screen overflow-hidden text-stone-50">
+	<main id="main-content" class="relative min-h-screen text-stone-50">
 
 
 		<div
 			v-if="pageState === 'error'"
-			class="relative mx-auto flex min-h-[70vh] w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8"
+			class="site-content-rail relative flex min-h-[70vh] items-center py-10"
 		>
 			<section class="w-full">
 				<UCard
@@ -42,7 +42,7 @@
 
 		<div
 			v-else-if="pageState === 'loading'"
-			class="relative mx-auto flex min-h-[70vh] w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8"
+			class="site-content-rail relative flex min-h-[70vh] items-center py-10"
 		>
 			<section class="w-full">
 				<UCard
@@ -64,86 +64,12 @@
 			</section>
 		</div>
 
-		<div v-else class="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-      <UBreadcrumb :items="breadcrumbLinks" class="min-w-0" :ui="{ link: 'text-stone-300 hover:text-white', linkLabel: 'truncate' }" />
-      <section v-if="playerData">
-        <PlayerPerformanceCard :player="playerData" :bootstrap="bootstrap" />
-        <div class="mt-3 flex justify-end">
-          <PlayerWatchlistButton :player="playerData" />
-        </div>
-      </section>
-
-			<section class="grid gap-6 lg:grid-cols-2">
-				<div class="">
-					<div class="border-b border-white/10 pb-4">
-						<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
-							Next fixtures
-						</h2>
-					</div>
-
-					<div v-if="player && fixtureCount" aria-label="Upcoming fixtures" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
-						<PlayerFixtureCard
-							v-for="fixture in upcomingFixtures"
-							:key="fixture.id"
-							:fixture="fixture"
-							:bootstrap="bootstrap"
-						/>
-					</div>
-					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-						No upcoming fixtures available.
-					</p>
-					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-						Loading fixture data.
-					</p>
-				</div>
-
-				<div class="">
-					<div class="border-b border-white/10 pb-4">
-						<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
-							Recent matches
-						</h2>
-					</div>
-
-					<div v-if="player && recentHistory.length" aria-label="Recent matches" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
-						<PlayerHistoryCard
-							v-for="history in recentHistory"
-							:key="history.fixture"
-							:history="history"
-							:bootstrap="bootstrap"
-						/>
-					</div>
-					<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-						No recent match data available.
-					</p>
-					<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-						Loading match history.
-					</p>
-				</div>
-			</section>
-
-			<section class="">
-				<div class="border-b border-white/10 pb-4">
-					<h2 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
-						Previous seasons
-					</h2>
-				</div>
-
-				<div v-if="player && pastSeasons.length" aria-label="Previous seasons" class="mt-1 max-h-[420px] divide-y divide-white/10 overflow-y-auto pr-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime-200" tabindex="0" role="region">
-					<PlayerSeasonCard
-						v-for="season in pastSeasons"
-						:key="season.season_name"
-						:season="season"
-					/>
-				</div>
-				<p v-else-if="player" class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-					No past season data available.
-				</p>
-				<p v-else class="px-5 py-6 text-sm leading-6 text-stone-400 sm:px-6">
-					Loading season history.
-				</p>
-			</section>
-		</div>
-	</div>
+		<div v-else class="site-content-rail relative flex w-full flex-col gap-8 py-5 sm:py-7">
+      <UBreadcrumb :items="breadcrumbLinks" class="min-w-0" :ui="{ link: 'text-stone-300 hover:text-white', linkLabel: 'whitespace-normal [overflow-wrap:anywhere]' }" />
+      <PlayerPerformanceCard v-if="playerData" :player="playerData" :bootstrap="bootstrap" />
+      <PlayerProfileHistory v-if="player" :player-id="playerId" :details="player" :bootstrap="bootstrap" />
+    </div>
+	</main>
 </template>
 
 <script setup>
@@ -283,13 +209,6 @@
 		link: [{ rel: "canonical", href: canonicalUrl }],
 	});
 
-	const elementTypeMap = {
-		1: "Goalkeeper",
-		2: "Defender",
-		3: "Midfielder",
-		4: "Forward",
-	};
-
 	const playerName = computed(() => {
 		if (!playerData.value) {
 			if (isMalformedPlayerRoute.value || isPlayerNotFound.value) return "Player not found";
@@ -310,10 +229,6 @@
 		{ label: "Player" },
 		{ label: playerName.value },
 	]);
-
-	const playerTeam = computed(() => playerData.value?.teamData?.name || "Loading team...");
-
-	const playerRole = computed(() => elementTypeMap[playerData.value?.element_type] || "Loading role...");
 
 	const playerSummary = computed(() => {
 		if (!playerData.value) return playerErrorDescription.value;
@@ -349,41 +264,4 @@
 		),
 	});
 
-	const formatCompact = (value) => {
-		const number = Number(value || 0);
-
-		return new Intl.NumberFormat("en", {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}).format(number);
-	};
-
-	const formatPercent = (value) => {
-		const number = Number(value || 0);
-
-		return number % 1 === 0 ? `${number.toFixed(0)}%` : `${number.toFixed(1)}%`;
-	};
-
-	const formatCost = (value) => {
-		const cost = Number(value || 0) / 10;
-
-		return `${cost.toFixed(cost % 1 === 0 ? 0 : 1)}m`;
-	};
-
-	const playerForm = computed(() => (playerData.value ? String(playerData.value.form ?? "—") : "—"));
-	const playerMinutes = computed(() => (playerData.value ? formatCompact(playerData.value.minutes) : "—"));
-	const playerPoints = computed(() => (playerData.value ? formatCompact(playerData.value.total_points ?? playerData.value.event_points) : "—"));
-	const playerIctRank = computed(() => {
-		if (!playerData.value || playerData.value.ict_index_rank == null) return "—";
-
-		return `#${formatCompact(playerData.value.ict_index_rank)}`;
-	});
-	const playerSelectedBy = computed(() => (playerData.value ? formatPercent(playerData.value.selected_by_percent) : "—"));
-	const playerPrice = computed(() => (playerData.value ? formatCost(playerData.value.now_cost) : "—"));
-
-	const upcomingFixtures = computed(() => player.value?.fixtures || []);
-	const recentHistory = computed(() => [...(player.value?.history || [])].reverse());
-	const pastSeasons = computed(() => [...(player.value?.history_past || [])].reverse());
-
-	const fixtureCount = computed(() => upcomingFixtures.value.length);
 </script>

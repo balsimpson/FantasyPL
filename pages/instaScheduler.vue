@@ -239,7 +239,7 @@ onScopeDispose(() => {
   <UApp>
     <main class="h-dvh overflow-hidden bg-default text-default selection:bg-primary/20">
       <div class="flex h-full flex-col">
-        <header class="flex shrink-0 items-center justify-between px-4 py-3 sm:px-6">
+        <header class="site-content-rail flex shrink-0 items-center justify-between py-3">
           <div class="flex items-center gap-3">
             <UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to FPL Insights" />
             <h1 class="text-sm font-semibold text-highlighted sm:text-base">Post picks <span class="font-normal text-muted">· GW{{ draft.gameweek ?? '—' }}</span></h1>
@@ -253,7 +253,7 @@ onScopeDispose(() => {
         <UAlert v-if="error" color="error" title="Player data could not load" description="Load the player list again to start creating a post." class="mx-auto mt-8 w-full max-w-lg" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
         <div v-else-if="status === 'pending'" role="status" class="flex flex-1 items-center justify-center text-muted">Loading players…</div>
 
-        <SchedulerPostHistory v-else-if="view === 'history'" class="min-h-0 flex-1 overflow-auto px-4 pb-4 sm:px-6" :players="players" :initial-search="historySearch" />
+        <SchedulerPostHistory v-else-if="view === 'history'" class="site-content-rail min-h-0 flex-1 overflow-auto pb-4" :players="players" :initial-search="historySearch" />
 
         <section v-else class="flex min-h-0 flex-1 flex-col">
           <div class="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto px-3 pt-2 pb-24">
@@ -331,13 +331,13 @@ onScopeDispose(() => {
             <p class="h-5 w-[min(45vh,78vw)] max-w-[660px] truncate text-xs" :class="failed || schedulingError ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError) }}</p>
           </div>
 
-          <footer class="relative z-40 shrink-0 border-t border-default bg-default/95 px-3 pb-2 pt-2 sm:px-5">
+          <footer class="relative z-40 shrink-0 border-t border-default bg-default/95 pb-2 pt-2">
             <div id="scheduler-post-toolbar" class="pointer-events-none absolute inset-x-0 bottom-full flex justify-center px-2 pb-4" />
-            <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-2">
+            <div class="site-content-rail flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1">
               <p class="text-xs text-muted">Post ideas · Differentials, transfers, value and form</p>
               <UButton label="Show more players" icon="i-lucide-plus" color="neutral" variant="ghost" size="sm" :disabled="!hasMorePicks || busy" @click="showMorePicks" />
             </div>
-            <div v-if="picksReady" ref="pickList" class="mx-auto flex max-w-6xl gap-2 overflow-x-auto overscroll-x-contain px-2 py-2">
+            <div v-if="picksReady" ref="pickList" class="site-content-rail flex gap-2 overflow-x-auto overscroll-x-contain py-2">
               <article v-for="pick in postPicks" :key="`${pick.id}:${pick.player.photoUrl}:${pick.designId}`" class="relative w-24 shrink-0 sm:w-28 lg:w-32">
                 <button type="button" class="relative block w-full overflow-hidden rounded-lg bg-elevated text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" :class="activePickId === pick.id ? 'ring-2 ring-primary' : 'ring-1 ring-default hover:ring-primary/50'" :aria-label="'Preview ' + pick.player.name + ', ' + pick.story.label + ', ' + pick.story.evidence" :title="pick.story.scope ?? pick.story.evidence" :aria-current="activePickId === pick.id ? 'true' : undefined" :disabled="busy" @click="activatePick(pick)">
                   <SchedulerPostPreview :key="`${pick.id}:${pick.player.code}:${pick.player.photoUrl}:${pick.designId}`" :draft="pickDraft(pick)" />

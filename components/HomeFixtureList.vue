@@ -17,8 +17,15 @@
     <div v-else class="grid min-w-0 grid-flow-col auto-cols-[88%] gap-3 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory sm:auto-cols-[calc((100%_-_0.75rem)/2)] lg:auto-cols-[calc((100%_-_1.5rem)/3)] [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
       role="region" aria-label="Upcoming fixture matches" tabindex="0">
       <article v-for="match in upcomingFixtures" :key="match.id" class="min-w-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#101216]">
-        <header class="border-b border-white/10 bg-white/[0.035] px-4 py-3">
-          <h3 class="text-sm font-bold text-white">Gameweek {{ match.gameweek }}</h3>
+        <header class="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3">
+          <h3 class="shrink-0 text-sm font-bold text-white">Gameweek {{ match.gameweek }}</h3>
+          <ClientOnly>
+            <time v-if="match.kickoff" :datetime="match.kickoff" class="min-w-0 text-right text-[0.62rem] font-medium tabular-nums text-stone-300">{{ formatKickoff(match.kickoff) }}</time>
+            <span v-else class="text-right text-[0.62rem] text-stone-400">Kickoff TBC</span>
+            <template #fallback>
+              <span class="text-right text-[0.62rem] text-stone-400">{{ match.kickoff ? 'Kickoff set' : 'Kickoff TBC' }}</span>
+            </template>
+          </ClientOnly>
         </header>
         <div class="px-3 py-3">
           <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
@@ -32,23 +39,6 @@
               <img v-if="match.awayCode" :src="crestUrl(match.awayCode)" alt="" width="28" height="28" loading="lazy" decoding="async" class="size-7 shrink-0 object-contain" />
             </div>
           </div>
-          <ClientOnly>
-            <div class="mt-2 flex justify-center">
-              <time v-if="match.kickoff" :datetime="match.kickoff" class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[0.62rem] font-medium tabular-nums text-stone-300">
-                <UIcon name="i-lucide-clock-3" class="size-3.5 text-stone-400" aria-hidden="true" />{{ formatKickoff(match.kickoff) }}
-              </time>
-              <span v-else class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[0.62rem] text-stone-500">
-                <UIcon name="i-lucide-clock-3" class="size-3.5" aria-hidden="true" />Kickoff TBC
-              </span>
-            </div>
-            <template #fallback>
-              <div class="mt-2 flex justify-center">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[0.62rem] text-stone-500">
-                  <UIcon name="i-lucide-clock-3" class="size-3.5" aria-hidden="true" />{{ match.kickoff ? 'Kickoff set' : 'Kickoff TBC' }}
-                </span>
-              </div>
-            </template>
-          </ClientOnly>
           <div class="mt-2 grid grid-cols-2 gap-2">
             <div v-for="side in [{ label: 'Home', value: match.homeDifficulty }, { label: 'Away', value: match.awayDifficulty }]" :key="side.label"
               class="min-w-0" :class="side.label === 'Away' ? 'text-right' : ''"

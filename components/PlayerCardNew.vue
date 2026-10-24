@@ -15,6 +15,7 @@
               <h2 class="font-black leading-none tracking-tight text-balance text-white" :class="compact ? 'text-[1.75rem]' : 'text-[2rem]'">
                 {{ player.web_name }}
               </h2>
+              <PlayerAge :player="player" class="text-stone-300" />
               <div class="flex items-center gap-3">
                 <div class="h-10 w-10 shrink-0">
                   <img

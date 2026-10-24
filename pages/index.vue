@@ -1,87 +1,13 @@
 <template>
   <div class="relative min-h-screen text-stone-50">
-    <main id="main-content" class="mx-auto flex w-full flex-col gap-8 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-      <section aria-labelledby="home-title" class="grid min-w-0 gap-x-8 gap-y-5 border-b border-white/10 pb-5 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start">
-          <h1 id="home-title" class="order-0 max-w-xl text-3xl font-black leading-tight tracking-[-0.03em] text-white sm:text-4xl">
-            Find your next FPL player
-          </h1>
-          <div class="order-1 min-w-0 w-full md:order-2">
-            <UFormField
-              label="Search players"
-              :ui="{ root: 'w-full', label: 'text-sm font-semibold text-stone-200', description: 'mt-2 text-sm text-stone-400' }"
-            >
-              <UInput
-                id="player-search"
-                v-model="playerQuery"
-                type="search"
-                icon="i-lucide-search"
-                placeholder="Haaland"
-                autocomplete="off"
-                aria-controls="player-search-results"
-                :aria-expanded="Boolean(playerQuery.trim() && hasPlayerCatalog && !bootstrapFailed)"
-                aria-autocomplete="list"
-                class="w-full"
-                :ui="{
-                  root: 'w-full',
-                  base: 'w-full rounded-xl border border-accented bg-default h-12 text-base font-medium text-highlighted shadow-sm outline-none transition placeholder:text-muted hover:bg-elevated focus:border-primary/60 focus:ring-2 focus:ring-primary/25'
-                }"
-                @keydown.enter.prevent="goToFirstPlayerResult"
-              />
-            </UFormField>
-
-            <div id="player-search-results" :class="{ 'mt-3': bootstrapPending || bootstrapFailed || playerQuery.trim() }" aria-live="polite">
-              <p v-if="bootstrapPending" class="text-sm text-stone-400">
-                Loading current player data…
-              </p>
-
-              <div v-else-if="bootstrapFailed" class="flex flex-wrap items-center gap-3 rounded-xl border border-error/25 bg-error/10 px-4 py-3">
-                <p class="text-sm leading-6 text-stone-200">
-                  Player search is unavailable because the current FPL data could not be loaded.
-                </p>
-                <UButton color="neutral" variant="outline" size="sm" @click="retryBootstrap">
-                  Try again
-                </UButton>
-              </div>
-
-              <div v-else-if="playerQuery.trim() && playerSearchResults.length" class="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-                <NuxtLink
-                  v-for="player in playerSearchResults"
-                  :key="player.id"
-                  :to="getPlayerRoute(player)"
-                  class="group flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-white/[0.06] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-                >
-                  <span class="min-w-0">
-                    <span class="block text-base font-semibold text-white [overflow-wrap:anywhere]">
-                      {{ player.first_name }} {{ player.second_name }}
-                    </span>
-                    <span class="mt-1 block text-sm text-stone-400 [overflow-wrap:anywhere]">
-                      {{ player.web_name }} · {{ getTeamInfo(player.team, bootstrap)?.name || 'Team unavailable' }}
-                    </span>
-                  </span>
-                  <UIcon name="i-lucide-arrow-up-right" class="size-4 shrink-0 text-stone-500 transition group-hover:text-primary" aria-hidden="true" />
-                </NuxtLink>
-              </div>
-
-              <p v-else-if="playerQuery.trim()" class="text-sm text-stone-400">
-                No players match that search. Try a surname or the name shown in FPL.
-              </p>
-
-
-            </div>
-          </div>
-        <HomeDeadlinePanel
-          class="order-3 md:order-1 md:self-center"
-          :deadline="nextGameweek?.deadline_time"
-          :loading="bootstrapPending"
-          :error="bootstrapFailed"
-        />
-        <details class="order-2 min-w-0 md:order-3">
-          <summary class="w-fit cursor-pointer rounded-md py-2 text-sm font-semibold text-stone-300 hover:text-white focus-visible:outline-2 focus-visible:outline-lime-300">Open your team</summary>
-          <HomeManagerLookup class="mt-3" />
-        </details>
-      </section>
-
-      <HomeSavedPlayers v-if="!bootstrapFailed && !bootstrapPending" :players="bootstrap?.elements || []" />
+    <main id="main-content" class="site-content-rail flex w-full flex-col gap-8 py-5 sm:py-7">
+      <h1 class="sr-only">FPL player stats and fixtures</h1>
+      <HomeDeadlinePanel
+        :deadline="nextGameweek?.deadline_time"
+        :gameweek="nextGameweek?.id"
+        :loading="bootstrapPending"
+        :error="bootstrapFailed"
+      />
 
       <HomePlayerDiscovery
         :players="bootstrap?.elements || []"
@@ -89,7 +15,6 @@
         :fixtures="fixturesList"
         :gameweeks="shortlistGameweeks"
         :fixtures-available="!fixturesFailed && !bootstrapPending"
-        :fetched-at="bootstrap?.fetchedAt"
         :loading="bootstrapPending"
         :error="bootstrapFailed"
         @retry="retryBootstrap"
@@ -118,7 +43,6 @@
 </template>
 
 <script setup>
-import { getPlayerRoute } from "~/composables/usePlayerRoute";
 import { getShortlistGameweeks } from "~/utils/homepage-shortlist";
 
 definePageMeta({
@@ -143,8 +67,6 @@ useSeoMeta({
   twitterDescription:
     "Find your next FPL player. Compare prices, form, ownership and upcoming fixtures, then save your shortlist before the next gameweek deadline.",
 });
-
-const playerQuery = ref("");
 
 const {
   data: bootstrap,
@@ -186,37 +108,6 @@ const recapGameweek = computed(() => {
     viceCaptainedPlayer,
   };
 });
-
-const playerSearchResults = computed(() => {
-  const query = playerQuery.value.trim().toLowerCase();
-
-  if (!query || !hasPlayerCatalog.value) return [];
-
-  return [...bootstrap.value.elements]
-    .filter((player) => {
-      const searchableText = [player.first_name, player.second_name, player.web_name]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(query);
-    })
-    .sort((a, b) => {
-      const aName = `${a.first_name} ${a.second_name}`.toLowerCase();
-      const bName = `${b.first_name} ${b.second_name}`.toLowerCase();
-      const aStartsWith = aName.startsWith(query) || (a.web_name || "").toLowerCase().startsWith(query);
-      const bStartsWith = bName.startsWith(query) || (b.web_name || "").toLowerCase().startsWith(query);
-
-      if (aStartsWith !== bStartsWith) return aStartsWith ? -1 : 1;
-      return Number(b.total_points || 0) - Number(a.total_points || 0);
-    })
-    .slice(0, 6);
-});
-
-const goToFirstPlayerResult = async () => {
-  if (!playerSearchResults.value.length) return;
-  await navigateTo(getPlayerRoute(playerSearchResults.value[0]));
-};
 
 const retryBootstrap = async () => {
   await refreshBootstrap();

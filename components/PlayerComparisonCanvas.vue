@@ -6,6 +6,7 @@
 </template>
 
 <script setup lang="ts">
+import { getPlayerAge } from "~/utils/player-age";
 	const props = defineProps({
 		canvasKey: Number,
 		player1: Object,
@@ -98,6 +99,12 @@
 				startX + (alignment === "left" ? 50 : width - 50),
 				210
 			);
+
+			const age = getPlayerAge(player.birth_date);
+			if (age !== null) {
+				ctx.font = "24px Arial";
+				ctx.fillText(`${age} yrs`, startX + (alignment === "left" ? 50 : width - 50), 245);
+			}
 
 			// Price
 			ctx.font = "bold 120px Arial";

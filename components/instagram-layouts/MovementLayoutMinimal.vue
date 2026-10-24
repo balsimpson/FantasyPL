@@ -36,6 +36,8 @@
         </div>
       </header>
 
+      <PlayerAge :player="player" artwork class="absolute right-16 top-44 z-30 text-white/80" />
+
       <!-- Centralised Big Name (BEHIND IMAGE) -->
       <div class="absolute inset-x-0 top-[16rem] -translate-y-1/2 z-10 flex flex-col items-center justify-center text-center px-8">
         <h1 class="font-black leading-[0.8] tracking-[-0.08em] uppercase whitespace-nowrap text-white/10"

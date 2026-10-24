@@ -3,9 +3,9 @@
     <NuxtLink
       :to="getPlayerRoute(player)"
       :aria-label="`Open ${player.web_name} profile`"
-      class="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-start gap-3 px-3 py-3.5 transition hover:bg-white/[0.05] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:grid-cols-[3.5rem_minmax(0,1fr)_5rem_8rem] sm:items-center sm:px-4"
+      class="group grid grid-cols-[3rem_minmax(0,1fr)_auto] items-start gap-3 rounded-lg px-2 py-4 transition hover:bg-white/[0.05] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     >
-      <span class="relative flex h-14 w-14 items-end justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(200,255,61,0.2),transparent_58%),linear-gradient(145deg,#1a2422,#0b1111)]">
+      <span class="relative flex size-12 items-end justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(200,255,61,0.2),transparent_58%),linear-gradient(145deg,#1a2422,#0b1111)]">
         <span class="absolute left-1.5 top-1.5 z-20 inline-flex min-w-5 items-center justify-center rounded-full border border-white/15 bg-black/50 px-1 py-0.5 text-[0.62rem] font-black tabular-nums text-white backdrop-blur-sm">
           {{ rank }}
         </span>
@@ -16,7 +16,7 @@
           height="56"
           loading="lazy"
           decoding="async"
-          class="relative z-10 h-14 w-11 object-contain object-bottom drop-shadow-[0_10px_12px_rgba(0,0,0,0.45)] transition duration-300 group-hover:scale-105"
+          class="relative z-10 h-12 w-10 object-contain object-bottom drop-shadow-[0_10px_12px_rgba(0,0,0,0.45)] transition duration-300 motion-safe:group-hover:scale-105"
           @error="handlePlayerImageError"
         />
         <img
@@ -33,26 +33,23 @@
       </span>
 
       <span class="min-w-0">
-        <span class="block text-base font-semibold text-white [overflow-wrap:anywhere] group-hover:text-primary">
-          {{ player.web_name }}
+        <span class="flex flex-wrap items-center gap-2 text-sm font-semibold leading-5 text-white [overflow-wrap:anywhere] group-hover:text-primary">
+          <span>{{ player.web_name }}</span><PlayerAge :player="player" compact class="text-stone-300" />
+          <PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact />
         </span>
-        <span class="mt-1 block text-sm text-stone-400 [overflow-wrap:anywhere]">
-          {{ team?.name || "Team unavailable" }} · {{ positionLabel }}
+        <span class="mt-1 block text-xs leading-5 text-stone-400 [overflow-wrap:anywhere]">
+          {{ team?.name || "Team unavailable" }}
         </span>
-        <span class="mt-2 flex min-w-0 items-baseline justify-between gap-2 sm:hidden">
-          <span class="shrink-0 text-sm font-semibold tabular-nums text-stone-200">{{ priceLabel }}</span>
-          <span class="min-w-0 truncate text-right text-sm font-bold tabular-nums text-white">
-            {{ metricValue }} <span class="font-medium text-stone-500">{{ metricLabel }}</span>
-          </span>
+        <span class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs leading-5">
+          <span class="text-stone-400">{{ positionLabel }}</span>
+
+          <span class="font-semibold tabular-nums text-stone-200">{{ priceLabel }}</span>
         </span>
       </span>
 
-      <span class="hidden text-right text-sm font-semibold tabular-nums text-stone-200 sm:block">
-        {{ priceLabel }}
-      </span>
-
-      <span class="hidden min-w-0 text-right text-base font-bold tabular-nums text-white sm:block">
+      <span class="pt-0.5 text-right text-sm font-bold leading-5 tabular-nums text-white">
         {{ metricValue }}
+        <span class="sr-only">{{ metricLabel }}</span>
       </span>
     </NuxtLink>
   </li>

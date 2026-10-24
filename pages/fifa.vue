@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-[#050816] text-white font-['Outfit',sans-serif]">
-    <div class="mx-auto flex w-full max-w-[100rem] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+    <div class="site-content-rail flex w-full flex-col gap-8 py-8">
       
       <div class="grid gap-12 lg:grid-cols-2">
         

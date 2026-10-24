@@ -4,9 +4,31 @@ export type ShortlistFixture = Record<string, any>;
 export const SHORTLIST_SORTS = [
   { label: "Form", value: "form" },
   { label: "Season points", value: "total_points" },
-  { label: "Ownership", value: "selected_by_percent" },
-  { label: "GW transfers in", value: "transfers_in_event" },
-  { label: "GW transfers out", value: "transfers_out_event" },
+  { label: "Most selected", value: "selected_by_percent" },
+  { label: "Most bought (GW)", value: "transfers_in_event" },
+  { label: "Most sold (GW)", value: "transfers_out_event" },
+];
+
+export const SHORTLIST_PRICE_LIMITS = [
+  { label: "Any price", value: 0 },
+  { label: "Up to £3.0m", value: 30 },
+  { label: "Up to £3.5m", value: 35 },
+  { label: "Up to £4.0m", value: 40 },
+  { label: "Up to £4.5m", value: 45 },
+  { label: "Up to £5.0m", value: 50 },
+  { label: "Up to £5.5m", value: 55 },
+  { label: "Up to £6.0m", value: 60 },
+  { label: "Up to £6.5m", value: 65 },
+  { label: "Up to £7.0m", value: 70 },
+  { label: "Up to £7.5m", value: 75 },
+  { label: "Up to £8.0m", value: 80 },
+  { label: "Up to £8.5m", value: 85 },
+  { label: "Up to £9.0m", value: 90 },
+  { label: "Up to £9.5m", value: 95 },
+  { label: "Up to £10.0m", value: 100 },
+  { label: "Up to £12.0m", value: 120 },
+  { label: "Up to £15.0m", value: 150 },
+  { label: "Up to £20.0m", value: 200 },
 ];
 
 export const SHORTLIST_POSITIONS = [
@@ -78,8 +100,10 @@ export function getHomepagePlayerTrendSections(players: ShortlistPlayer[], limit
     .sort((a, b) => stat(b, key) - stat(a, key) || stat(b, "total_points") - stat(a, "total_points") || a.id - b.id)
     .slice(0, limit);
   const differentials = players
-    .filter((player) => hasNumber(player.selected_by_percent))
-    .sort((a, b) => stat(a, "selected_by_percent") - stat(b, "selected_by_percent") || tieBreak(a, b))
+    .filter((player) => hasNumber(player.selected_by_percent) &&
+      stat(player, "selected_by_percent") > 0 && stat(player, "selected_by_percent") <= 10 &&
+      stat(player, "minutes") > 0 && stat(player, "form") > 0)
+    .sort((a, b) => tieBreak(a, b))
     .slice(0, limit);
 
   return {

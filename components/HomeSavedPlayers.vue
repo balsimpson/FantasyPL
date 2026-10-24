@@ -7,7 +7,7 @@
     <ul v-if="savedPlayers.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <li v-for="player in savedPlayers" :key="player.code" class="min-w-0">
         <NuxtLink :to="getPlayerRoute(player)" class="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-4 py-3 transition hover:border-lime-300/40 focus-visible:outline-2 focus-visible:outline-lime-300">
-          <span class="min-w-0"><span class="block font-semibold text-white [overflow-wrap:anywhere]">{{ player.web_name }}</span><span class="mt-1 block text-xs text-stone-400">Form {{ player.form ?? '—' }}</span></span>
+          <span class="min-w-0"><span class="block font-semibold text-white [overflow-wrap:anywhere]">{{ player.web_name }}<PlayerAge :player="player" compact class="ml-2" /></span><span class="mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-400"><span>Form {{ player.form ?? '—' }}</span><PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact /></span></span>
           <span class="shrink-0 text-sm font-semibold tabular-nums text-lime-200">£{{ (player.now_cost / 10).toFixed(1) }}m</span>
         </NuxtLink>
       </li>

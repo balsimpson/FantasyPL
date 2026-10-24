@@ -42,6 +42,8 @@ Support every club in the current data, not just Manchester City. Use club colou
 
 Keep FPL Insights small, discreet and blended into the design. It must not compete with the player name. Keep the gameweek clear.
 
+The full-screen editor keeps its viewport-height workflow and fixed-size artwork. Align its top toolbar and bottom player-pick rail to the shared `.site-content-rail` from `assets/css/main.css`; retain the narrower preview canvas and history reading width.
+
 ### Existing design family
 
 Keep the choices distinct while sharing data, assets and export behavior. The source defines the current names and IDs.
@@ -98,6 +100,10 @@ Preserve the strict image-proxy path for scheduler assets. Missing images must s
 Preserve units and periods: price is supplied in tenths of a million; ownership is a percentage; season totals and gameweek values are different fields. Missing values must remain unavailable, not become invented zeros. Do not infer availability, injuries, starting lineups or future returns from unrelated stats.
 
 In the player thumbnail strip, overlay the selection reason on the thumbnail with a distinct icon and colour for each story angle. Keep the supporting numbers readable over a dark fade and keep these editor badges outside the exported artwork.
+
+### Optional player age
+
+24 October 2026: normalized players retain the official `birth_date` as optional `birthDate`. Show a small `26 yrs` identity badge near the player name, using the shared `PlayerAge.vue` artwork size. Keep it separate from position text and omit it entirely when the birth date is unavailable or invalid. `SchedulerPlayerName.vue` supplies the shared badge; the Hero background lettering suppresses it in favor of a separate readable badge. Analyst, shortlist, fixture and picker identities use the same badge. Keep legacy Instagram cards free of invented zero ages. The shared calculation uses a serialized reference date for consistent server/client output. Local production build, component compilation and age edge-case checks passed; browser artwork checks and hosted/export verification remain separate. No upload, generation, scheduling or posting action was used.
 
 ## Shared transfer bar
 

@@ -1,5 +1,5 @@
 <template>
-	<div class="relative isolate min-h-screen overflow-hidden bg-[#050608] text-stone-50">
+	<div class="relative isolate min-h-screen overflow-clip bg-[#050608] text-stone-50">
 		<div
 			class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.14),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(72,214,255,0.12),transparent_26%),linear-gradient(180deg,#090a0d_0%,#050608_45%,#050608_100%)]"
 		/>
@@ -10,26 +10,30 @@
 			>
 				Skip to content
 			</a>
-			<div class="flex flex-col w-full mx-auto" :class="route.path === '/' ? 'max-w-none' : 'max-w-7xl'">
-				<nav class="flex items-center justify-between py-4" :class="route.path === '/' ? 'px-4 sm:px-6 lg:px-8' : 'px-3 sm:px-6'">
+			<nav aria-label="Primary navigation" class="site-content-rail flex flex-wrap items-center justify-between gap-3 py-4">
 					<NuxtLink
 						to="/"
 						class="group inline-flex items-center gap-2 text-white/90 transition duration-200 ease-in-out hover:text-white"
 					>
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="none"/><path fill="#babd23" d="M6.014 8.666c-.07-.487-.221-1.066-.402-1.758l-.54-2.076l-.01-.037A10 10 0 0 1 7.47 3.08l1.632 1.238c.56.424 1.03.781 1.447 1.027c.218.13.437.238.666.316v3.022q-.184.086-.351.216l-1.932 1.519a2 2 0 0 0-.2.183L6.053 9.44a3.7 3.7 0 0 0-.04-.774m-1.968 1.537c-.295.254-.71.537-1.335.961l-.704.479a9.96 9.96 0 0 1 1.865-5.47l.28 1.073c.193.743.321 1.24.378 1.635c.055.376.032.582-.03.748c-.06.165-.174.333-.454.574m1.256 6.682c.695 0 1.28 0 1.759.056c.252.03.493.077.723.154l1.415-1.852a2 2 0 0 1-.127-.316L8.31 12.4a2 2 0 0 1-.071-.379l-2.727-1.18a3.7 3.7 0 0 1-.489.498c-.368.317-.856.648-1.436 1.043l-1.492 1.013a9.9 9.9 0 0 0 1.175 3.49zm6.491-6.807a.28.28 0 0 1 .174-.062q.091 0 .175.062l1.932 1.518q.08.062.111.166a.36.36 0 0 1 0 .207l-.758 2.526a.33.33 0 0 1-.108.164a.28.28 0 0 1-.178.064h-2.347a.28.28 0 0 1-.178-.065a.33.33 0 0 1-.108-.163l-.759-2.526a.36.36 0 0 1 0-.207a.33.33 0 0 1 .112-.166zm1.584-4.702c.422-.237.9-.584 1.468-.995l1.74-1.262a10 10 0 0 1 2.35 1.694l-.546 2.095c-.18.692-.331 1.271-.402 1.758a3.7 3.7 0 0 0-.04.77l-2.743 1.167a2 2 0 0 0-.203-.186l-1.932-1.519a1.8 1.8 0 0 0-.352-.216v-3.01c.226-.072.444-.175.66-.296m-2.063-1.323c-.333-.197-.735-.5-1.337-.957l-.883-.67A10 10 0 0 1 11.99 2c1.032 0 2.028.157 2.965.448l-.956.693c-.612.443-1.02.738-1.357.927c-.32.18-.507.224-.666.222s-.345-.05-.662-.237m7.662 7.287c.368.316.856.648 1.436 1.042l1.47.998a9.9 9.9 0 0 1-1.176 3.505h-1.858c-.695 0-1.28 0-1.759.056a3.5 3.5 0 0 0-.751.164l-1.59-1.89a2 2 0 0 0 .114-.288l.76-2.527q.055-.186.07-.375l2.792-1.188q.216.268.492.502m-4.168 7.288c-.201.446-.386 1.014-.606 1.694l-.496 1.532a10 10 0 0 1-3.253.03l-.506-1.562c-.22-.68-.405-1.248-.606-1.695a4 4 0 0 0-.356-.634l1.39-1.819q.203.05.418.05h2.347q.23 0 .447-.057l1.559 1.852a4 4 0 0 0-.338.608m-6.275 2.197c-.237-.73-.396-1.218-.56-1.578c-.155-.345-.283-.5-.418-.6c-.132-.098-.31-.172-.67-.214c-.381-.045-.878-.046-1.627-.046h-.957a10 10 0 0 0 4.438 3.074zm8.731-2.392c.381-.045.878-.046 1.627-.046h.785a10 10 0 0 1-4.243 3.005l.183-.567c.237-.73.396-1.218.56-1.578c.155-.345.283-.5.418-.6c.132-.098.31-.172.67-.214M19.47 8.88c.058-.393.187-.891.38-1.634l.273-1.05a9.96 9.96 0 0 1 1.847 5.43l-.68-.461c-.625-.425-1.04-.708-1.335-.962c-.28-.241-.393-.409-.454-.573c-.062-.167-.085-.373-.03-.75"/></svg>
-						<span class="text-xl font-bold uppercase tracking-[0.28em] text-white/75 transition duration-200 ease-in-out group-hover:text-white">
+						<span class="text-sm font-bold uppercase tracking-[0.08em] text-white/75 transition duration-200 ease-in-out group-hover:text-white sm:text-xl sm:tracking-[0.28em]">
 							Fantasy<span class="text-[#babd23]">PL</span>
 						</span>
 					</NuxtLink>
+					<div class="ml-auto flex items-center gap-2">
+					<ManagerTeamMenu />
 					<NuxtLink
 						to="/watchlist"
-						class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-stone-300 transition duration-200 ease-in-out hover:border-primary/40 hover:text-white"
+						:aria-label="savedPlayerCount ? `Watchlist, ${savedPlayerCount} saved ${savedPlayerCount === 1 ? 'player' : 'players'}` : 'Watchlist'"
+						class="inline-flex items-center gap-2 rounded-sm px-1.5 py-2 text-sm font-medium text-stone-300 transition-colors hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
 					>
+						<UIcon name="i-lucide-bookmark" class="size-4 shrink-0" aria-hidden="true" />
 						Watchlist
+						<span v-if="savedPlayerCount" aria-hidden="true" class="text-xs text-stone-400 tabular-nums">{{ savedPlayerCount }}</span>
 					</NuxtLink>
-				</nav>
-			</div>
-			<div class="grow w-full mx-auto">
+					</div>
+			</nav>
+			<div class="grow w-full">
 				<slot />
 			</div>
 			<AppFooter />
@@ -37,6 +41,7 @@
 	</div>
 </template>
 
-<script setup>
-const route = useRoute();
+<script setup lang="ts">
+const { savedCodes, hasLoaded } = useWatchlist();
+const savedPlayerCount = computed(() => hasLoaded.value ? savedCodes.value.length : 0);
 </script>

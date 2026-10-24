@@ -1,7 +1,7 @@
 export const getBootstrapStatic = async () => {
 	try {
 		const url = "https://fantasy.premierleague.com/api/bootstrap-static/";
-		const response = await fetch(url);
+		const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
 		const data = await response.json();
 		return data;
 	} catch (error) {
@@ -432,25 +432,13 @@ export async function getUpcomingFixtures(count: number = 12) {
 }
 
 export async function getManagerDetails(id: number) {
-	try {
-		const url = `https://fantasy.premierleague.com/api/entry/${id}/`;
-		const response = await $fetch(url);
-		return response;
-	} catch (error) {
-		console.error("Error getManagerDetails:", error);
-		return error;
-	}
+	const url = `https://fantasy.premierleague.com/api/entry/${id}/`;
+	return await $fetch(url, { timeout: 10_000, retry: 0 });
 }
 
 export async function getManagerPicks(id: number, gw: number) {
-	try {
-		const url = `https://fantasy.premierleague.com/api/entry/${id}/event/${gw}/picks/`;
-		const response = await $fetch(url);
-		return response;
-	} catch (error) {
-		console.error("Error getManagerPicks:", error);
-		return null;
-	}
+	const url = `https://fantasy.premierleague.com/api/entry/${id}/event/${gw}/picks/`;
+	return await $fetch<{ picks: Record<string, any>[] }>(url, { timeout: 10_000, retry: 0 });
 }
 
 export async function getPlayerPredictions() {

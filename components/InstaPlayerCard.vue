@@ -35,10 +35,7 @@
             <p class="pt-8 font-bold text-8xl">
               {{ player.now_cost / 10 }}<span class="opacity-50">m</span>
             </p>
-            <p class="mt-24 text-3xl">Age</p>
-            <p class="text-6xl font-bold">
-              {{ getAge(player.birth_date) }}
-            </p>
+            <PlayerAge :player="player" artwork class="mt-6" />
             <p class="mt-8 text-3xl">Points per game</p>
             <p class="text-6xl font-bold">{{ player.points_per_game }}</p>
             <p class="mt-8 text-3xl">Total points</p>
@@ -234,22 +231,6 @@ function getDifficultyColors(difficulty) {
   return colors[difficulty];
 }
 
-const getAge = (birthDate) => {
-  if (!birthDate) return 0;
-
-  const today = new Date();
-  const birth = new Date(birthDate);
-
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-
-  // If birthday hasn't occurred this year yet, subtract 1
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-
-  return age;
-};
 
 function getTopStatsByPosition(player) {
   function rateValue(stat, value) {

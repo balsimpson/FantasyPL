@@ -1,24 +1,37 @@
 <template>
-  <section aria-labelledby="deadline-title" class="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
-    <div class="flex items-center gap-3">
-      <UIcon name="i-lucide-timer" class="size-6 shrink-0 text-lime-300" aria-hidden="true" />
-      <div>
-        <h2 id="deadline-title" class="text-sm font-semibold text-stone-300">Next deadline</h2>
-        <time v-if="deadlineDate" :datetime="deadlineDate.toISOString()" class="mt-1 block text-base font-bold text-white">
-          {{ mounted ? deadlineLabel : "Local time" }}
+  <section aria-label="Next gameweek deadline" class="@container min-w-0 rounded-xl border border-white/15 bg-[#181d1c] p-4 text-white sm:p-5">
+    <div class="flex min-w-0 flex-col gap-5 @[42rem]:flex-row @[42rem]:items-center @[42rem]:justify-between @[42rem]:gap-8">
+      <div class="min-w-0">
+        <h2 class="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-medium uppercase tracking-[0.16em] text-stone-300">
+          Next deadline
+          <span v-if="gameweek" class="border-l border-white/20 pl-3">
+            <span class="inline-flex rounded-full border border-lime-300/40 px-2.5 py-1 text-[11px] leading-none tracking-[0.08em] text-lime-300">GW {{ gameweek }}</span>
+          </span>
+        </h2>
+        <time v-if="deadlineDate" :datetime="deadlineDate.toISOString()" class="mt-2 block text-xl font-medium leading-snug tracking-tight text-white @[42rem]:text-2xl">
+          {{ deadlineLabel }}
         </time>
-        <p v-else class="mt-1 text-sm text-stone-300">{{ statusText }}</p>
+        <p v-if="!deadlineDate" class="mt-1 text-sm text-stone-300">{{ statusText }}</p>
       </div>
-    </div>
-    <div v-if="deadlineDate && mounted" class="text-right">
-      <span class="block font-serif text-2xl font-bold text-lime-300">{{ remainingLabel }}</span>
-      <span class="text-xs text-stone-400">Local time</span>
+      <div v-if="deadlineDate" class="shrink-0 @[42rem]:border-l @[42rem]:border-white/20 @[42rem]:pl-8" role="timer" aria-label="Time remaining" aria-live="off" :aria-busy="!mounted">
+        <p v-if="mounted && deadlinePassed" class="text-sm font-medium text-stone-300">Deadline passed</p>
+        <dl v-else class="grid grid-cols-4 divide-x divide-white/20">
+          <div v-for="segment in segments" :key="segment.label" class="flex min-w-0 flex-col items-center gap-2 px-3 first:pl-0 last:pr-0 @[42rem]:px-5">
+            <dt class="order-last text-[9px] font-medium uppercase tracking-[0.16em] text-stone-300">{{ segment.label }}</dt>
+            <dd class="min-h-9 min-w-[2ch] text-center text-3xl font-semibold leading-9 tracking-tight tabular-nums @[42rem]:text-4xl" :class="segment.label === 'Sec' ? 'text-lime-300' : 'text-white'">{{ mounted ? segment.value : '' }}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
 const props = defineProps({
+  gameweek: {
+    type: Number,
+    default: null,
+  },
   deadline: {
     type: [String, Date],
     default: null,
@@ -46,28 +59,32 @@ const deadlineDate = computed(() => {
 const deadlineLabel = computed(() => {
   if (!deadlineDate.value) return "";
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(mounted.value ? undefined : "en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    ...(!mounted.value ? { timeZone: "UTC", timeZoneName: "short" } : {}),
   }).format(deadlineDate.value);
 });
 
-const remainingLabel = computed(() => {
-  if (!deadlineDate.value) return "";
+const deadlinePassed = computed(() => deadlineDate.value && deadlineDate.value.getTime() <= now.value);
 
-  const difference = deadlineDate.value.getTime() - now.value;
-  if (difference <= 0) return "Deadline passed";
+const segments = computed(() => {
+  const totalSeconds = Math.max(0, Math.ceil(((deadlineDate.value?.getTime() || now.value) - now.value) / 1000));
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value) => String(value).padStart(2, "0");
 
-  const totalMinutes = Math.floor(difference / (1000 * 60));
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-
-  if (days > 0) return `In ${days}d ${hours}h`;
-  if (hours > 0) return `In ${hours}h ${totalMinutes % 60}m`;
-  return `In ${Math.max(1, totalMinutes)}m`;
+  return [
+    { label: "Days", value: pad(days) },
+    { label: "Hours", value: pad(hours) },
+    { label: "Min", value: pad(minutes) },
+    { label: "Sec", value: pad(seconds) },
+  ];
 });
 
 const statusText = computed(() => {
@@ -83,7 +100,7 @@ onMounted(() => {
   now.value = Date.now();
   interval = window.setInterval(() => {
     now.value = Date.now();
-  }, 60_000);
+  }, 1000);
 });
 
 onBeforeUnmount(() => {

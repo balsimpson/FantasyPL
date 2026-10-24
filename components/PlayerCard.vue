@@ -54,6 +54,7 @@
 				<h2 class="w-full text-2xl font-bold leading-5">
 					{{ player.web_name }}
 				</h2>
+                <PlayerAge :player="player" class="mt-2" />
 				<div class="mt-1 mb-3 text-3xl font-black text-slate-500">
 					{{ player.now_cost / 10 }}<span class="text-slate-400">m</span>
 				</div>

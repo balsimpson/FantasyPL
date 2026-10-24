@@ -10,7 +10,7 @@
 
       <!-- Player Info -->
       <div class="player-info">
-        <h1 class="name">{{ player.name }}</h1>
+        <h1 class="name">{{ player.name }}</h1><PlayerAge :player="player" />
         <div class="meta">
           <span class="price">{{ player.price }}</span>
           <span class="position">{{ player.position }}</span>
