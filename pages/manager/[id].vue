@@ -19,6 +19,7 @@
 					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-primary/40 hover:bg-white/[0.08] hover:text-white" aria-label="Back to home" />
 				</div>
 			</header>
+			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" />
 
 			<div class="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
 				<aside aria-label="Manager summary" class="min-w-0 space-y-6 lg:col-start-2 lg:row-start-1">
@@ -176,6 +177,65 @@ const managerDisplayName = computed(() => {
 	const firstName = managerData.value?.player_first_name ?? "";
 	const lastName = managerData.value?.player_last_name ?? "";
 	return `${firstName} ${lastName}`.trim() || "Manager";
+});
+
+const managerPageTitle = computed(() =>
+	managerData.value?.name ? `${managerData.value.name} FPL Team` : `FPL Manager ${id.value} Team`
+);
+
+const managerPageDescription = computed(() => {
+	const manager = managerData.value;
+	if (!manager) {
+		return `Explore FPL manager ${id.value}'s team, Gameweek lineup, season points and overall rank.`;
+	}
+
+	return `${managerDisplayName.value}'s ${manager.name} FPL team for Gameweek ${manager.current_event}: ${formatNumber(manager.summary_event_points)} gameweek points, ${formatNumber(manager.summary_overall_points)} overall points and overall rank ${formatNumber(manager.summary_overall_rank)}.`;
+});
+
+const managerOgPlayers = computed(() =>
+	(squadState.value?.startingXI ?? []).map((pick) => ({
+		name: pick.element?.web_name ?? "Unknown player",
+		position: pick.element_type ?? "Unknown",
+		isCaptain: Boolean(pick.is_captain),
+		isViceCaptain: Boolean(pick.is_vice_captain),
+	}))
+);
+
+const managerOgFormation = computed(() => {
+	if (!managerOgPlayers.value.length) return "Lineup pending";
+	return ["Defender", "Midfielder", "Forward"]
+		.map((position) => managerOgPlayers.value.filter((player) => player.position === position).length)
+		.join("-");
+});
+
+useSeoMeta({
+	title: managerPageTitle,
+	description: managerPageDescription,
+	ogTitle: computed(() => `${managerPageTitle.value} | FPL Insights`),
+	ogDescription: managerPageDescription,
+	ogUrl: canonicalUrl,
+	twitterCard: "summary_large_image",
+	twitterTitle: computed(() => `${managerPageTitle.value} | FPL Insights`),
+	twitterDescription: managerPageDescription,
+});
+
+defineOgImageComponent("ManagerTeam", {
+	managerId: id,
+	managerName: managerDisplayName,
+	teamName: computed(() => managerData.value?.name ?? `Manager ${id.value}'s FPL team`),
+	currentEvent: computed(() => managerData.value?.current_event ?? null),
+	eventPoints: computed(() => managerData.value?.summary_event_points ?? null),
+	eventRank: computed(() => managerData.value?.summary_event_rank ?? null),
+	overallPoints: computed(() => managerData.value?.summary_overall_points ?? null),
+	overallRank: computed(() => managerData.value?.summary_overall_rank ?? null),
+	formation: managerOgFormation,
+	players: managerOgPlayers,
+}, {
+	width: 1200,
+	height: 630,
+	extension: "png",
+	alt: `Fantasy Premier League starting XI and season stats for manager ${id.value}`,
+	cacheMaxAgeSeconds: 60 * 60,
 });
 
 const managerInitials = computed(() => {

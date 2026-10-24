@@ -1,4 +1,4 @@
-import { DEFAULT_SITE_URL } from "./utils/site-url";
+import { DEFAULT_SITE_URL, getPublicSiteOrigin } from "./utils/site-url";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -30,10 +30,22 @@ export default defineNuxtConfig({
 			style: [],
 		},
 	},
-	modules: ["@pinia/nuxt", "@nuxt/ui"],
+	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image"],
+	site: {
+		url: getPublicSiteOrigin(process.env.NUXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL),
+		name: "FPL Insights",
+	},
+	ogImage: {
+		defaults: {
+			width: 1200,
+			height: 630,
+			extension: "png",
+		},
+	},
 	  css: ['~/assets/css/main.css'],
 	runtimeConfig: {
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
+		JEV_API_KEY: process.env.JEV_API_KEY || "",
 		BUFFER_API_KEY: process.env.BUFFER_API_KEY || "",
 		BUFFER_CHANNEL_ID: process.env.BUFFER_CHANNEL_ID || "",
 		CONVEX_URL: process.env.CONVEX_URL || "",

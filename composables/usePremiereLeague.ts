@@ -438,7 +438,17 @@ export async function getManagerDetails(id: number) {
 
 export async function getManagerPicks(id: number, gw: number) {
 	const url = `https://fantasy.premierleague.com/api/entry/${id}/event/${gw}/picks/`;
-	return await $fetch<{ picks: Record<string, any>[] }>(url, { timeout: 10_000, retry: 0 });
+	return await $fetch<{ picks: Record<string, any>[]; entry_history?: Record<string, any> }>(url, { timeout: 10_000, retry: 0 });
+}
+
+export async function getManagerTransfers(id: number) {
+	const url = `https://fantasy.premierleague.com/api/entry/${id}/transfers/`;
+	return await $fetch<Record<string, any>[]>(url, { timeout: 10_000, retry: 0 });
+}
+
+export async function getManagerHistory(id: number) {
+	const url = `https://fantasy.premierleague.com/api/entry/${id}/history/`;
+	return await $fetch<Record<string, any>>(url, { timeout: 10_000, retry: 0 });
 }
 
 export async function getPlayerPredictions() {

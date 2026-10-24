@@ -29,6 +29,7 @@
     "webm-writer": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5"
+    "@types/node": "^26.6.5",
+    "nuxt-og-image": "^5.1.3"
   }
 }

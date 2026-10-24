@@ -12,9 +12,9 @@
     <template #content>
       <section v-if="savedManagers.length" aria-labelledby="saved-teams-title" class="border-b border-white/15 px-5 pt-4">
         <h2 id="saved-teams-title" class="mb-1 text-sm font-semibold text-stone-200">Saved teams</h2>
-        <ul class="max-h-64 overflow-y-auto divide-y divide-white/10">
+        <ul class="-mx-5 max-h-64 overflow-y-auto divide-y divide-white/10">
           <li v-for="manager in savedManagers" :key="manager.id">
-            <NuxtLink :to="`/manager/${manager.id}`" class="group flex items-center justify-between gap-3 rounded-md py-3.5 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-lime-300 focus-visible:-outline-offset-2" @click="open = false">
+            <NuxtLink :to="`/manager/${manager.id}`" class="group box-border flex w-full items-center justify-between gap-3 rounded-md border border-transparent px-5 py-3.5 transition-colors hover:border-white/10 hover:bg-white/[0.08] focus-visible:border-lime-300 focus-visible:bg-white/[0.08] focus-visible:outline-none" @click="open = false">
               <div class="min-w-0">
                 <span class="block text-sm font-semibold text-white [overflow-wrap:anywhere]">{{ manager.teamName }}</span>
                 <span v-if="manager.managerName" class="mt-1 block text-xs text-stone-400 [overflow-wrap:anywhere]">{{ manager.managerName }}</span>

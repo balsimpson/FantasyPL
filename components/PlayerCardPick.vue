@@ -2,7 +2,7 @@
 	<article class="group relative flex h-full min-w-0 flex-col text-white" :class="compact ? 'text-center' : 'overflow-hidden rounded-xl border border-white/10 bg-[#101216]'" :style="cardStyle">
 		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative block min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
 			<div class="relative overflow-hidden" :class="compact ? 'h-20 sm:h-28' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
-				<img :src="imageUrl" :alt="playerName" width="220" height="280" loading="lazy" decoding="async" class="h-full w-full object-contain object-bottom transition-transform duration-300 motion-safe:group-hover:scale-[1.04]" @error="useFallbackImage" />
+				<PlayerPortrait :player="player" :alt="playerName" :hover="true" class="h-full w-full" />
 				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
 				<PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" :compact="compact" class="absolute left-1 top-1 z-10" :class="compact ? 'flex-col' : ''" />
 				<span v-if="pick.is_captain || pick.is_vice_captain" class="absolute top-1 grid size-6 place-items-center rounded-full text-[0.65rem] font-black sm:size-7 sm:text-xs" :class="[compact ? 'right-1' : 'right-12', pick.is_captain ? 'bg-primary text-inverted' : 'bg-amber-200 text-stone-950']" :aria-label="pick.is_captain ? 'Captain' : 'Vice captain'" :title="pick.is_captain ? 'Captain' : 'Vice captain'">{{ pick.is_captain ? 'C' : 'V' }}</span>
@@ -68,8 +68,4 @@ const playerStats = computed(() => [
 ]);
 const theme = computed(() => getInstagramClubTheme(Number(props.pick.team?.code)));
 const cardStyle = computed(() => ({ '--club-wash': `${theme.value.primary}66`, '--club-light': theme.value.light }));
-const fallbackImage = ref(false);
-watch(() => player.value.code, () => { fallbackImage.value = false; });
-const imageUrl = computed(() => fallbackImage.value || !player.value.code ? '/fallback.png' : `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.value.code}.png`);
-const useFallbackImage = () => { fallbackImage.value = true; };
 </script>
