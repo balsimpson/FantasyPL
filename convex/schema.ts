@@ -6,6 +6,8 @@ import { generationFields } from './articleJobValidators'
 import { researchFields } from './articleResearchValidators'
 
 export default defineSchema({
+  managerShareStats: defineTable({ day: v.string(), clicks: v.number(), copies: v.number() })
+    .index('by_day', ['day']),
   articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']),
   articleResearchChoices: defineTable({ researchId: v.id('articleResearch'), suggestionIndex: v.number(), articleId: v.string() }).index('by_researchId_and_suggestionIndex', ['researchId', 'suggestionIndex']),
   articleJobs: defineTable(generationFields)

@@ -16,6 +16,7 @@
 				</div>
 				<div class="flex items-center gap-3">
 					<span class="inline-flex rounded-full border border-lime-300/40 px-2.5 py-1 text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-lime-300">GW {{ managerData.current_event }}</span>
+					<ManagerShareButton :title="managerData.name" :url="canonicalUrl" />
 					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-primary/40 hover:bg-white/[0.08] hover:text-white" aria-label="Back to home" />
 				</div>
 			</header>
@@ -76,6 +77,7 @@
 
 <script setup>
 	import { useManagerPage } from "~/composables/useManagerPage";
+	import ManagerShareButton from "~/components/ManagerShareButton.vue";
 
 	const route = useRoute();
 	const id = computed(() => String(route.params.id ?? ""));

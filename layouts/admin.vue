@@ -21,6 +21,7 @@ async function signOut() {
         <nav aria-label="Admin navigation" class="mt-5 flex items-center gap-2 lg:mt-10 lg:block">
           <UButton to="/admin/research" label="Research" icon="i-lucide-search" :variant="route.path.startsWith('/admin/research') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:w-full" />
           <UButton to="/admin/articles" label="Articles" icon="i-lucide-files" :variant="route.path.startsWith('/admin/articles') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
+          <UButton to="/admin/sharing" label="Sharing" icon="i-lucide-share-2" :variant="route.path.startsWith('/admin/sharing') ? 'soft' : 'ghost'" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
           <UButton to="/" label="View site" icon="i-lucide-arrow-up-right" variant="ghost" color="neutral" class="justify-start lg:mt-2 lg:w-full" />
         </nav>
         <div class="mt-auto hidden pt-6 text-sm text-muted lg:block">
