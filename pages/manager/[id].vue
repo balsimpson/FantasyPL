@@ -196,6 +196,7 @@ const managerOgPlayers = computed(() =>
 	(squadState.value?.startingXI ?? []).map((pick) => ({
 		name: pick.element?.web_name ?? "Unknown player",
 		position: pick.element_type ?? "Unknown",
+		clubCode: pick.team?.code ?? null,
 		isCaptain: Boolean(pick.is_captain),
 		isViceCaptain: Boolean(pick.is_vice_captain),
 	}))
@@ -207,9 +208,6 @@ const managerOgFormation = computed(() => {
 		.map((position) => managerOgPlayers.value.filter((player) => player.position === position).length)
 		.join("-");
 });
-
-const managerOgCaptain = computed(() => managerOgPlayers.value.find((player) => player.isCaptain)?.name ?? "Not selected");
-const managerOgViceCaptain = computed(() => managerOgPlayers.value.find((player) => player.isViceCaptain)?.name ?? "Not selected");
 
 useSeoMeta({
 	title: managerPageTitle,
@@ -223,17 +221,12 @@ useSeoMeta({
 });
 
 defineOgImageComponent("ManagerTeam", {
-	managerId: id,
 	managerName: managerDisplayName,
 	teamName: computed(() => managerData.value?.name ?? `Manager ${id.value}'s FPL team`),
 	currentEvent: computed(() => managerData.value?.current_event ?? null),
-	eventPoints: computed(() => managerData.value?.summary_event_points ?? null),
-	eventRank: computed(() => managerData.value?.summary_event_rank ?? null),
 	overallPoints: computed(() => managerData.value?.summary_overall_points ?? null),
 	overallRank: computed(() => managerData.value?.summary_overall_rank ?? null),
 	formation: managerOgFormation,
-	captainName: managerOgCaptain,
-	viceCaptainName: managerOgViceCaptain,
 	players: managerOgPlayers,
 }, {
 	width: 1200,
