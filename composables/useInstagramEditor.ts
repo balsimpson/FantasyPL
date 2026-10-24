@@ -112,21 +112,40 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     return ''
   })
   async function generateCaption(postDraft: InstagramDraft = draft.value) {
-    if (validationMessage.value || captionLoading.value) return
+    if (captionLoading.value) return
+    if (validationMessage.value) {
+      captionError.value = validationMessage.value
+      return
+    }
     const request = ++captionRequest
     captionController = new AbortController()
     captionLoading.value = true
     captionError.value = ''
+    let failureMessage = 'Caption generation failed. Try again shortly.'
     try {
       const response = await $fetch<any>('/api/get-response', {
         method: 'POST', signal: captionController.signal,
         body: { prompt: { task: 'Write one Instagram caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.', ...postDraft } },
       })
       if (request !== captionRequest) return
-      if (!response?.success || typeof response.output !== 'string' || !response.output.trim()) throw new Error('No caption returned')
+      if (!response?.success) {
+        const messages: Record<string, string> = {
+          configuration: 'Caption generation is not configured on this server.',
+          authorization: 'The caption service rejected its API key. Check the server configuration.',
+          model_unavailable: 'The caption model is unavailable. Check the server model setting.',
+          rate_limited: 'The caption service is rate limited or out of quota. Try again later.',
+          provider_error: 'The caption service could not be reached. Try again shortly.',
+        }
+        captionError.value = messages[response?.error] || 'The caption service returned no caption. Try again.'
+        return
+      }
+      if (typeof response.output !== 'string' || !response.output.trim()) {
+        captionError.value = 'The caption service returned no caption. Try again.'
+        return
+      }
       caption.value = response.output.trim()
     } catch {
-      if (request === captionRequest) captionError.value = 'The caption could not be generated. Try again or write your own.'
+      if (request === captionRequest) captionError.value = failureMessage
     } finally {
       if (request === captionRequest) captionLoading.value = false
     }

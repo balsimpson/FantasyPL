@@ -119,6 +119,8 @@ Artwork contains useful player information only. Do not add filler such as “So
 
 Caption generation is an explicit action. Use supplied facts and selected stats. Keep manual editing available. A failed or stale request must not overwrite the current draft. Do not call a paid generation endpoint merely to check a visual change. Fixture data is loaded for only the first selected player and is the only fixture list sent with the caption draft. In comparison posts, the second player’s fixtures are not fetched or included; do not describe both schedules unless the data flow changes.
 
+24 October 2026: scheduler caption failures now appear below the post preview with specific messages for missing configuration, rejected credentials, unavailable model, rate limits and other provider failures. The preview adds space after the username and lets the caption card keep its full height in the desktop scroller. Provider generation and browser display remain unverified.
+
 ## Preview, export and scheduling
 
 Keep History compact: aligned thumbnail rows, short captions with expansion, and only useful status, date and actions. Link player names to Buffer for posts with a Buffer record. Show a visual loading indicator. Retain loaded pages, filters and pagination during navigation in the same browser session. Load saved history on entry; refresh Buffer only on an explicit action, and show a compact, dismissible notice when that refresh fails. Invalidate saved history after scheduler changes.

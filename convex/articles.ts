@@ -40,6 +40,35 @@ export const get = query({
   },
 })
 
+export const listRevisions = query({
+  args: { secret: v.string(), articleId: v.string() },
+  returns: v.array(v.object({ version: v.number(), savedAt: v.number(), title: v.string() })),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    if (!/^[\da-f-]{36}$/i.test(args.articleId)) throw new ConvexError({ code: 'INVALID', message: 'The article request is invalid.' })
+    const revisions = await ctx.db.query('articleRevisions')
+      .withIndex('by_articleId_and_version', q => q.eq('articleId', args.articleId))
+      .order('desc')
+      .take(100)
+    return revisions.map(({ version, savedAt, title }) => ({ version, savedAt, title }))
+  },
+})
+
+export const getRevision = query({
+  args: { secret: v.string(), articleId: v.string(), version: v.number() },
+  returns: v.union(v.object({ ...draftFields, articleId: v.string(), version: v.number(), savedAt: v.number() }), v.null()),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    if (!/^[\da-f-]{36}$/i.test(args.articleId) || !Number.isSafeInteger(args.version) || args.version < 1) throw new ConvexError({ code: 'INVALID', message: 'The article revision request is invalid.' })
+    const revision = await ctx.db.query('articleRevisions')
+      .withIndex('by_articleId_and_version', q => q.eq('articleId', args.articleId).eq('version', args.version))
+      .unique()
+    if (!revision) return null
+    const { articleId, version, savedAt, title, slug, excerpt, template, season, gameweek, bodyJson, sources } = revision
+    return { articleId, version, savedAt, title, slug, excerpt, template, season, gameweek, bodyJson, sources }
+  },
+})
+
 export const getPublishedBySlug = query({
   args: { slug: v.string() },
   returns: v.union(v.object({ publishedJson: v.string(), publishedAt: v.number() }), v.null()),
@@ -125,8 +154,8 @@ export const publish = mutation({
     if (collision && collision.articleId !== article.articleId) throw new ConvexError({ code: 'INVALID', message: 'Another published article already uses this URL slug.' })
     const now = Date.now()
     const capturedAt = (draft.body.content || []).flatMap(node => {
-      const player = node.attrs?.player as { capturedAt?: string } | undefined
-      return player?.capturedAt && Number.isFinite(Date.parse(player.capturedAt)) ? [player.capturedAt] : []
+      const players = [node.attrs?.player, ...(Array.isArray(node.attrs?.players) ? node.attrs.players : [])] as ({ capturedAt?: string } | null | undefined)[]
+      return players.flatMap(player => player?.capturedAt && Number.isFinite(Date.parse(player.capturedAt)) ? [player.capturedAt] : [])
     }).sort()[0]
     if (draft.template !== 'guide' && !capturedAt) throw new ConvexError({ code: 'INVALID', message: 'Add at least one saved FPL evidence visual so the article can show when its data was captured.' })
     const publishedJson = JSON.stringify({

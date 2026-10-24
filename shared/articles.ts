@@ -77,15 +77,28 @@ export function validateArticleDraft(value: unknown): ArticleDraft {
   if (!articleTemplates.some(item => item.value === input.template)) throw new Error('Choose an article template.')
   if (JSON.stringify(input.body ?? null).length > 200_000) throw new Error('This article is too long to save. Shorten it and try again.')
   let count = 0
-  const blockTypes = new Set(['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'listItem', 'horizontalRule', 'hardBreak', 'text', 'playerCard', 'fixtureRun'])
+  const visualTypes = new Set(['playerCard', 'fixtureRun', 'comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable'])
+  const blockTypes = new Set(['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'listItem', 'horizontalRule', 'hardBreak', 'text', ...visualTypes])
   function node(value: unknown, depth: number): ArticleNode {
     if (++count > 8000 || depth > 20 || !value || typeof value !== 'object') throw new Error('The article structure is invalid.')
     const item = value as ArticleNode
     if (typeof item.type !== 'string' || (depth === 0 ? item.type !== 'doc' : !blockTypes.has(item.type))) throw new Error('The article contains unsupported content.')
     const clean: ArticleNode = { type: item.type }
-    if (['playerCard', 'fixtureRun'].includes(item.type)) {
+    if (visualTypes.has(item.type)) {
       if (item.content !== undefined || item.marks !== undefined) throw new Error('Visual blocks cannot contain text or formatting.')
-      clean.attrs = { player: validatePlayerSnapshot(item.attrs?.player) }
+      if (item.type === 'playerCard' || item.type === 'fixtureRun') clean.attrs = { player: validatePlayerSnapshot(item.attrs?.player) }
+      else {
+        const players = item.attrs?.players
+        const min = item.type === 'comparisonCard' ? 2 : 1
+        const max = item.type === 'comparisonCard' ? 3 : item.type === 'teamFixtureTable' ? 5 : 10
+        if (!Array.isArray(players) || players.length < min || players.length > max) throw new Error('This visual needs a valid player list.')
+        const snapshots = players.map(validatePlayerSnapshot)
+        if (new Set(snapshots.map(player => player.id)).size !== snapshots.length) throw new Error('A visual cannot list the same player twice.')
+        if (new Set(snapshots.map(player => `${player.season}:${player.gameweek}:${player.capturedAt}`)).size !== 1) throw new Error('Visual cards must use one matching FPL snapshot.')
+        const criteria = item.attrs?.criteria
+        if (typeof criteria !== 'string' || criteria.length > 300) throw new Error('This visual needs its ranking or selection rule.')
+        clean.attrs = { players: snapshots, criteria: criteria.trim() }
+      }
       return clean
     }
     if (item.type === 'text') {

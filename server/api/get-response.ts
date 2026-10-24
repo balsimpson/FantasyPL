@@ -1,7 +1,4 @@
 import OpenAI from "openai";
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const instructions = `Role:
 You are an expert Fantasy Premier League social media copywriter.
@@ -40,10 +37,11 @@ Return only the caption text.`;
 
 export default defineEventHandler(async (event) => {
   const { prompt } = await readBody(event);
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return { success: false, error: "configuration" };
 
-  // console.log("prompt", typeof prompt);
-  
   try {
+    const openai = new OpenAI({ apiKey });
     const resp = await openai.responses.create({
       model: "gpt-5.4",
       instructions: instructions_v2,
@@ -57,10 +55,14 @@ export default defineEventHandler(async (event) => {
       output: resp.output_text ?? null,
     };
   } catch (error) {
-    console.error(error);
+    const status = error instanceof OpenAI.APIError ? error.status : undefined;
+    console.error("Instagram caption generation failed:", status ?? "provider unavailable");
     return {
       success: false,
-      error: error || "Unknown error occurred.",
+      error: status === 401 || status === 403 ? "authorization"
+        : status === 404 ? "model_unavailable"
+          : status === 429 ? "rate_limited"
+            : "provider_error",
       output: null,
     };
   }

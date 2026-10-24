@@ -23,11 +23,14 @@ Read the relevant existing document before proposing work or creating another pl
 | [DESIGN.md](DESIGN.md) | Homepage visual direction, shared content width, spacing, and presentation rules |
 | [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, behavior, affected files, implementation checklist, and homepage verification evidence |
 | [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
+| [Article visual cards](docs/ARTICLE_VISUAL_CARDS.md) | Supported article data visuals, evidence rules, selection guidance, and implementation status |
 | [Scheduler guide](docs/instascheduler/AGENTS.md) | Instagram scheduler design, player assets, preview, export and scheduling rules |
 
 The [scheduler template editing reference](docs/instascheduler/TEMPLATE_EDITING.md) is a quick component map and scoped edit workflow; the scheduler guide remains authoritative for design and behavior requirements.
 
 For homepage work, read `HOMEPAGE_UX_PLAN.md` first and use the audit for its supporting evidence. `DESIGN.md` supplies the shared visual direction; the homepage plan remains the authority for structure, behavior, and implementation status. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
+
+When generating or editing article visuals, follow [docs/ARTICLE_VISUAL_CARDS.md](docs/ARTICLE_VISUAL_CARDS.md). It defines when each card is useful, which captured evidence it needs, and what claims it cannot support. Keep this guide current when card types or their data contracts change.
 
 - Update the primary document in place when requirements, decisions, or completion status change. Do not create another audit, plan, checklist, or status file for the same topic unless the user explicitly requests it.
 - Keep detailed recommendations, acceptance checks, and verification evidence in the owning document. Elsewhere, use a short cross-reference instead of copying them. Keep this guide focused on durable working rules.

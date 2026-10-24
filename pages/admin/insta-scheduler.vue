@@ -99,6 +99,7 @@ async function activatePick(pick: PostPick) {
   if (activePick.value?.id === pick.id) return
   schedulingError.value = ''
   queueNotice.value = ''
+  captionError.value = ''
   const restoreCaption = pick.caption
   if (activePick.value) activePick.value.caption = caption.value
   activePickId.value = pick.id
@@ -114,6 +115,7 @@ function changeTemplate(id: InstagramDesignId) {
   activePick.value.caption = ''
   designId.value = id
   caption.value = ''
+  captionError.value = ''
 }
 
 function cycleTemplate(direction: -1 | 1) {
@@ -260,7 +262,7 @@ onScopeDispose(() => {
             <div class="flex h-5 w-[min(45vh,78vw)] max-w-[660px] items-center truncate text-xs font-medium text-success" role="status" aria-live="polite">
               <span v-if="queueNotice" class="truncate">{{ queueNotice }}</span>
             </div>
-            <article v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] overflow-hidden rounded-xl border border-default bg-default shadow-sm">
+            <article v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] shrink-0 overflow-hidden rounded-xl border border-default bg-default shadow-sm">
               <header class="flex items-center justify-between px-3 py-2.5">
                 <div class="flex min-w-0 items-center gap-2.5">
                   <div class="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 p-[2px]">
@@ -291,25 +293,22 @@ onScopeDispose(() => {
                 <UIcon name="i-lucide-bookmark" class="ml-auto size-5 text-highlighted" aria-hidden="true" />
               </div>
               <div class="px-3 pb-3">
-                <div class="grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none" :class="caption ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'" :aria-hidden="!caption">
-                  <div class="min-h-0 overflow-hidden">
-                    <p class="whitespace-pre-wrap break-words text-xs leading-relaxed text-default">
-                      <span class="font-semibold text-highlighted">fplinsights</span>
-                      <span
-                        v-if="caption"
-                        :key="activePickId"
-                        role="textbox"
-                        aria-label="Post caption, edit inline"
-                        aria-multiline="true"
-                        :contenteditable="!captionLoading && !busy && !bufferJobs[activePick?.id ?? -1]"
-                        spellcheck="true"
-                        class="outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        @input="updateCaption"
-                      >{{ caption }}</span>
-                    </p>
-                  </div>
-                </div>
-                <p v-if="!caption && !captionLoading" class="text-xs text-muted">Your generated caption will appear here.</p>
+                <p v-if="caption" class="whitespace-pre-wrap break-words text-xs leading-relaxed text-default">
+                  <span class="mr-1 font-semibold text-highlighted">fplinsights</span>
+                  <span
+                    :key="activePickId"
+                    role="textbox"
+                    aria-label="Post caption, edit inline"
+                    aria-multiline="true"
+                    :contenteditable="!captionLoading && !busy && !bufferJobs[activePick?.id ?? -1]"
+                    spellcheck="true"
+                    class="outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    @input="updateCaption"
+                  >{{ caption }}</span>
+                </p>
+                <p v-if="captionError && !captionLoading" class="text-xs leading-5 text-error" role="alert">{{ captionError }}</p>
+                <p v-else-if="captionLoading" class="text-xs text-muted" role="status">Generating caption…</p>
+                <p v-else-if="!caption" class="text-xs text-muted">Your generated caption will appear here.</p>
               </div>
             </article>
             <div v-else class="flex aspect-square w-[min(45vh,78vw)] max-w-[660px] flex-col items-center justify-center gap-3 text-center text-sm text-muted" role="status">
@@ -323,9 +322,6 @@ onScopeDispose(() => {
               <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Next template" :disabled="busy || !activePick || Boolean(bufferJobs[activePick?.id ?? -1])" @click="cycleTemplate(1)" />
             </div>
 
-            <div class="h-5 w-[min(45vh,78vw)] max-w-[660px] truncate text-xs text-error" role="status">
-              <span v-if="captionError" role="alert">{{ captionError }}</span>
-            </div>
             <UAlert v-if="repeatMessage" color="warning" :title="repeatMessage" class="w-full max-w-[660px]" />
             <UCheckbox v-if="repeatMessage" v-model="allowRepeat" label="Allow this repeat post" :disabled="busy" />
             <p class="h-5 w-[min(45vh,78vw)] max-w-[660px] truncate text-xs" :class="failed || schedulingError ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError) }}</p>

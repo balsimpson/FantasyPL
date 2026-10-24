@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ArticleNode } from '~/shared/articles'
+import type { ArticlePlayerSnapshot } from '~/shared/article-visuals'
 defineProps<{ node: ArticleNode }>()
 const children = (node: ArticleNode) => node.content || []
 const linkHref = (node: ArticleNode) => node.marks?.find(mark => mark.type === 'link')?.attrs?.href as string | undefined
@@ -23,4 +24,5 @@ const linkHref = (node: ArticleNode) => node.marks?.find(mark => mark.type === '
   <hr v-else-if="node.type === 'horizontalRule'" class="my-9 border-white/15">
   <br v-else-if="node.type === 'hardBreak'">
   <ArticlesPlayerVisual v-else-if="node.type === 'playerCard' || node.type === 'fixtureRun'" :player="node.attrs?.player" :fixtures-only="node.type === 'fixtureRun'" class="my-8" />
+  <ArticlesInsightCard v-else-if="['comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable'].includes(node.type)" :type="node.type" :players="node.attrs?.players as ArticlePlayerSnapshot[]" :criteria="node.attrs?.criteria as string" />
 </template>
