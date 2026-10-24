@@ -18,7 +18,11 @@ export default defineNuxtConfig({
 				lang: "en",
 			},
 			meta: [
-				{ name: "viewport", content: "width=device-width, initial-scale=1" },
+				{ name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+				{ name: "theme-color", content: "#050608" },
+				{ name: "apple-mobile-web-app-capable", content: "yes" },
+				{ name: "apple-mobile-web-app-title", content: "FPL Insights" },
+				{ name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
 				{
 					name: "keywords",
 					content:
@@ -30,7 +34,38 @@ export default defineNuxtConfig({
 			style: [],
 		},
 	},
-	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image", "nuxt-auth-utils"],
+	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image", "nuxt-auth-utils", "@vite-pwa/nuxt"],
+	pwa: {
+		registerType: "autoUpdate",
+		manifest: {
+			id: "/",
+			name: "FPL Insights",
+			short_name: "FPL Insights",
+			description: "Fantasy Premier League player stats, fixtures and insights.",
+			start_url: "/",
+			scope: "/",
+			display: "standalone",
+			background_color: "#050608",
+			theme_color: "#050608",
+			lang: "en",
+		},
+		pwaAssets: {
+			config: true,
+		},
+		workbox: {
+			navigateFallback: "/offline.html",
+			navigateFallbackDenylist: [/^\/api\//],
+			globPatterns: [
+				"_nuxt/**/*.{js,css,woff2}",
+				"offline.html",
+				"manifest.webmanifest",
+				"pwa-*.png",
+				"maskable-icon-*.png",
+				"apple-touch-icon-*.png",
+				"favicon.ico",
+			],
+		},
+	},
 	routeRules: {
 		"/admin/**": { headers: { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store" } },
 		"/api/admin/**": { headers: { "Cache-Control": "private, no-store" } },

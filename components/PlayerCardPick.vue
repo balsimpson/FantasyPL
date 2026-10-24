@@ -4,15 +4,18 @@
 			<div class="relative overflow-hidden" :class="compact ? 'h-20 sm:h-28' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
 				<PlayerPortrait :player="player" :alt="playerName" :hover="true" class="h-full w-full" />
 				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 z-20 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
-				<PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" :compact="compact" class="absolute left-1 top-1 z-30" :class="compact ? 'flex-col' : ''" />
+				<PlayerDisciplineBadges v-if="!compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-1 top-1 z-30" />
 				<span v-if="pick.is_captain || pick.is_vice_captain" class="absolute top-1 z-30 grid size-6 place-items-center rounded-full text-[0.65rem] font-black sm:size-7 sm:text-xs" :class="[compact ? 'right-1' : 'right-12', pick.is_captain ? 'bg-primary text-inverted' : 'bg-amber-200 text-stone-950']" :aria-label="pick.is_captain ? 'Captain' : 'Vice captain'" :title="pick.is_captain ? 'Captain' : 'Vice captain'">{{ pick.is_captain ? 'C' : 'V' }}</span>
 				<div v-if="!compact" class="absolute inset-x-3 bottom-2 z-30">
           <p class="text-[0.65rem] text-stone-300">{{ pick.team?.name || pick.element_type }}</p>
 					<h3 class="mt-1 text-base font-bold leading-tight text-white [overflow-wrap:anywhere]">{{ playerName }}</h3><PlayerAge :player="player" compact class="mt-1 text-white/80" />
 				</div>
 			</div>
+			<PlayerDisciplineBadges v-if="compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-20 z-10 -translate-y-[calc(50%_+_6px)] sm:top-28" />
 			<template v-if="compact">
-				<p class="rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white [overflow-wrap:anywhere] sm:px-1 sm:text-xs">{{ playerName }}</p>
+				<p class="relative z-20 rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white [overflow-wrap:anywhere] sm:px-1 sm:text-xs">
+					{{ playerName }}
+				</p>
         <p class="flex flex-wrap items-center justify-center gap-x-1 rounded-b-md bg-[#07140f]/95 px-0.5 py-1 text-[0.6rem] tabular-nums text-emerald-100 sm:text-xs"><span>£{{ costLabel }}</span><span aria-hidden="true">·</span><span class="font-bold text-primary">{{ totalPoints }}<span class="sr-only"> season</span> pts</span></p>
 			</template>
 		</NuxtLink>

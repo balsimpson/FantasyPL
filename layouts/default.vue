@@ -1,16 +1,16 @@
 <template>
-	<div class="relative isolate min-h-screen overflow-clip bg-[#050608] text-stone-50">
+	<div class="relative isolate min-h-dvh overflow-clip bg-[#050608] text-stone-50">
 		<div
 			class="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_top_left,rgba(200,255,61,0.14),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(72,214,255,0.12),transparent_26%),linear-gradient(180deg,#090a0d_0%,#050608_45%,#050608_100%)]"
 		/>
-		<div class="relative z-10 flex min-h-screen flex-col">
+		<div class="relative z-10 flex min-h-dvh flex-col">
 			<a
 				href="#main-content"
 				class="absolute left-3 top-3 z-50 -translate-y-20 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-inverted transition focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary"
 			>
 				Skip to content
 			</a>
-			<nav aria-label="Primary navigation" class="site-content-rail flex flex-wrap items-center justify-between gap-3 py-4">
+			<nav aria-label="Primary navigation" class="site-content-rail flex flex-wrap items-center justify-between gap-3 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]">
 					<NuxtLink
 						to="/"
 						class="group inline-flex items-center gap-2 text-white/90 transition duration-200 ease-in-out hover:text-white"
