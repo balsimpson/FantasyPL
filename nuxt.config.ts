@@ -30,7 +30,11 @@ export default defineNuxtConfig({
 			style: [],
 		},
 	},
-	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image"],
+	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image", "nuxt-auth-utils"],
+	routeRules: {
+		"/admin/**": { headers: { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store" } },
+		"/api/admin/**": { headers: { "Cache-Control": "private, no-store" } },
+	},
 	site: {
 		url: getPublicSiteOrigin(process.env.NUXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL),
 		name: "FPL Insights",
@@ -44,6 +48,11 @@ export default defineNuxtConfig({
 	},
 	  css: ['~/assets/css/main.css'],
 	runtimeConfig: {
+		adminGithubId: "",
+		contentConvexUrl: "",
+		contentServiceToken: "",
+		oauth: { github: { clientId: "", clientSecret: "", redirectURL: "" } },
+		session: { maxAge: 60 * 60 * 12 },
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		JEV_API_KEY: process.env.JEV_API_KEY || "",
 		BUFFER_API_KEY: process.env.BUFFER_API_KEY || "",

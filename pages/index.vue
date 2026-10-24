@@ -14,7 +14,8 @@
         :teams="bootstrap?.teams || []"
         :fixtures="fixturesList"
         :gameweeks="shortlistGameweeks"
-        :fixtures-available="!fixturesFailed && !bootstrapPending"
+        :fixtures-available="hasFixtures"
+        :fixtures-loading="fixturesPending && !hasFixtures"
         :loading="bootstrapPending"
         :error="bootstrapFailed"
         @retry="retryBootstrap"
@@ -32,9 +33,9 @@
         :fixtures="fixturesList"
         :teams="bootstrap?.teams || []"
         :gameweeks="shortlistGameweeks"
-        :loading="bootstrapPending"
+        :loading="bootstrapPending || fixturesPending"
         :error="fixturesFailed"
-        @retry="retryBootstrap"
+        @retry="refreshFixtures"
       />
 
       <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
@@ -73,13 +74,22 @@ const {
   pending: bootstrapPending,
   error: bootstrapRequestError,
   refresh: refreshBootstrap,
-} = await useAsyncData("homepage-bootstrap", () => $fetch("/api/homepage-data"));
+} = await useAsyncData("homepage-bootstrap", () => $fetch("/api/homepage-bootstrap"));
+
+const {
+  data: fixtureData,
+  status: fixturesStatus,
+  error: fixturesRequestError,
+  refresh: refreshFixtures,
+} = useLazyAsyncData("homepage-fixtures", () => $fetch("/api/homepage-fixtures"), { server: false });
 
 const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
 const bootstrapFailed = computed(() => !bootstrapPending.value && Boolean(bootstrapRequestError.value || !hasPlayerCatalog.value));
 
-const fixturesList = computed(() => Array.isArray(bootstrap.value?.fixtures) ? bootstrap.value.fixtures : []);
-const fixturesFailed = computed(() => !bootstrapPending.value && !Array.isArray(bootstrap.value?.fixtures));
+const hasFixtures = computed(() => Array.isArray(fixtureData.value?.fixtures));
+const fixturesPending = computed(() => fixturesStatus.value === "idle" || fixturesStatus.value === "pending");
+const fixturesList = computed(() => hasFixtures.value ? fixtureData.value.fixtures : []);
+const fixturesFailed = computed(() => !fixturesPending.value && !hasFixtures.value && Boolean(fixturesRequestError.value || fixtureData.value));
 const shortlistGameweeks = computed(() => getShortlistGameweeks(bootstrap.value?.events || []));
 
 const nextGameweek = computed(() => {
@@ -110,7 +120,7 @@ const recapGameweek = computed(() => {
 });
 
 const retryBootstrap = async () => {
-  await refreshBootstrap();
+  await Promise.all([refreshBootstrap(), refreshFixtures()]);
 };
 
 </script>

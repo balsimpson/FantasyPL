@@ -6,7 +6,11 @@
 
 Build a blog into the existing site, with an admin page for generating and publishing articles from verified FPL data. Launch it alongside the search-discovery fixes and homepage improvements. Do not wait for every proposed tool to be complete.
 
-The owner wants an admin page using AI to publish articles about transfer numbers, best teams, and similar topics. The proposed first workflow is admin-initiated generation, an editable preview, and an explicit Publish action. Unattended publishing and scheduled generation are not assumed.
+The owner wants a content engine that researches gameweek-relevant search topics, checks competing coverage, recommends useful articles, generates from evidence, and supports Instagram distribution. On 24 October 2026 the owner confirmed that unattended publishing is a first-class mode that can be turned on or off. Manual review remains available when that mode is off. The requested local foundation now includes the private workspace, editor and saving, followed by research suggestions and concurrent background article generation. Public publishing and Instagram integration remain outside this implementation stage.
+
+Confirmed setup decisions (24 October 2026): use GitHub directly through Nuxt Auth Utils, restrict access to the configured numeric GitHub account ID, use the existing Convex infrastructure for storage and background tasks, and use Nuxt UI's rich text editor with structured JSON. No Auth0 setup is required. Use OpenRouter for writing and its web-search plugin for research. The engine must choose and place player cards and fixture visuals itself; the owner should not have to assemble them. Do not invent search volumes or ranking difficulty from web search results.
+
+The chosen flow is web research → competitor coverage benchmarks → suggested article angles → owner selects suggestions → independent Convex writing jobs → editable visual drafts. The research implementation uses cited search excerpts, not a verified full-page crawl or a keyword-volume service. Its benchmarks must say when coverage is not visible in an excerpt rather than claiming a competitor lacks it. Suggestions are hypotheses about useful topics, not measured demand.
 
 The first audit was stronger on technical defects than competitive acquisition strategy. This follow-up compares four relevant publishers/tools and revises the growth plan. These are justified experiments, not a claim that we have found the highest-traffic keywords. No competitor analytics, backlink database, search volumes, or ranking difficulty were available.
 
@@ -59,17 +63,19 @@ For an evergreen explanation, update the same URL when facts change. For gamewee
 
 ## Admin workflow
 
-1. Open Articles in the protected admin area and choose New article.
-2. Select Transfer trends, Fixture analysis, Budget shortlist, Comparison, or Guide. Choose the relevant gameweek, horizon, budget, position, and players where appropriate.
-3. Fetch a fresh, validated data snapshot. Show its timestamp, scope, and the calculated table before generation.
-4. Generate an article draft from that evidence. Return a title, excerpt, structured sections, caveats, and suggested links to real player pages.
+1. Open Research in the protected admin workspace. Research the upcoming gameweek, optionally with a narrower focus.
+2. Review cited competing articles, their observed strengths and gaps, and suggested article topics, reader questions, original angles and visual approaches. Choose several suggestions to start separate writing jobs. A manually authored article remains available under Articles.
+3. Each Convex job fetches and validates a fresh official FPL snapshot. It selects relevant named players, or ranks candidates using stated form/transfer/fixture filters and any supported budget/position constraints. Current generation supports the current upcoming gameweek only; stale season/gameweek requests must fail clearly.
+4. Generate a title, excerpt, structured prose and player/fixture block references. Resolve visual references against validated evidence in code. Save the generated result separately from the working draft; no background job may overwrite manual edits. The editor offers Use generated draft, with confirmation before replacing existing text.
 5. Review and edit in a full-width editor with a public-page preview. Display any unsupported claim or stale-data problem next to the content it affects.
-6. Publish explicitly. The server checks authorization, the approved revision, the source snapshot, slug uniqueness, and required metadata before publishing.
+6. Publish manually when unattended publishing is off, or allow an authorized engine job to publish when it is on. Both paths must check the current mode, target revision, source snapshot, slug uniqueness, freshness, and required metadata on the server.
 7. Return the public URL and verify the page, sitemap entry, and article metadata. Later edits create a new revision, and previous published text remains recoverable.
 
 The article must be readable if the FPL API fails later. Store the evidence used when it was written. A separately labeled current-stats block may refresh, but it must not silently change the historical argument.
 
-No automatic publish after generation in the first version. Failed generation leaves the existing article untouched. Retrying a publish must not create duplicate articles. A partial stream must never become a published article.
+The initial visual blocks are a player card and a three-gameweek fixture run. They retain season, gameweek, player identity, prices/metrics, fixture difficulty, blank/double representation and capture time in the saved document. Visual values come from code, not model-authored numbers. Writing prompts request conversational British English, a direct opening, varied paragraph length and concrete tradeoffs, and reject hype, boilerplate, invented first-hand observation and unsupported news. These instructions are not proof that live output reads well; review a real model response once credentials are configured.
+
+The workspace/editor stage saves private drafts only. The publishing engine must support unattended operation as a core mode with an owner-controlled on/off setting. Turning it off must prevent queued work from publishing at execution time. Article publishing and Instagram scheduling need separate permissions, results and retry handling. Failed generation leaves existing content untouched. Retrying a publish must not create duplicate articles. A partial stream must never become a published article.
 
 ## Data and generation rules
 
@@ -97,9 +103,9 @@ Add published articles to the corrected sitemap with truthful modification times
 
 ## Technical plan for this checkout
 
-Current evidence: this is Nuxt 4 on the declared Vercel target. The inspected package and server inventory do not establish an existing persistent article database or admin-auth system. `server/api/get-response.ts` generates Instagram-style captions and is not a blog publishing workflow. Do not repurpose it blindly or disturb its consumers. The scheduler remains excluded.
+Current evidence (24 October 2026): this is Nuxt 4 on the declared Vercel target, with an existing Convex backend and Buffer scheduler. The local workspace implementation adds article tables/functions and private Nuxt admin APIs; this is separate from deploying those functions or configuring GitHub credentials. `server/api/get-response.ts` generates Instagram-style captions and is not a blog publishing workflow. Do not repurpose it blindly or disturb its consumers. Scheduler integration belongs to the later engine stage; this workspace stage does not change the scheduler.
 
-For the requested in-browser admin publishing, use durable database-backed article storage behind Nuxt server APIs, with a small single-admin authentication setup. Choose the provider after confirming any existing account and deployment constraints. Provider selection is open; the article schema and public URLs need not wait for that decision in the plan. Use managed persistent storage rather than Vercel function-local files or localStorage.
+Use Convex article storage behind server-authorized Nuxt APIs and single-admin GitHub login through Nuxt Auth Utils. Store each saved draft revision independently. Public article delivery must later read only a published revision, without exposing the working draft. Use managed persistent storage rather than Vercel function-local files or localStorage.
 
 Nuxt Content is a reasonable alternative for repository-authored Markdown, with collections and supported Vercel deployment. It is not the default recommendation for this requested admin workflow because generation/publishing would then need an additional repository-writing and build process. [Nuxt Content collections](https://content.nuxt.com/docs/collections/define), [Vercel support](https://content.nuxt.com/docs/deploy/vercel).
 
@@ -129,7 +135,7 @@ All generation, editing, preview, and publication endpoints require server-side 
 | 1 | Correct sitemap/canonical/missing-player defects; start Search Console and analytics | Retain original audit estimates | Public indexing signals verified after authorized release |
 | 2 | Article schema, durable storage, single-admin access, draft/revision APIs | 2–3 days | Unauthorized writes denied; drafts absent from all public responses; saves survive restart/deploy |
 | 3 | Blog index/article template, metadata, navigation, sitemap/feed | 1–2 days | Valid posts render in initial HTML; unknown slugs return 404; mobile article is readable |
-| 4 | Transfer evidence calculation, generation, editor, preview and explicit publish | 2–3 days | Figures match snapshot; failed generation preserves content; publishing is idempotent |
+| 4 | Transfer evidence calculation, generation, preview, manual and unattended publishing modes | 2–3 days | Figures match snapshot; failed generation preserves content; publishing is idempotent and checks the current automation mode |
 | 5 | Fixture and budget templates; initial reviewed articles | 1–2 development days plus editorial time | Edge cases validated; each post has sources and a useful internal destination |
 | Alongside blog | Raise homepage search, repair watchlist, reduce payload | Retain original audit estimates | Acquisition pages lead into a functioning visitor journey |
 | After four publishing weeks | Review query/page performance and editorial cost | Half-day review | Expand the useful format rather than simply increasing article count |
@@ -146,6 +152,28 @@ Define article-to-tool conversion as article landing sessions with a successful 
 
 After four weeks, inspect indexing and early query patterns rather than declaring SEO success or failure. After eight to twelve weeks, review which topics earn relevant impressions, clicks, and onward actions, while accounting for gameweek timing. A new site may need longer for organic discovery; social/referral tests can provide earlier feedback.
 
-For distribution, share one evidence table or answer from each article where relevant and permitted, with a link to that article. Do not post automatically as part of Publish unless separately requested. Delay newsletter signup infrastructure until there is a sustainable publishing routine and a clear promise worth subscribing to.
+For distribution, derive useful Instagram drafts from the same evidence as the article. The owner has requested automation of both articles and the Instagram scheduler; the mode controls and execution checks must be designed before enabling unattended external actions. Saving a draft must never post or schedule anything. Delay newsletter signup infrastructure until there is a sustainable publishing routine and a clear promise worth subscribing to.
 
-Open before implementation: database/auth provider and accounts, preferred editor format, and available weekly review time. The planned default is one admin, manual Publish, three data-led article formats, and no scheduler changes. This document proposes the design; it does not implement or authorize deployment.
+Open before the publishing-engine stage: research quality with real provider responses, search/writing budget, full-page research if required, additional evidence freshness rules, publishing cadence, and separate Instagram automation controls. GitHub OAuth credentials, the allowed numeric account ID, and backend deployment/configuration must be verified independently. An approved local implementation does not authorize deployment or publication.
+
+## Local implementation and verification, 24 October 2026
+
+Implemented locally: `/admin/research`, `/admin/articles`, new/edit/preview routes, GitHub OAuth and server account checks, draft/revision storage with optimistic concurrency and idempotent retries, five article formats, validated player-card/fixture blocks, background writing jobs, background cited-excerpt research, recommendation selection and atomic article/job creation. The job result is stored separately until applied in the editor. No public blog, publishing mode execution, Instagram integration, or external release was added.
+
+Configuration: set the GitHub OAuth client credentials, callback URL, `NUXT_ADMIN_GITHUB_ID`, and a private session password on the Nuxt server. Set `NUXT_CONTENT_SERVICE_TOKEN` on Nuxt and the same value as `CONTENT_SERVICE_TOKEN` in Convex. Set `OPENROUTER_API_KEY` in Convex, with optional `OPENROUTER_MODEL` (default `openai/gpt-4.1-mini`). The existing server `CONVEX_URL` remains the default; `NUXT_CONTENT_CONVEX_URL` is an optional isolated override. `.env.example` documents the names without credentials.
+
+Local checks: Nuxt production build and Convex TypeScript checks passed on Node 22.23.1; `package.json` declares Node 24.x. Functions were applied only to an isolated localhost Convex database. HTTP checks passed for create/read/list/update, retry idempotency, revision conflicts, missing drafts, private cache headers, anonymous/wrong-account access, origin checks and backend service authorization. Official FPL snapshot tests passed for budget/position/minutes selection, visual serialization, fixture structure and invalid gameweek/comparison requests. Two independent scheduled writing jobs executed and retained clear missing-key failures without changing saved articles. Research enqueue/retry and its missing-key failure were checked locally.
+
+Brave checks covered create/save/reload, formatted text persistence, template headings, preview, keyboard saving, unsaved navigation protection, full-width controls, and saved player/fixture blocks. Visual blocks had no horizontal overflow at 1440px or 390px width. The research route displayed the durable configuration failure. The preview used an isolated synthetic admin session, not a real GitHub OAuth login. Provider response fixtures used for parser/visual checks were synthetic and were not live OpenRouter output. At this local-only checkpoint, live provider calls and cloud deployment were still unverified. Later development verification is recorded below.
+
+## Development deployment and verification, 24 October 2026
+
+The owner explicitly approved applying the new tables and functions to `focused-cuttlefish-350`, the `tinkr-simpson:fpl-insights` development deployment. `npx convex dev --once --typecheck enable` completed successfully and added the article, revision, background-job, research and suggestion-choice indexes. The scheduler schema and functions were preserved. No production/Vercel deployment, Git commit/push, public article publication or Buffer submission was performed.
+
+The development deployment already contained `OPENROUTER_API_KEY`. A new private `CONTENT_SERVICE_TOKEN` was configured there and the matching `NUXT_CONTENT_SERVICE_TOKEN` was added to the ignored local environment. Authenticated article storage reads passed, and an invalid service token was rejected. One live background research run using OpenRouter completed with eight cited competitor benchmarks and five suggestions. This verifies the research path and saved results, not the accuracy of every recommendation or full-page competitor coverage.
+
+The first suggestion was selected through `articleResearch.writeSuggestion`. Repeating the same selection returned the same article rather than creating a duplicate. Its background OpenRouter writing job reached `ready` and stored “Best Budget Midfielders Under £6.0m for Gameweek 9: Value Picks and Fixture Analysis”, with four automatically selected player cards. The original working draft remained at revision 1 with an empty body; generated content remains separate until applied in the editor. The result is private and has not been published or applied to the working draft. Editorial quality and factual recommendation review are still required before publication.
+
+Convex reported that the team is over Free-plan limits. Deployment succeeded, but the warning says service interruption is possible. Billing was not changed. Live GitHub OAuth and a hosted admin frontend remain unverified; their credentials/configuration and frontend release are separate from this backend deployment.
+
+Local development import fix: Nitro was resolving the runtime import of `convex/_generated/api` outside the checkout. `server/utils/articles.ts` now uses `anyApi` from `convex/server` with a type-only generated API import, matching the existing scheduler pattern. The running Nuxt server reloaded the change, `/admin/login` returned HTTP 200, and the bad runtime import was absent from the rebuilt development server. No additional Convex deployment was needed.

@@ -13,12 +13,12 @@
         </time>
         <p v-if="!deadlineDate" class="mt-1 text-sm text-stone-300">{{ statusText }}</p>
       </div>
-      <div v-if="deadlineDate" class="shrink-0 @[42rem]:border-l @[42rem]:border-white/20 @[42rem]:pl-8" role="timer" aria-label="Time remaining" aria-live="off" :aria-busy="!mounted">
-        <p v-if="mounted && deadlinePassed" class="text-sm font-medium text-stone-300">Deadline passed</p>
+      <div v-if="deadlineDate" class="shrink-0 @[42rem]:border-l @[42rem]:border-white/20 @[42rem]:pl-8" role="timer" aria-label="Time remaining" aria-live="off">
+        <p v-if="deadlinePassed" class="text-sm font-medium text-stone-300">Deadline passed</p>
         <dl v-else class="grid grid-cols-4 divide-x divide-white/20">
           <div v-for="segment in segments" :key="segment.label" class="flex min-w-0 flex-col items-center gap-2 px-3 first:pl-0 last:pr-0 @[42rem]:px-5">
             <dt class="order-last text-[9px] font-medium uppercase tracking-[0.16em] text-stone-300">{{ segment.label }}</dt>
-            <dd class="min-h-9 min-w-[2ch] text-center text-3xl font-semibold leading-9 tracking-tight tabular-nums @[42rem]:text-4xl" :class="segment.label === 'Sec' ? 'text-lime-300' : 'text-white'">{{ mounted ? segment.value : '' }}</dd>
+            <dd class="min-h-9 min-w-[2ch] text-center text-3xl font-semibold leading-9 tracking-tight tabular-nums @[42rem]:text-4xl" :class="segment.label === 'Sec' ? 'text-lime-300' : 'text-white'">{{ segment.value }}</dd>
           </div>
         </dl>
       </div>
@@ -47,7 +47,8 @@ const props = defineProps({
 });
 
 const mounted = ref(false);
-const now = ref(Date.now());
+const renderTime = useState("deadline-render-time", () => Date.now());
+const now = ref(import.meta.server || useNuxtApp().isHydrating ? renderTime.value : Date.now());
 let interval;
 
 const deadlineDate = computed(() => {

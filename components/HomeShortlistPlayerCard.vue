@@ -48,9 +48,10 @@
         <PlayerWatchlistButton v-if="sortKey !== 'form'" :player="player" />
       </div>
 
-      <div class="mt-3">
+      <div class="mt-3 min-h-28">
         <p class="mb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-stone-400">Upcoming fixtures</p>
         <HomeFixtureRun v-if="fixturesAvailable && gameweeks.length" :run="fixtureRun" />
+        <p v-else-if="fixturesLoading && gameweeks.length" class="text-xs text-stone-400" role="status">Loading fixtures…</p>
         <p v-else class="text-xs text-stone-400">{{ gameweeks.length ? 'Fixture data is unavailable.' : 'No upcoming gameweeks are published.' }}</p>
       </div>
       <div class="mt-auto pt-3">
@@ -64,7 +65,7 @@
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
 import { getInstagramClubTheme } from "~/utils/instagram-designs";
 import { getTeamFixtureRun, type ShortlistPlayer, type ShortlistFixture } from "~/utils/homepage-shortlist";
-const props = defineProps<{ player: ShortlistPlayer; teams: Record<string, any>[]; fixtures: ShortlistFixture[]; gameweeks: number[]; fixturesAvailable: boolean; sortKey: string }>();
+const props = defineProps<{ player: ShortlistPlayer; teams: Record<string, any>[]; fixtures: ShortlistFixture[]; gameweeks: number[]; fixturesAvailable: boolean; fixturesLoading?: boolean; sortKey: string }>();
 const team = computed(() => props.teams.find((item) => item.id === props.player.team));
 const positionLabel = computed(() => ["", "Goalkeeper", "Defender", "Midfielder", "Forward"][props.player.element_type] || "Player");
 const sectionLabel = computed(() => ({ form: 'Form leaders', total_points: 'Season points', selected_by_percent: 'Most selected', transfers_in_event: 'Most bought this gameweek', transfers_out_event: 'Most sold this gameweek' }[props.sortKey] || 'Player shortlist'));

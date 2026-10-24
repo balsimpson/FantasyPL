@@ -4,16 +4,6 @@
 			<h2 class="text-lg font-bold tracking-tight text-white">Classic leagues</h2>
 			<span class="text-xs tabular-nums text-stone-400">{{ leagues.length }}</span>
 		</header>
-		<USelect
-			v-if="leagues.length"
-			v-model="sortOrder"
-			:items="sortOptions"
-			aria-label="Sort leagues"
-			size="sm"
-			class="mb-3 w-full"
-			:ui="{ base: 'w-full border border-white/10 bg-[#101216] text-stone-200', content: 'bg-[#101216] text-white ring-white/15', item: 'text-stone-200 data-highlighted:not-data-disabled:before:bg-white/10' }"
-		/>
-		<p v-if="sortOrder === 'climb' && leagues.length" class="mb-3 text-xs text-stone-400">Places gained relative to league size.</p>
 		<ul v-if="leagues.length" class="divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#101216] px-4">
 			<li v-for="league in visibleLeagues" :key="league.id" class="py-3">
 				<details class="group">
@@ -38,7 +28,6 @@
 						<div><dt class="text-stone-400">Previous rank</dt><dd class="mt-1 font-semibold tabular-nums text-white">{{ number(league.entry_last_rank) }}</dd></div>
 						<div><dt class="text-stone-400">Percentile</dt><dd class="mt-1 font-semibold tabular-nums text-white">{{ league.entry_percentile_rank == null ? 'Unavailable' : `${league.entry_percentile_rank}%` }}</dd></div>
 					</dl>
-					<p v-if="rankPosition(league.entry_rank, league.rank_count) !== null" class="mt-2 text-[0.65rem] text-stone-400">Solid dot: current rank · Hollow dot: previous rank when available</p>
 				</details>
 			</li>
 		</ul>
@@ -50,9 +39,7 @@
 <script setup>
 const props = defineProps({ leagues: { type: Array, default: () => [] } });
 const expanded = ref(false);
-const sortOrder = ref('default');
-const sortOptions = [{ label: 'Default order', value: 'default' }, { label: 'Biggest climb', value: 'climb' }];
-const sortedLeagues = computed(() => sortOrder.value === 'default' ? props.leagues : [...props.leagues].sort((left, right) => {
+const sortedLeagues = computed(() => [...props.leagues].sort((left, right) => {
 	const leftGain = relativeGain(left);
 	const rightGain = relativeGain(right);
 	if (leftGain === null) return rightGain === null ? 0 : 1;

@@ -110,15 +110,15 @@ No Search Console baseline was available at the audit. Analytics injection does 
 
 ## Blog requirements when implementation is requested
 
-The owner wants an AI-assisted admin publishing workflow on the existing site. The planned default is one admin, evidence-backed generation, editable preview, and an explicit Publish action. Storage/auth provider, editor format, and available review time remain open. Inspect for later decisions before asking again; do not choose or provision a paid provider silently.
+The owner wants an AI-assisted content engine on the existing site. Unattended publishing is a first-class mode that the owner can turn on or off (24 October 2026). The first implementation stage is the private workspace, editor and durable draft saving. GitHub via Nuxt Auth Utils is the chosen admin login. See `BLOG_GROWTH_PLAN.md` for storage, editor, automation decisions and implementation evidence; do not assume that local code establishes configured accounts or a deployed backend.
 
-- Planned public routes are `/blog` and `/blog/[slug]`; planned admin routes are under `pages/admin/articles/`. These routes and the proposed article modules are not established features merely because they appear in the plan.
+- Planned public routes are `/blog` and `/blog/[slug]`; private admin routes are under `pages/admin/articles/`. Check the owning plan and current source for local implementation and verification status; planned public routes are not established features merely because they appear in the plan.
 - Use durable storage for articles, evidence snapshots, and revisions behind server-authorized admin APIs. Function-local files and localStorage are not article storage. Preserve a draft independently of the published revision.
 - Calculate rankings, net transfers, and tables in code; use AI to explain validated evidence. Capture source timestamps, season, gameweek, units, periods, and player identity. A 24-hour transfer claim requires comparable timestamped snapshots. Fixture analysis must account for blank/double gameweeks and unknown kickoff times.
 - Start with transfer trends, fixture analysis, and budget shortlists, plus useful evergreen explanations. Connect articles to real player pages or tools. Do not generate unsupported news, arbitrary player pairs, or thin archives for search volume.
 - Failed generation must preserve existing content. Validate generated output, sanitize rendered content, prevent draft leaks, and make publish retries idempotent. All admin operations, including preview and generation, need server-side authorization. Noindex and hidden navigation are not access control.
 - Public articles must render in initial HTML and remain readable during FPL API outages. Include real authorship, sources, capture/publication/update times, relevant season/gameweek, canonical metadata, and accurate article structured data. Add only published articles to the sitemap and feed.
-- Do not repurpose `server/api/get-response.ts` blindly; it is an existing caption-generation endpoint with other consumers. Keep the scheduler excluded. Publishing an article must not automatically post to social services.
+- Do not repurpose `server/api/get-response.ts` blindly; it is an existing caption-generation endpoint with other consumers. Keep scheduler changes outside the workspace/editor stage. Later Instagram automation must obey its own configured mode and execution checks; saving an article must never publish or post.
 
 ## Verification and handoff
 

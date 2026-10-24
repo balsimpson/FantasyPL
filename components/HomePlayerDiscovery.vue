@@ -36,6 +36,7 @@
             :fixtures="fixtures"
             :gameweeks="gameweeks"
             :fixtures-available="fixturesAvailable"
+            :fixtures-loading="fixturesLoading"
             :sort-key="sortKey"
           />
         </li>
@@ -58,9 +59,10 @@ const props = withDefaults(defineProps<{
   fixtures: ShortlistFixture[];
   gameweeks: number[];
   fixturesAvailable: boolean;
+  fixturesLoading?: boolean;
   loading?: boolean;
   error?: boolean;
-}>(), { loading: false, error: false });
+}>(), { loading: false, error: false, fixturesLoading: false });
 defineEmits(["retry"]);
 const { query, position, maxPrice, sortKey, visibleCount, rankedPlayers, visiblePlayers } = useHomepageShortlist(() => props.players, () => props.teams);
 const playerRail = ref<HTMLElement | null>(null);

@@ -1,4 +1,5 @@
 import { getShortlistGameweeks } from "../../utils/homepage-shortlist";
+import type { H3Event } from "h3";
 
 const playerFields = [
   "id", "code", "first_name", "second_name", "web_name", "birth_date", "team", "element_type", "now_cost",
@@ -14,29 +15,57 @@ const fixtureFields = ["id", "event", "team_h", "team_a", "team_h_difficulty", "
 const pick = (value: Record<string, any>, fields: string[]) =>
   Object.fromEntries(fields.filter((field) => field in value).map((field) => [field, value[field]]));
 
-export const getHomepageData = defineCachedFunction(async () => {
-  const [data, fixtureResult] = await Promise.all([
-    $fetch<Record<string, any>>("https://fantasy.premierleague.com/api/bootstrap-static/", { timeout: 10_000, retry: 0 }).catch(() => null),
-    $fetch<unknown>("https://fantasy.premierleague.com/api/fixtures/", { timeout: 10_000, retry: 0 })
-      .then((fixtures) => ({ fixtures, fetchedAt: new Date().toISOString() })).catch(() => null),
-  ]);
+export const getHomepageBootstrap = defineCachedFunction(async (_event?: H3Event) => {
+  const data = await $fetch<Record<string, any>>("https://fantasy.premierleague.com/api/bootstrap-static/", { timeout: 10_000, retry: 0 }).catch(() => null);
   if (!data || !Array.isArray(data.elements) || !Array.isArray(data.events) || !Array.isArray(data.teams)) {
     throw createError({ statusCode: 502, statusMessage: "Current FPL data is unavailable" });
   }
-  const gameweeks = getShortlistGameweeks(data.events);
-  const hasFixtures = Array.isArray(fixtureResult?.fixtures);
   return {
     elements: data.elements.map((player: Record<string, any>) => pick(player, playerFields)),
     events: data.events.map((event: Record<string, any>) => pick(event, eventFields)),
     teams: data.teams.map((team: Record<string, any>) => pick(team, teamFields)),
-    fixtures: hasFixtures ? (fixtureResult!.fixtures as Record<string, any>[])
-      .filter((fixture) => gameweeks.includes(fixture.event)).map((fixture) => pick(fixture, fixtureFields)) : null,
     fetchedAt: new Date().toISOString(),
-    fixturesFetchedAt: hasFixtures ? fixtureResult!.fetchedAt : null,
   };
 }, {
-  name: "homepage-data-v6",
+  name: "homepage-bootstrap-v1",
+  getKey: () => "homepage",
+  maxAge: 600,
+  swr: true,
+  validate: (entry) => {
+    const data = entry.value;
+    if (!Array.isArray(data?.events) || !Array.isArray(data?.elements) || !Array.isArray(data?.teams)) return false;
+    const next = data.events.find((event) => event.is_next);
+    return Date.now() - Date.parse(data.fetchedAt) < 1_200_000
+      && (!next || Date.parse(next.deadline_time) > Date.now());
+  },
+});
+
+export const getHomepageFixtures = defineCachedFunction(async () => {
+  const [data, fixtures] = await Promise.all([
+    getHomepageBootstrap(),
+    $fetch<unknown>("https://fantasy.premierleague.com/api/fixtures/", { timeout: 10_000, retry: 0 }),
+  ]);
+  if (!Array.isArray(fixtures)) {
+    throw createError({ statusCode: 502, statusMessage: "Current FPL fixtures are unavailable" });
+  }
+  const gameweeks = getShortlistGameweeks(data.events);
+  return {
+    fixtures: fixtures.filter((fixture) => gameweeks.includes(fixture.event))
+      .map((fixture) => pick(fixture, fixtureFields)),
+    fixturesFetchedAt: new Date().toISOString(),
+  };
+}, {
+  name: "homepage-fixtures-v1",
   maxAge: 600,
   swr: false,
   validate: (entry) => Array.isArray(entry.value?.fixtures),
 });
+
+// Preserve the combined response for existing API consumers.
+export const getHomepageData = async () => {
+  const [data, fixtures] = await Promise.all([
+    getHomepageBootstrap(),
+    getHomepageFixtures().catch(() => ({ fixtures: null, fixturesFetchedAt: null })),
+  ]);
+  return { ...data, ...fixtures };
+};
