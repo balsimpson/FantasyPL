@@ -208,6 +208,9 @@ const managerOgFormation = computed(() => {
 		.join("-");
 });
 
+const managerOgCaptain = computed(() => managerOgPlayers.value.find((player) => player.isCaptain)?.name ?? "Not selected");
+const managerOgViceCaptain = computed(() => managerOgPlayers.value.find((player) => player.isViceCaptain)?.name ?? "Not selected");
+
 useSeoMeta({
 	title: managerPageTitle,
 	description: managerPageDescription,
@@ -229,6 +232,8 @@ defineOgImageComponent("ManagerTeam", {
 	overallPoints: computed(() => managerData.value?.summary_overall_points ?? null),
 	overallRank: computed(() => managerData.value?.summary_overall_rank ?? null),
 	formation: managerOgFormation,
+	captainName: managerOgCaptain,
+	viceCaptainName: managerOgViceCaptain,
 	players: managerOgPlayers,
 }, {
 	width: 1200,

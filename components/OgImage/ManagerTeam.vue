@@ -9,18 +9,35 @@ const props = defineProps({
 	overallPoints: { type: [Number, String], default: null },
 	overallRank: { type: [Number, String], default: null },
 	formation: { type: String, default: "" },
+	captainName: { type: String, default: "Not selected" },
+	viceCaptainName: { type: String, default: "Not selected" },
 	players: { type: Array, default: () => [] },
 });
 
-const positionRows = computed(() => [
-	{ position: "Forward", label: "FORWARDS" },
-	{ position: "Midfielder", label: "MIDFIELDERS" },
-	{ position: "Defender", label: "DEFENDERS" },
-	{ position: "Goalkeeper", label: "GOALKEEPER" },
-].map((row) => ({
-	...row,
-	players: props.players.filter((player) => player.position === row.position),
-})).filter((row) => row.players.length));
+const playerWidth = 112;
+const rowPositions = {
+	Forward: 218,
+	Midfielder: 307,
+	Defender: 396,
+	Goalkeeper: 485,
+};
+
+const positionedPlayers = computed(() => {
+	const positions = ["Forward", "Midfielder", "Defender", "Goalkeeper"];
+	const left = 68;
+	const width = 694;
+
+	return positions.flatMap((position) => {
+		const players = props.players.filter((player) => player.position === position);
+		const step = width / (players.length + 1);
+
+		return players.map((player, index) => ({
+			...player,
+			left: Math.round(left + step * (index + 1) - playerWidth / 2),
+			top: rowPositions[position],
+		}));
+	});
+});
 
 const formatNumber = (value) => {
 	if (value === null || value === undefined || value === "") return "-";
@@ -29,74 +46,72 @@ const formatNumber = (value) => {
 };
 
 const playerInitials = (name) => String(name || "?").trim().slice(0, 2).toUpperCase();
-
 const gameweekLabel = computed(() => props.currentEvent || "-");
+const teamNameSize = computed(() => {
+	if (props.teamName.length > 28) return "34px";
+	if (props.teamName.length > 20) return "38px";
+	return "44px";
+});
 
 // The isolated renderer expects both arrays on the component's head payload.
 useHead({ style: [], link: [] });
 </script>
 
 <template>
-	<div :style="{ display: 'flex', flexDirection: 'column', width: '1200px', height: '630px', boxSizing: 'border-box', overflow: 'hidden', padding: '34px 40px 28px', backgroundColor: '#080e0b', color: '#f6f8f6', fontFamily: 'Inter' }">
-		<header :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', marginBottom: '18px' }">
-			<div :style="{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }">
-				<div :style="{ display: 'flex', alignItems: 'center', gap: '9px', color: '#8fe05c', fontSize: '12px', fontWeight: 700, letterSpacing: '2px' }">
-					<span>FPL INSIGHTS</span>
-					<span :style="{ color: '#617268' }">/</span>
-					<span :style="{ color: '#c4cec8' }">MANAGER TEAM</span>
-				</div>
-				<div :style="{ color: '#ffffff', fontSize: '32px', fontWeight: 700, lineHeight: '1.12' }">{{ teamName }}</div>
-				<div :style="{ color: '#a6b2aa', fontSize: '15px' }">{{ managerName }} <span :style="{ color: '#64766b' }">·</span> Manager {{ managerId }}</div>
-			</div>
-			<div :style="{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '112px', padding: '12px 16px', border: '1px solid #426948', borderRadius: '14px', backgroundColor: '#12261a' }">
-				<span :style="{ color: '#9baa9e', fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px' }">GAMEWEEK</span>
-				<span :style="{ marginTop: '3px', color: '#c2f080', fontSize: '28px', fontWeight: 700, lineHeight: '1' }">{{ gameweekLabel }}</span>
-			</div>
-		</header>
+	<div :style="{ position: 'relative', display: 'flex', width: '1200px', height: '630px', overflow: 'hidden', backgroundColor: '#080e0b', color: '#f5f8f5', fontFamily: 'Inter' }">
+		<div :style="{ position: 'absolute', left: '0', top: '0', width: '1200px', height: '6px', backgroundColor: '#00c16a' }" />
 
-		<div :style="{ display: 'flex', flex: 1, minHeight: 0, gap: '20px' }">
-			<section :style="{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0, padding: '18px 20px', border: '1px solid #28503b', borderRadius: '20px', backgroundColor: '#103122' }">
-				<div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }">
-					<span :style="{ color: '#d9e5dc', fontSize: '12px', fontWeight: 700, letterSpacing: '1.7px' }">STARTING XI</span>
-					<span :style="{ color: '#a8df79', fontSize: '13px', fontWeight: 700 }">{{ formation }}</span>
-				</div>
-				<div v-if="positionRows.length" :style="{ display: 'flex', flex: 1, flexDirection: 'column', justifyContent: 'space-around', gap: '5px' }">
-					<div v-for="row in positionRows" :key="row.position" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '8px' }">
-						<div v-for="player in row.players" :key="`${row.position}-${player.name}`" :style="{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', maxWidth: '142px', gap: '4px' }">
-							<div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', borderRadius: '50%', backgroundColor: '#b7ed69', color: '#102016', fontSize: '13px', fontWeight: 700 }">{{ playerInitials(player.name) }}</div>
-							<div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#f4f7f4', fontSize: '12px', fontWeight: 700, lineHeight: '15px', textAlign: 'center' }">
-								<span>{{ player.name }}</span>
-								<span v-if="player.isCaptain" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '16px', height: '16px', padding: '0 3px', borderRadius: '5px', backgroundColor: '#e4a738', color: '#1b1609', fontSize: '9px' }">C</span>
-								<span v-else-if="player.isViceCaptain" :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '16px', padding: '0 3px', borderRadius: '5px', backgroundColor: '#bed5c1', color: '#122016', fontSize: '8px' }">VC</span>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div v-else :style="{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#b0beb4', fontSize: '17px' }">Starting XI unavailable</div>
-			</section>
+		<div :style="{ position: 'absolute', left: '40px', top: '24px', color: '#a4e46a', fontSize: '13px', fontWeight: 700, letterSpacing: '1.8px' }">FPL INSIGHTS / MANAGER TEAM</div>
+		<div :style="{ position: 'absolute', left: '40px', top: '48px', width: '850px', height: '54px', color: '#ffffff', fontSize: teamNameSize, fontWeight: 700, lineHeight: '1.05' }">{{ teamName }}</div>
+		<div :style="{ position: 'absolute', left: '40px', top: '108px', color: '#b2beb5', fontSize: '17px' }">{{ managerName }} <span :style="{ color: '#68796d' }">·</span> Manager {{ managerId }}</div>
 
-			<aside :style="{ display: 'flex', flexDirection: 'column', width: '340px', gap: '12px' }">
-				<div :style="{ display: 'flex', flex: 1, flexDirection: 'column', justifyContent: 'center', padding: '18px 20px', border: '1px solid #294c36', borderRadius: '18px', backgroundColor: '#111b15' }">
-					<span :style="{ color: '#9baa9e', fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px' }">SEASON POINTS</span>
-					<span :style="{ marginTop: '5px', color: '#c2f080', fontSize: '42px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallPoints) }}</span>
-					<span :style="{ marginTop: '10px', color: '#d1dbd3', fontSize: '14px' }">Overall rank <strong :style="{ color: '#ffffff' }">{{ formatNumber(overallRank) }}</strong></span>
-				</div>
-				<div :style="{ display: 'flex', flex: 1, gap: '12px' }">
-					<div :style="{ display: 'flex', flex: 1, flexDirection: 'column', justifyContent: 'center', padding: '16px', border: '1px solid #294c36', borderRadius: '18px', backgroundColor: '#111b15' }">
-						<span :style="{ color: '#9baa9e', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }">GW POINTS</span>
-						<span :style="{ marginTop: '7px', color: '#ffffff', fontSize: '27px', fontWeight: 700 }">{{ formatNumber(eventPoints) }}</span>
-					</div>
-					<div :style="{ display: 'flex', flex: 1, flexDirection: 'column', justifyContent: 'center', padding: '16px', border: '1px solid #294c36', borderRadius: '18px', backgroundColor: '#111b15' }">
-						<span :style="{ color: '#9baa9e', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }">GW RANK</span>
-						<span :style="{ marginTop: '7px', color: '#ffffff', fontSize: '27px', fontWeight: 700 }">{{ formatNumber(eventRank) }}</span>
-					</div>
-				</div>
-			</aside>
+		<div :style="{ position: 'absolute', left: '1020px', top: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '140px', height: '94px', border: '1px solid #385842', borderRadius: '14px', backgroundColor: '#12251a' }">
+			<span :style="{ color: '#aab8ad', fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px' }">GAMEWEEK</span>
+			<span :style="{ marginTop: '4px', color: '#c4f27b', fontSize: '36px', fontWeight: 700, lineHeight: '1' }">{{ gameweekLabel }}</span>
 		</div>
 
-		<footer :style="{ display: 'flex', justifyContent: 'space-between', marginTop: '13px', color: '#718078', fontSize: '11px' }">
-			<span>Fantasy Premier League team profile</span>
-			<span>sportsync.in</span>
-		</footer>
+		<div :style="{ position: 'absolute', left: '40px', top: '162px', width: '750px', height: '422px', border: '1px solid #315b40', borderRadius: '18px', backgroundColor: '#102a1d' }" />
+		<div :style="{ position: 'absolute', left: '56px', top: '178px', width: '718px', height: '390px', border: '1px solid #294c36', borderRadius: '12px' }" />
+		<div :style="{ position: 'absolute', left: '57px', top: '372px', width: '716px', height: '1px', backgroundColor: '#294c36' }" />
+		<div :style="{ position: 'absolute', left: '364px', top: '326px', width: '104px', height: '104px', border: '1px solid #294c36', borderRadius: '50%' }" />
+		<div :style="{ position: 'absolute', left: '411px', top: '373px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#355c42' }" />
+
+		<div :style="{ position: 'absolute', left: '68px', top: '184px', color: '#e6eee7', fontSize: '13px', fontWeight: 700, letterSpacing: '1.6px' }">STARTING XI</div>
+		<div :style="{ position: 'absolute', left: '682px', top: '182px', width: '74px', color: '#a8e76a', fontSize: '17px', fontWeight: 700, textAlign: 'right' }">{{ formation }}</div>
+
+		<div v-for="player in positionedPlayers" :key="`${player.position}-${player.name}`" :style="{ position: 'absolute', left: `${player.left}px`, top: `${player.top}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${playerWidth}px`, height: '78px' }">
+			<div :style="{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', border: '2px solid #d2f5a2', borderRadius: '50%', backgroundColor: '#a9df65', color: '#102016', fontSize: '15px', fontWeight: 700 }">
+				{{ playerInitials(player.name) }}
+				<span v-if="player.isCaptain" :style="{ position: 'absolute', right: '-10px', top: '-5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', border: '1px solid #080e0b', borderRadius: '50%', backgroundColor: '#e8b044', color: '#1c1708', fontSize: '11px', fontWeight: 700 }">C</span>
+				<span v-else-if="player.isViceCaptain" :style="{ position: 'absolute', right: '-12px', top: '-5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '20px', border: '1px solid #080e0b', borderRadius: '10px', backgroundColor: '#d3ddd4', color: '#172119', fontSize: '9px', fontWeight: 700 }">VC</span>
+			</div>
+			<div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: `${playerWidth}px`, height: '30px', marginTop: '4px', color: '#f5f8f5', fontSize: '14px', fontWeight: 700, lineHeight: '15px', textAlign: 'center' }">{{ player.name }}</div>
+		</div>
+
+		<div v-if="!positionedPlayers.length" :style="{ position: 'absolute', left: '68px', top: '355px', width: '694px', color: '#c0cbc2', fontSize: '20px', textAlign: 'center' }">Starting XI unavailable</div>
+
+		<div :style="{ position: 'absolute', left: '812px', top: '162px', width: '348px', height: '422px', border: '1px solid #2b4433', borderRadius: '18px', backgroundColor: '#111a14' }" />
+		<div :style="{ position: 'absolute', left: '840px', top: '185px', color: '#adbaaf', fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px' }">OVERALL POINTS</div>
+		<div :style="{ position: 'absolute', left: '840px', top: '210px', color: '#c4f27b', fontSize: '58px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallPoints) }}</div>
+		<div :style="{ position: 'absolute', left: '840px', top: '284px', color: '#adbaaf', fontSize: '13px', fontWeight: 700, letterSpacing: '1.3px' }">OVERALL RANK</div>
+		<div :style="{ position: 'absolute', left: '840px', top: '306px', color: '#ffffff', fontSize: '29px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallRank) }}</div>
+
+		<div :style="{ position: 'absolute', left: '840px', top: '352px', width: '292px', height: '1px', backgroundColor: '#304437' }" />
+		<div :style="{ position: 'absolute', left: '840px', top: '375px', color: '#adbaaf', fontSize: '12px', fontWeight: 700, letterSpacing: '1.1px' }">GW POINTS</div>
+		<div :style="{ position: 'absolute', left: '840px', top: '397px', color: '#ffffff', fontSize: '34px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(eventPoints) }}</div>
+		<div :style="{ position: 'absolute', left: '992px', top: '370px', width: '1px', height: '76px', backgroundColor: '#304437' }" />
+		<div :style="{ position: 'absolute', left: '1010px', top: '375px', color: '#adbaaf', fontSize: '12px', fontWeight: 700, letterSpacing: '1px' }">GW RANK</div>
+		<div :style="{ position: 'absolute', left: '1010px', top: '400px', width: '130px', color: '#ffffff', fontSize: '22px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(eventRank) }}</div>
+
+		<div :style="{ position: 'absolute', left: '840px', top: '462px', width: '292px', height: '1px', backgroundColor: '#304437' }" />
+		<div :style="{ position: 'absolute', left: '840px', top: '483px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#e8b044', color: '#1c1708', fontSize: '12px', fontWeight: 700 }">C</div>
+		<div :style="{ position: 'absolute', left: '878px', top: '477px', color: '#adbaaf', fontSize: '10px', fontWeight: 700, letterSpacing: '1.1px' }">CAPTAIN</div>
+		<div :style="{ position: 'absolute', left: '878px', top: '493px', width: '252px', color: '#ffffff', fontSize: '15px', fontWeight: 700 }">{{ captainName }}</div>
+		<div :style="{ position: 'absolute', left: '840px', top: '527px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '22px', borderRadius: '11px', backgroundColor: '#d3ddd4', color: '#172119', fontSize: '9px', fontWeight: 700 }">VC</div>
+		<div :style="{ position: 'absolute', left: '878px', top: '520px', color: '#adbaaf', fontSize: '10px', fontWeight: 700, letterSpacing: '1px' }">VICE-CAPTAIN</div>
+		<div :style="{ position: 'absolute', left: '878px', top: '536px', width: '252px', color: '#ffffff', fontSize: '15px', fontWeight: 700 }">{{ viceCaptainName }}</div>
+
+		<div :style="{ position: 'absolute', left: '40px', top: '604px', color: '#839187', fontSize: '11px', letterSpacing: '1px' }">CURRENT SQUAD · GAMEWEEK {{ gameweekLabel }}</div>
+		<div :style="{ position: 'absolute', left: '1070px', top: '604px', color: '#839187', fontSize: '11px', textAlign: 'right' }">sportsync.in</div>
 	</div>
 </template>
