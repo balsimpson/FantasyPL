@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+:root {
+  color-scheme: dark;
+  background-color: #050608;
+}
+
+body {
+  background-color: #050608;
+}
+
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
 

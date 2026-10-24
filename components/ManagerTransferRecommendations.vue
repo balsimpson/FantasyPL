@@ -32,7 +32,7 @@
 		</header>
 
 		<div class="h-[28rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
-			<p v-if="loading" class="flex h-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#101216] px-4 text-sm text-stone-300" role="status" aria-live="polite">
+			<p v-if="loading && !result" class="flex h-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#101216] px-4 text-sm text-stone-300" role="status" aria-live="polite">
 				<UIcon name="i-lucide-loader-circle" class="size-4 text-primary motion-safe:animate-spin" aria-hidden="true" />
 				<span>Comparing your squad with current FPL options…</span>
 			</p>
@@ -172,6 +172,17 @@ const getBankImpact = (netCost) => {
 const visibleSuggestions = computed(() => {
 	return (result.value?.suggestions ?? []).map((suggestion) => ({ ...suggestion, bankImpact: getBankImpact(suggestion.netCost) }));
 });
+const cacheKey = computed(() => `manager-recommendations:${props.managerId}`);
+const readCachedRecommendations = () => {
+	try {
+		const cached = JSON.parse(localStorage.getItem(cacheKey.value) || "null");
+		return /^[a-f0-9]{64}$/.test(cached?.fingerprint)
+			&& cached.response?.fingerprint === cached.fingerprint
+			&& Array.isArray(cached.response?.suggestions) ? cached : null;
+	} catch {
+		return null;
+	}
+};
 const scrollToSlide = (index) => {
 	const track = recommendationTrack.value;
 	const lastSlide = visibleSuggestions.value.length - 1;
@@ -191,10 +202,25 @@ const loadRecommendations = async () => {
 	loading.value = true;
 	errorMessage.value = "";
 	activeSlide.value = 0;
+	const cached = readCachedRecommendations();
+	if (cached) result.value = cached.response;
 	try {
-		result.value = await $fetch(`/api/managers/${props.managerId}/recommendations`, { retry: 0, cache: "no-store" });
+		const latest = await $fetch(`/api/managers/${props.managerId}/recommendations`, {
+			retry: 0,
+			cache: "no-store",
+			query: cached ? { cachedFingerprint: cached.fingerprint } : undefined,
+		});
+		if (latest.unchanged && cached) return;
+		result.value = latest;
+		if (typeof latest.fingerprint === "string" && Array.isArray(latest.suggestions)) {
+			try {
+				localStorage.setItem(cacheKey.value, JSON.stringify({ fingerprint: latest.fingerprint, response: latest }));
+			} catch {
+				// Recommendations remain usable when browser storage is full or unavailable.
+			}
+		}
 	} catch (error) {
-		errorMessage.value = error?.data?.statusMessage || "We couldn't compare transfer options just now. Try again shortly.";
+		if (!cached) errorMessage.value = error?.data?.statusMessage || "We couldn't compare transfer options just now. Try again shortly.";
 	} finally {
 		loading.value = false;
 	}

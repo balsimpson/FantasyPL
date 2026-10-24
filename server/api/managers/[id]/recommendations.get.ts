@@ -1,5 +1,9 @@
+import { createHash } from "node:crypto";
 import { getManagerHistory, getManagerPicks, getManagerTransfers } from "~~/composables/usePremiereLeague";
 import { buildManagerSellingPrices, buildManagerTransferOptions, rankManagerTransferSuggestions } from "../../../utils/manager-recommendations";
+
+const recommendationCache = new Map<number, { fingerprint: string; response: Record<string, any> }>();
+const inFlightRequests = new Map<string, Promise<Record<string, any>>>();
 
 const scoreCriteria = [
 	"Clearly worse than keeping the current player.",
@@ -142,16 +146,29 @@ export default defineEventHandler(async (event) => {
 		instructions: `Compare the replacement with the current player for FPL Gameweek ${nextGameweek}. Every option already passed a server-side performance gate: it is no worse on available form, points per game, and FPL next-gameweek estimate, and improves at least one. Prioritize those performance signals, minutes, and availability over cost. The price is already feasible; do not reward saving money by itself. Treat the FPL estimate as uncertain, do not infer injuries or lineups, and do not describe this score as projected points.`,
 		criteria: scoreCriteria,
 	}]));
+	const requestBody = { model: "jev-latest", state, questions };
+	const fingerprint = createHash("sha256")
+		.update(JSON.stringify({ requestBody, options }))
+		.digest("hex");
+	const cachedFingerprint = String(getQuery(event, "cachedFingerprint") ?? "");
+	if (cachedFingerprint === fingerprint) return { unchanged: true, fingerprint };
+	const cached = recommendationCache.get(managerId);
+	if (cached?.fingerprint === fingerprint) return cached.response;
 
 	let result: Record<string, any>;
 	try {
-		result = await $fetch<Record<string, any>>("https://api.typesafe.ai/v1/systemone", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${apiKey}` },
-			timeout: 15_000,
-			retry: 0,
-			body: { model: "jev-latest", state, questions },
-		});
+		let request = inFlightRequests.get(fingerprint);
+		if (!request) {
+			request = $fetch<Record<string, any>>("https://api.typesafe.ai/v1/systemone", {
+				method: "POST",
+				headers: { Authorization: `Bearer ${apiKey}` },
+				timeout: 15_000,
+				retry: 0,
+				body: requestBody,
+			});
+			inFlightRequests.set(fingerprint, request);
+		}
+		result = await request;
 	} catch (error) {
 		const status = Number((error as any)?.response?.status ?? (error as any)?.statusCode);
 		console.error("TypeSafe System One recommendation request failed", { status });
@@ -159,6 +176,8 @@ export default defineEventHandler(async (event) => {
 			statusCode: status === 429 ? 503 : 502,
 			statusMessage: status === 429 ? "Recommendations are busy. Try again shortly." : "Recommendations are temporarily unavailable.",
 		});
+	} finally {
+		inFlightRequests.delete(fingerprint);
 	}
 
 	if (!result?.answers || typeof result.answers !== "object" || Object.keys(result.answers).length === 0) {
@@ -179,12 +198,15 @@ export default defineEventHandler(async (event) => {
 		delete publicSuggestion.confidence;
 		return publicSuggestion;
 	});
-	return {
+	const response = {
+		fingerprint,
 		currentGameweek,
 		nextGameweek,
 		suggestions,
 		message: suggestions.length ? null : "No clear evidence-backed upgrade was found among the affordable options.",
 	};
+	recommendationCache.set(managerId, { fingerprint, response });
+	return response;
 });
 
 function roundToTenth(value: number) {
