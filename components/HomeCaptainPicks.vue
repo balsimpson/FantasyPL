@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading" class="grid min-w-0 grid-flow-col auto-cols-[min(88%,28rem)] gap-4 overflow-hidden" role="status" aria-label="Loading captain picks">
+  <div v-if="loading" :class="CAROUSEL_WIDE_COLUMNS" class="grid min-w-0 grid-flow-col gap-4 overflow-hidden" role="status" aria-label="Loading captain picks">
     <USkeleton v-for="index in 3" :key="index" class="h-64 rounded-xl" />
   </div>
 
@@ -11,7 +11,8 @@
   <div v-else>
     <div
       ref="sectionsTrack"
-      class="grid min-w-0 grid-flow-col auto-cols-[min(88%,28rem)] gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary"
+      :class="CAROUSEL_WIDE_COLUMNS"
+      class="grid min-w-0 grid-flow-col gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary"
       role="region"
       aria-roledescription="carousel"
       aria-label="Captain, vice-captain, and differential picks"
@@ -59,6 +60,7 @@
 
 <script setup lang="ts">
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
+import { CAROUSEL_WIDE_COLUMNS } from "~/utils/carousel-layout";
 import { getHomepageCaptainPicks, type ShortlistPlayer } from "~/utils/homepage-shortlist";
 
 const props = withDefaults(defineProps<{
@@ -80,19 +82,34 @@ const scrollToSection = (index: number) => {
   const targetIndex = Math.max(0, Math.min(index, sections.value.length - 1));
   const target = track.children[targetIndex] as HTMLElement | undefined;
   if (!target) return;
+  const first = track.children[0] as HTMLElement;
+  const next = track.children[1] as HTMLElement | undefined;
+  let left = target.offsetLeft - first.offsetLeft;
+  if (targetIndex < activeSection.value && left >= track.scrollLeft - 1) {
+    left = track.scrollLeft - (next ? next.offsetLeft - first.offsetLeft : first.offsetWidth);
+  }
   activeSection.value = targetIndex;
   track.scrollTo({
-    left: target.offsetLeft - track.offsetLeft,
+    left: Math.max(0, left),
     behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
   });
 };
 const updateActiveSection = () => {
   const track = sectionsTrack.value;
   if (!track) return;
+  if (track.scrollWidth <= track.clientWidth + 1 || track.scrollLeft <= 1) {
+    activeSection.value = 0;
+    return;
+  }
+  if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 1) {
+    activeSection.value = sections.value.length - 1;
+    return;
+  }
+  const first = track.children[0] as HTMLElement;
   let nearestIndex = 0;
   let nearestDistance = Number.POSITIVE_INFINITY;
   Array.from(track.children).forEach((child, index) => {
-    const distance = Math.abs((child as HTMLElement).offsetLeft - track.offsetLeft - track.scrollLeft);
+    const distance = Math.abs((child as HTMLElement).offsetLeft - first.offsetLeft - track.scrollLeft);
     if (distance < nearestDistance) {
       nearestIndex = index;
       nearestDistance = distance;

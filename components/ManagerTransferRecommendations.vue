@@ -45,13 +45,14 @@
 					id="manager-recommendations-list"
 					ref="recommendationTrack"
 					aria-label="Transfer recommendations"
-					class="flex h-full min-w-0 snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-2xl border border-white/10 bg-[#101216] scroll-smooth motion-reduce:scroll-auto"
+					:class="CAROUSEL_SINGLE_COLUMNS"
+					class="grid h-full min-w-0 grid-flow-col gap-4 snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth motion-reduce:scroll-auto"
 					@scroll.passive="updateActiveSlide"
 				>
 					<li
 						v-for="(suggestion, slideIndex) in visibleSuggestions"
 						:key="suggestion.id"
-						class="h-full w-full min-w-0 shrink-0 snap-start"
+						class="h-full min-w-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#101216]"
 						aria-roledescription="slide"
 						:aria-label="`Recommendation ${slideIndex + 1} of ${result.suggestions.length}`"
 					>
@@ -136,6 +137,7 @@
 
 <script setup>
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
+import { CAROUSEL_SINGLE_COLUMNS } from "~/utils/carousel-layout";
 const props = defineProps({ managerId: { type: [String, Number], required: true } });
 const loading = ref(true);
 const errorMessage = ref("");
@@ -182,13 +184,18 @@ const scrollToSlide = (index) => {
 	if (!track || lastSlide < 0) return;
 	const targetIndex = Math.min(Math.max(index, 0), lastSlide);
 	activeSlide.value = targetIndex;
-	track.scrollTo({ left: targetIndex * track.clientWidth, behavior: "auto" });
+	const target = track.children[targetIndex];
+	if (target) track.scrollTo({ left: target.offsetLeft - track.children[0].offsetLeft, behavior: "auto" });
 };
 const updateActiveSlide = () => {
 	const track = recommendationTrack.value;
 	if (!track?.clientWidth) return;
-	const lastSlide = visibleSuggestions.value.length - 1;
-	activeSlide.value = Math.min(Math.round(track.scrollLeft / track.clientWidth), Math.max(lastSlide, 0));
+	const slides = Array.from(track.children);
+	if (!slides.length) return;
+	const origin = slides[0].offsetLeft;
+	activeSlide.value = slides.reduce((nearest, slide, index) =>
+		Math.abs(slide.offsetLeft - origin - track.scrollLeft) < Math.abs(slides[nearest].offsetLeft - origin - track.scrollLeft)
+			? index : nearest, 0);
 };
 
 const loadRecommendations = async () => {

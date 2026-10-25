@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div v-if="loading" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-hidden sm:auto-cols-[calc((100%_-_1rem)/2)] xl:auto-cols-[calc((100%_-_2rem)/3)]" role="status" aria-label="Loading trade ideas">
+    <div v-if="loading" :class="CAROUSEL_WIDE_COLUMNS" class="grid min-w-0 grid-flow-col gap-4 overflow-hidden" role="status" aria-label="Loading trade ideas">
       <USkeleton v-for="index in 3" :key="index" class="h-[34rem] rounded-2xl" />
     </div>
 
@@ -29,7 +29,7 @@
       <UButton color="neutral" variant="ghost" size="sm" @click="restoreDismissedIdeas">Show trade ideas again</UButton>
     </div>
 
-    <ul v-else ref="rail" :style="reservedRailHeight ? { minHeight: `${reservedRailHeight}px` } : undefined" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary sm:auto-cols-[calc((100%_-_1rem)/2)] xl:auto-cols-[calc((100%_-_2rem)/3)]" aria-label="Recommended trade ideas" tabindex="0" @scroll.passive="updateScrollControls" @keydown.left.self.prevent="scrollTradeIdeas(-1)" @keydown.right.self.prevent="scrollTradeIdeas(1)">
+    <ul v-else ref="rail" :class="CAROUSEL_WIDE_COLUMNS" :style="reservedRailHeight ? { minHeight: `${reservedRailHeight}px` } : undefined" class="grid min-w-0 grid-flow-col gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary" aria-label="Recommended trade ideas" tabindex="0" @scroll.passive="updateScrollControls" @keydown.left.self.prevent="scrollTradeIdeas(-1)" @keydown.right.self.prevent="scrollTradeIdeas(1)">
       <li v-for="(idea, index) in tradeIdeas" :key="idea.id" class="min-w-0 snap-start">
         <article class="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101216] text-white shadow-[0_18px_48px_-32px_rgba(0,0,0,0.9)]">
           <header class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
@@ -122,6 +122,7 @@
 
 <script setup lang="ts">
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
+import { CAROUSEL_WIDE_COLUMNS } from "~/utils/carousel-layout";
 import { type ShortlistPlayer } from "~/utils/homepage-shortlist";
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
 import { getInstagramClubTheme } from "~/utils/instagram-designs";

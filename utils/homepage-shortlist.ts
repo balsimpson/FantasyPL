@@ -192,6 +192,7 @@ export function getTeamFixtureRun(teamId: number, fixtures: ShortlistFixture[], 
         return {
           id: fixture.id,
           opponent: getFixtureClubName(opponent),
+          opponentShortName: opponent?.short_name || null,
           opponentCode: opponent?.code ?? null,
           homeTeam: getFixtureClubName(homeTeam),
           homeCode: homeTeam?.code ?? null,

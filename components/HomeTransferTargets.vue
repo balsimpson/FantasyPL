@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading transfer targets">
+    <div v-if="loading" :class="CAROUSEL_CARD_COLUMNS" class="grid min-w-0 grid-flow-col gap-4 overflow-hidden" role="status" aria-label="Loading transfer targets">
       <USkeleton v-for="index in 3" :key="index" class="h-96 rounded-2xl" />
     </div>
 
@@ -35,7 +35,7 @@
       <UButton color="neutral" variant="ghost" size="sm" @click="restoreDismissedPlayers">Show picks again</UButton>
     </div>
 
-    <ul v-else ref="rail" :style="reservedRailHeight ? { minHeight: `${reservedRailHeight}px` } : undefined" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary sm:auto-cols-[calc((100%_-_1rem)/2)] lg:auto-cols-[calc((100%_-_2rem)/3)] 2xl:auto-cols-[calc((100%_-_3rem)/4)]" aria-label="Recommended buys" tabindex="0" @scroll.passive="updateScrollControls" @keydown.left.self.prevent="scrollTargets(-1)" @keydown.right.self.prevent="scrollTargets(1)">
+    <ul v-else ref="rail" :class="CAROUSEL_CARD_COLUMNS" :style="reservedRailHeight ? { minHeight: `${reservedRailHeight}px` } : undefined" class="grid min-w-0 grid-flow-col gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary" aria-label="Recommended buys" tabindex="0" @scroll.passive="updateScrollControls" @keydown.left.self.prevent="scrollTargets(-1)" @keydown.right.self.prevent="scrollTargets(1)">
       <li v-for="player in targets" :key="player.id" class="min-w-0 snap-start">
         <HomeShortlistPlayerCard
           :player="player"
@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
+import { CAROUSEL_CARD_COLUMNS } from "~/utils/carousel-layout";
 import { SHORTLIST_POSITIONS, SHORTLIST_PRICE_LIMITS, type ShortlistPlayer, type ShortlistFixture } from "~/utils/homepage-shortlist";
 import { availableBuy, type HomepageBuyIdea } from "~/shared/homepage-buys";
 

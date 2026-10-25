@@ -23,13 +23,26 @@
         <span class="shrink-0 rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-sans text-lg font-bold leading-6 tabular-nums text-white">£{{ (player.now_cost / 10).toFixed(1) }}m</span>
       </div>
     </NuxtLink>
+    <PlayerWatchlistButton v-if="buyEvidence" :player="player" class="absolute right-4 top-[4.75rem] z-20 bg-black/60" />
 
     <div class="flex flex-1 flex-col px-4 pb-4">
       <div v-if="buyEvidence" class="border-b border-white/10 py-3">
-        <p class="text-sm leading-5 text-stone-200">{{ buyEvidence.reason }}</p>
-        <p class="mt-2 text-xs leading-5 text-stone-400">Started {{ buyEvidence.recent.starts }} of {{ buyEvidence.recent.matches }} recent matches · {{ Math.round(buyEvidence.recent.minutesPerMatch) }} mins per match</p>
+        <p class="h-10 line-clamp-2 font-mono text-sm font-semibold leading-5 text-stone-200" :title="buyEvidence.reason">{{ buyEvidence.reason }}</p>
         <p v-if="buyEvidence.caution" class="mt-1 text-xs leading-5 text-amber-200">{{ buyEvidence.caution }}</p>
       </div>
+      <div v-if="buyEvidence" class="border-b border-white/10 py-3">
+        <dl class="grid min-w-0 grid-cols-4 gap-2">
+          <div v-for="(stat, index) in [leadStat, ...secondaryStats]" :key="stat.label" class="min-w-0">
+            <dt class="flex min-h-8 items-end text-xs font-medium leading-4 text-stone-400">{{ stat.label }}</dt>
+            <dd class="mt-1 flex h-7 items-end font-sans font-bold leading-none tabular-nums" :class="index === 0 ? 'text-2xl text-[var(--club-light)]' : 'text-lg text-white'">{{ stat.value }}</dd>
+          </div>
+        </dl>
+        <p v-if="player.status && player.status !== 'a'" class="mt-2 flex items-center gap-1.5 text-xs leading-4" :class="availability.color">
+          <UIcon :name="availability.icon" class="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{{ availability.label }}</span>
+        </p>
+      </div>
+      <template v-else>
       <div class="border-b border-white/10 py-4">
         <p class="text-xs font-medium leading-4 text-stone-400">{{ leadStat.label }}</p>
         <div class="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
@@ -53,14 +66,15 @@
         </dl>
         <PlayerWatchlistButton v-if="sortKey !== 'form'" :player="player" />
       </div>
+      </template>
 
-      <div class="mt-3 min-h-28">
+      <div class="mt-auto min-h-28 pt-3">
         <p class="mb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.15em] text-stone-400">Upcoming fixtures</p>
         <HomeFixtureRun v-if="fixturesAvailable && gameweeks.length" :run="fixtureRun" />
         <p v-else-if="fixturesLoading && gameweeks.length" class="text-xs text-stone-400" role="status">Loading fixtures…</p>
         <p v-else class="text-xs text-stone-400">{{ gameweeks.length ? 'Fixture data is unavailable.' : 'No upcoming gameweeks are published.' }}</p>
       </div>
-      <div class="mt-auto pt-3">
+      <div class="pt-3">
         <SchedulerTransferBar :incoming="transfersIn" :outgoing="transfersOut" dark compact />
         <UButton
           v-if="dismissible"

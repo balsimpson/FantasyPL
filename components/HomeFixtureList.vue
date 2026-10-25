@@ -12,7 +12,7 @@
     </div>
     <p v-else-if="!gameweeks.length" class="text-sm text-stone-300">No upcoming gameweeks are currently published.</p>
     <p v-else-if="!upcomingFixtures.length" class="text-sm text-stone-300">No fixtures are currently scheduled in the upcoming gameweeks.</p>
-    <div v-else class="grid min-w-0 grid-flow-col auto-cols-[88%] gap-3 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory sm:auto-cols-[calc((100%_-_0.75rem)/2)] lg:auto-cols-[calc((100%_-_1.5rem)/3)] [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+    <div v-else :class="CAROUSEL_CARD_COLUMNS" class="grid min-w-0 grid-flow-col gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
       role="region" aria-label="Upcoming fixture matches" tabindex="0">
       <article v-for="match in upcomingFixtures" :key="match.id" class="min-w-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#101216]">
         <header class="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-4 py-3">
@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { CAROUSEL_CARD_COLUMNS } from "~/utils/carousel-layout";
 import { getUpcomingFixtureMatches, type ShortlistFixture } from "~/utils/homepage-shortlist";
 const props = withDefaults(defineProps<{
   fixtures: ShortlistFixture[];
