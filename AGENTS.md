@@ -78,7 +78,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `composables/usePremiereLeague.ts` | Existing FPL fetching, lookup, and scoring helpers; preserve this exact filename |
 | `composables/usePlayerRoute.ts` | Player slug creation and route ID parsing |
 | `utils/site-url.ts`, `composables/useCanonicalUrl.ts` | Shared public-origin normalization and canonical URL generation |
-| `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts` | Crawl discovery |
+| `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts`, `server/routes/calendar/deadlines.ics.ts` | Crawl discovery and the public FPL deadline calendar feed |
 | `server/api/bootstrap-static.ts`, `server/api/homepage-data.ts`, `server/api/players/`, `server/api/fixtures.ts`, `server/api/managers/` | Public data handlers; the homepage projection is separate so shared bootstrap consumers retain their full contract |
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection |
 | `pages/admin/articles/`, `components/admin/ArticleResearchPanel.vue` | Private article workspace and research/editor UI; read `BLOG_GROWTH_PLAN.md` before changing its workflow |
@@ -93,7 +93,7 @@ Available scripts are `npm run dev`, `npm run build`, `npm run preview`, and `np
 - Do not commit, push, publish, deploy, delete, post, contact others, purchase services, or change external accounts without explicit authorization. An approved local implementation does not authorize a release.
 - Continue routine authorized work without repeated confirmation. Ask only when an unresolved choice changes scope or side effects. If delegation is needed and permitted, use Luna subagents only.
 - Use Nuxt UI where appropriate and Tailwind for layout and styling. Prefer one visual layer over nested cards. Keep inputs and textareas full width at both the component root and inner control. Use real workflow-specific copy and placeholders.
-- On the homepage, use the available viewport width and reveal secondary inputs on demand. Keep player names in full with wrapping; never use ellipsis or line clamping. Calculate Differential, Most sold, and Most bought sections from current FPL ownership and transfer counts; keep their ranking rules in `HOMEPAGE_UX_PLAN.md` and do not add homepage AI/provider calls.
+- On the homepage, use the available viewport width and reveal secondary inputs on demand. Keep player names in full with wrapping; never use ellipsis or line clamping. Calculate Differential, Most sold, and Most bought sections from current FPL ownership and transfer counts; keep their ranking rules in `HOMEPAGE_UX_PLAN.md`. Do not make AI/provider calls during homepage requests. The owner-approved JEV buy and trade rankings run once per day through a shared Convex cron and recent-match research pool, and the homepage reads their stored snapshots; see `HOMEPAGE_UX_PLAN.md`.
 - Keep pages focused on composition. Extract cohesive state, filtering, URL handling, and formatting into small composables, stores, or utilities. Avoid growing the homepage or player page into another monolithic file.
 - Preserve useful server-rendered HTML. Profile serialized data before trimming shared responses, and check all consumers before changing fields, validators, identity, or units.
 - Keep secrets server-only. Do not print `.env` values or move model credentials into public runtime configuration.
@@ -119,7 +119,7 @@ Read `BLOG_GROWTH_PLAN.md` before blog or article-workspace changes; it owns the
 
 ## Verification and handoff
 
-Use the connected Brave browser by default; use Chrome only on explicit request. Verify the changed route, viewport, theme, keyboard behavior, and actual interaction in the local preview. For homepage search, the audit's acceptance viewport is 390 × 844 with search visible without a keyboard. Check other relevant sizes and supported themes for the affected UI. State browser limitations if no connected session is available.
+Use the connected Brave browser by default; use Chrome only on explicit request. Verify the changed route, viewport, theme, keyboard behavior, and actual interaction in the local preview. For homepage search, the 390 × 844 acceptance viewport must show the header search icon without a keyboard; verify the full-width search surface and filters when opened. Check other relevant sizes and supported themes for the affected UI. State browser limitations if no connected session is available.
 
 For application changes, run `npm run build` when appropriate and targeted checks for the changed behavior. Cover relevant error paths rather than adding tests that only repeat the implementation. Documentation-only changes need file/reference and diff checks, not an application build.
 

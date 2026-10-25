@@ -1,7 +1,15 @@
 <template>
-  <section aria-labelledby="player-discovery-title" class="grid min-w-0 gap-3">
-    <div class="grid min-w-0 gap-3">
-      <h2 id="player-discovery-title" class="text-lg font-bold tracking-tight text-white">{{ sectionTitle }}</h2>
+  <section aria-labelledby="player-discovery-title" class="grid min-w-0 gap-5">
+    <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+      <h2 id="player-discovery-title" class="text-2xl font-bold tracking-tight text-white sm:text-3xl">Find a player</h2>
+      <p v-if="!loading && !error" class="text-sm text-stone-400" role="status" aria-live="polite">
+        <span class="font-semibold text-stone-200">{{ rankedPlayers.length.toLocaleString('en-GB') }}</span>
+        {{ rankedPlayers.length === 1 ? 'player match' : 'player matches' }}
+        <span class="text-stone-600">·</span>
+        Showing {{ visiblePlayers.length.toLocaleString('en-GB') }}
+      </p>
+    </div>
+    <div class="sticky top-14 z-20 -mx-4 grid min-w-0 gap-3 border-b border-white/10 bg-[#050608] px-4 py-3 sm:-mx-6 sm:px-6 sm:py-4 lg:-mx-8 lg:px-8">
       <HomePlayerSearch v-model="query" />
       <div class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3">
         <UFormField label="Position" :ui="fieldUi">
@@ -14,21 +22,18 @@
           <USelect v-model="sortKey" :items="SHORTLIST_SORTS" variant="none" class="w-full" :ui="selectUi" />
         </UFormField>
       </div>
-      <p v-if="!loading && !error" class="text-sm text-stone-400" role="status">
-        <span class="font-semibold text-stone-200">{{ rankedPlayers.length }}</span> {{ rankedPlayers.length === 1 ? 'player matches' : 'players match' }} {{ query.trim() ? 'your search and filters' : 'your filters' }}
-      </p>
     </div>
-    <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
-      <USkeleton v-for="index in 3" :key="index" class="h-96 rounded-2xl" />
+    <div v-if="loading" class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
+      <USkeleton v-for="index in 6" :key="index" class="h-[34rem] rounded-2xl" />
     </div>
     <div v-else-if="error" class="flex flex-wrap items-center justify-between gap-3 py-4">
       <p class="text-sm text-stone-300">Player data could not be loaded.</p>
       <UButton color="neutral" variant="outline" @click="$emit('retry')">Try again</UButton>
     </div>
     <template v-else>
-      <p v-if="!visiblePlayers.length" class="py-5 text-sm text-stone-300">No players match. Try another search, position, or price cap.</p>
-      <ul v-else ref="playerRail" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary sm:auto-cols-[calc((100%_-_1rem)/2)] lg:auto-cols-[calc((100%_-_2rem)/3)] 2xl:auto-cols-[calc((100%_-_3rem)/4)]" aria-label="Player cards" tabindex="0" @scroll.passive="onScroll" @keydown.left.self.prevent="scrollPlayers(-1)" @keydown.right.self.prevent="scrollPlayers(1)">
-        <li v-for="player in visiblePlayers" :key="player.id" class="min-w-0 snap-start">
+      <p v-if="!visiblePlayers.length" class="border-t border-white/10 py-8 text-center text-sm text-stone-300">No players match. Try another search, position, or price cap.</p>
+      <ul v-else class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Player search results">
+        <li v-for="player in visiblePlayers" :key="player.id" class="min-w-0">
           <HomeShortlistPlayerCard
             :player="player"
             :teams="teams"
@@ -40,11 +45,8 @@
           />
         </li>
       </ul>
-      <div v-if="visiblePlayers.length" class="flex justify-end">
-        <div class="flex items-center gap-2">
-          <UButton icon="i-lucide-chevron-left" aria-label="Previous players" :disabled="!canScrollBack" color="neutral" variant="outline" @click="scrollPlayers(-1)" />
-          <UButton icon="i-lucide-chevron-right" aria-label="Next players" :disabled="!canScrollForward" color="neutral" variant="outline" @click="scrollPlayers(1)" />
-        </div>
+      <div v-if="visiblePlayers.length && canLoadMore" class="flex justify-center border-t border-white/10 pt-4">
+        <UButton color="neutral" variant="outline" icon="i-lucide-plus" @click="loadMorePlayers">Load more players</UButton>
       </div>
     </template>
   </section>
@@ -64,16 +66,10 @@ const props = withDefaults(defineProps<{
 }>(), { loading: false, error: false, fixturesLoading: false });
 defineEmits(["retry"]);
 const { query, position, maxPrice, sortKey, visibleCount, rankedPlayers, visiblePlayers } = useHomepageShortlist(() => props.players, () => props.teams);
-const sectionTitle = computed(() => ({
-  total_points: "Season points",
-  selected_by_percent: "Most selected",
-  transfers_in_event: "Most bought this gameweek",
-  transfers_out_event: "Most sold this gameweek",
-} as Record<string, string>)[sortKey.value] || "Players");
-const playerRail = ref<HTMLElement | null>(null);
-const { canScrollBack, canScrollForward, onScroll, scrollPlayers } = useHomepagePlayerRail(
-  playerRail, visibleCount, () => rankedPlayers.value.length, [query, position, maxPrice, sortKey],
-);
+const canLoadMore = computed(() => visibleCount.value < rankedPlayers.value.length);
+const loadMorePlayers = () => {
+  visibleCount.value = Math.min(visibleCount.value + 12, rankedPlayers.value.length);
+};
 const fieldUi = { root: "min-w-0 w-full", label: "text-xs font-semibold text-stone-300" };
 const selectUi = {
   base: "h-10 w-full rounded-lg border border-[#303640] bg-[#0c0f13] text-sm font-semibold text-stone-100 ring-0 hover:border-[#48515f] hover:bg-[#1b2028] hover:text-stone-100 data-[state=open]:bg-[#1b2028] focus-visible:border-lime-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300/50 [color-scheme:dark]",

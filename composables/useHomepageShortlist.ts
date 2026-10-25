@@ -5,12 +5,18 @@ export function useHomepageShortlist(getPlayers: () => ShortlistPlayer[], getTea
   const position = useState("homepage-player-position", () => 0);
   const maxPrice = useState("homepage-player-price", () => 0);
   const sortKey = useState("homepage-player-sort", () => "form");
-  const visibleCount = useState("homepage-player-count", () => 6);
+  const visibleCount = useState("homepage-player-count", () => 12);
+  const preferencesInitialized = useState("homepage-player-preferences-initialized", () => false);
   const preferencesKey = "homepage-player-preferences";
   const lastRankingKey = "homepage-player-last-ranking";
   let preferencesReady = false;
 
   onMounted(() => {
+    if (preferencesInitialized.value) {
+      preferencesReady = true;
+      return;
+    }
+
     let lastRanking: string | null = null;
     let restored = false;
     try {
@@ -38,6 +44,7 @@ export function useHomepageShortlist(getPlayers: () => ShortlistPlayer[], getTea
         // Discovery still works when the browser blocks storage.
       }
     }
+    preferencesInitialized.value = true;
     preferencesReady = true;
   });
 
@@ -70,6 +77,6 @@ export function useHomepageShortlist(getPlayers: () => ShortlistPlayer[], getTea
   });
   const rankedPlayers = computed(() => rankShortlistPlayers(filteredPlayers.value, sortKey.value));
   const visiblePlayers = computed(() => rankedPlayers.value.slice(0, visibleCount.value));
-  watch([query, position, maxPrice, sortKey], () => { visibleCount.value = 6; }, { flush: "sync" });
+  watch([query, position, maxPrice, sortKey], () => { visibleCount.value = 12; }, { flush: "sync" });
   return { query, position, maxPrice, sortKey, visibleCount, filteredPlayers, rankedPlayers, visiblePlayers };
 }

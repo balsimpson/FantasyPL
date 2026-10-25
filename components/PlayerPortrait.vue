@@ -1,6 +1,7 @@
 <template>
 	<span
 		class="relative grid h-full w-full place-items-center overflow-hidden"
+		:style="fillFrame ? { position: 'absolute', inset: '0', zIndex: 0, width: '100%', height: '100%' } : undefined"
 		:aria-hidden="alt ? undefined : 'true'"
 		:role="alt && imageState === 'icon' ? 'img' : undefined"
 		:aria-label="alt && imageState === 'icon' ? `${alt} portrait unavailable` : undefined"
@@ -17,6 +18,7 @@
 			loading="lazy"
 			decoding="async"
 			class="absolute inset-0 z-10 h-full w-full object-contain object-bottom transition duration-150"
+			:style="fillFrame ? { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center center' } : undefined"
 			:class="[imageLoaded ? 'opacity-100' : 'opacity-0', hover ? 'motion-safe:group-hover:scale-[1.04]' : '']"
 			@load="imageLoaded = true"
 			@error="handleImageError"
@@ -29,6 +31,7 @@ const props = defineProps({
 	player: { type: Object, required: true },
 	alt: { type: String, default: "" },
 	hover: { type: Boolean, default: false },
+	fillFrame: { type: Boolean, default: false },
 });
 
 const imageLoaded = ref(false);

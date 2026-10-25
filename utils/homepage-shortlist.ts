@@ -1,5 +1,7 @@
 export type ShortlistPlayer = Record<string, any>;
 export type ShortlistFixture = Record<string, any>;
+import { buildHomepageTradeOptions, selectHomepageTradeIdeas, type TradeFormByPlayer } from "~/shared/homepage-trades";
+export { MIN_TRADE_OUTGOING_OWNERSHIP_PERCENT } from "~/shared/homepage-trades";
 
 export const SHORTLIST_SORTS = [
   { label: "Form", value: "form" },
@@ -111,6 +113,62 @@ export function getHomepagePlayerTrendSections(players: ShortlistPlayer[], limit
     mostSold: rankTransfers("transfers_out_event"),
     mostBought: rankTransfers("transfers_in_event"),
   };
+}
+
+export function getHomepageCaptainPicks(players: ShortlistPlayer[], limit = 4) {
+  const eligible = players
+    .filter((player) => Number.isFinite(Number(player.ep_next)) && Number(player.ep_next) > 0 && !["i", "s", "u", "n"].includes(player.status))
+    .sort((a, b) => Number(b.ep_next) - Number(a.ep_next) || Number(b.form || 0) - Number(a.form || 0) || a.id - b.id);
+  const captains = eligible.slice(0, limit);
+  const captainIds = new Set(captains.map((player) => player.id));
+  const viceCaptains = eligible.filter((player) => !captainIds.has(player.id)).slice(0, limit);
+  const differentials = getHomepagePlayerTrendSections(players, limit).differentials;
+
+  return { captains, viceCaptains, differentials };
+}
+
+export function getHomepageTransferTargets(
+  players: ShortlistPlayer[],
+  fixtures: ShortlistFixture[],
+  gameweeks: number[],
+  limit = 5,
+) {
+  const upcomingWeeks = new Set(gameweeks);
+  const fixtureDifficulty = new Map<number, number[]>();
+  for (const fixture of fixtures) {
+    if (!upcomingWeeks.has(Number(fixture.event))) continue;
+    for (const [teamId, key] of [[fixture.team_h, "team_h_difficulty"], [fixture.team_a, "team_a_difficulty"]] as const) {
+      const difficulty = Number(fixture[key]);
+      if (!Number.isFinite(difficulty) || difficulty < 1 || difficulty > 5) continue;
+      const values = fixtureDifficulty.get(Number(teamId)) ?? [];
+      values.push(difficulty);
+      fixtureDifficulty.set(Number(teamId), values);
+    }
+  }
+
+  const averageDifficulty = (teamId: number) => {
+    const values = fixtureDifficulty.get(teamId) ?? [];
+    return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : Number.POSITIVE_INFINITY;
+  };
+
+  return players
+    .filter((player) => player.status === "a" && Number(player.minutes) >= 90 &&
+      Number.isFinite(Number(player.ep_next)) && Number(player.ep_next) > 0 &&
+      Number.isFinite(Number(player.now_cost)) && Number(player.now_cost) > 0)
+    .sort((a, b) => Number(b.ep_next) - Number(a.ep_next) ||
+      averageDifficulty(Number(a.team)) - averageDifficulty(Number(b.team)) ||
+      Number(b.form || 0) - Number(a.form || 0) || Number(a.id) - Number(b.id))
+    .slice(0, limit);
+}
+
+export function getHomepageTradeIdeas(
+  players: ShortlistPlayer[],
+  fixtures: ShortlistFixture[],
+  gameweeks: number[],
+  limit = 20,
+  recentForm: TradeFormByPlayer = {},
+) {
+  return selectHomepageTradeIdeas(buildHomepageTradeOptions(players, fixtures, gameweeks, recentForm), limit);
 }
 
 export function getShortlistGameweeks(events: Record<string, any>[]) {

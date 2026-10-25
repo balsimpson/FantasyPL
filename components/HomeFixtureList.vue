@@ -1,11 +1,9 @@
 <template>
   <section aria-labelledby="fixtures-title" class="grid w-full min-w-0 gap-4">
-    <header class="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4">
+    <header class="flex items-end border-b border-white/10 pb-4">
       <div>
         <h2 id="fixtures-title" class="text-2xl font-black tracking-tight text-white sm:text-3xl">Upcoming fixtures</h2>
-        <p class="mt-2 text-sm leading-6 text-stone-300">Up to six matches across upcoming gameweeks.</p>
       </div>
-      <span v-if="!loading && !error && upcomingFixtures.length" class="text-xs text-stone-400">Scroll to browse all {{ upcomingFixtures.length }} matches</span>
     </header>
     <USkeleton v-if="loading" class="h-64 w-full rounded-xl" />
     <div v-else-if="error" class="flex flex-wrap items-center justify-between gap-3 py-4">

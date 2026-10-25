@@ -8,36 +8,47 @@
     <UButton color="neutral" variant="outline" @click="$emit('retry')">Try again</UButton>
   </div>
 
-  <div v-else class="grid min-w-0 gap-8 lg:grid-cols-3">
-    <section
-      v-for="section in sections"
-      :key="section.id"
+  <div v-else class="min-w-0">
+    <h2 class="sr-only">Player transfers</h2>
+    <UTabs
+      :items="sections"
+      :default-value="sections[0]?.id ?? 'most-sold'"
+      value-key="id"
+      label-key="title"
+      variant="pill"
+      color="primary"
+      :ui="{
+        list: 'w-full rounded-lg border border-white/10 bg-white/[0.035] p-1',
+        indicator: 'rounded-md bg-lime-300 shadow-sm',
+        trigger: 'data-[state=active]:text-[#11160d] data-[state=inactive]:text-stone-400 hover:data-[state=inactive]:text-white',
+      }"
       class="min-w-0"
-      :aria-labelledby="`player-trend-${section.id}-title`"
     >
-      <header class="mb-3 border-b border-white/10 pb-3 lg:min-h-24">
-        <h2 :id="`player-trend-${section.id}-title`" class="text-xl font-bold tracking-tight text-white">{{ section.title }}</h2>
-        <p class="mt-1 text-sm leading-5 text-stone-400">{{ section.description }}</p>
-      </header>
-
-      <ul v-if="section.players.length" class="divide-y divide-white/10" :aria-label="section.title">
-        <HomePlayerDiscoveryRow
-          v-for="(player, index) in section.players"
-          :key="player.id"
-          :player="player"
-          :team="getTeam(player)"
-          :rank="index + 1"
-          :metric-label="section.metricLabel"
-          :metric-value="formatMetric(player, section.metricKey)"
-        />
-      </ul>
-      <p v-else class="py-4 text-sm text-stone-400">{{ emptyMessage(section) }}</p>
-    </section>
+      <template #content="{ item }">
+        <div class="pt-3">
+          <ul v-if="item.players.length" class="divide-y divide-white/10" :aria-label="item.title">
+            <HomePlayerDiscoveryRow
+              v-for="(player, index) in item.players"
+              :key="player.id"
+              :player="player"
+              :team="getTeam(player)"
+              :rank="index + 1"
+              compact
+              :metric-label="item.metricLabel"
+              :metric-value="formatMetric(player, item.metricKey)"
+              :metric-title="formatExactMetric(player, item.metricKey)"
+            />
+          </ul>
+          <p v-else class="py-4 text-sm text-stone-400">{{ emptyMessage(item) }}</p>
+        </div>
+      </template>
+    </UTabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getHomepagePlayerTrendSections, type ShortlistPlayer } from "~/utils/homepage-shortlist";
+import { compactInstagramNumber } from "~/utils/instagram-designs";
 
 const props = withDefaults(defineProps<{
   players: ShortlistPlayer[];
@@ -51,17 +62,8 @@ defineEmits(["retry"]);
 const rankedPlayers = computed(() => getHomepagePlayerTrendSections(props.players));
 const sections = computed(() => [
   {
-    id: "differentials",
-    title: "Differentials",
-    description: "Up to 10% owned, ranked by form, then season points.",
-    metricKey: "selected_by_percent",
-    metricLabel: "owned",
-    players: rankedPlayers.value.differentials,
-  },
-  {
     id: "most-sold",
     title: "Most sold this gameweek",
-    description: "Ranked by current-gameweek transfers out.",
     metricKey: "transfers_out_event",
     metricLabel: "transfers out",
     players: rankedPlayers.value.mostSold,
@@ -69,7 +71,6 @@ const sections = computed(() => [
   {
     id: "most-bought",
     title: "Most bought this gameweek",
-    description: "Ranked by current-gameweek transfers in.",
     metricKey: "transfers_in_event",
     metricLabel: "transfers in",
     players: rankedPlayers.value.mostBought,
@@ -84,8 +85,11 @@ const formatMetric = (player: ShortlistPlayer, key: string) => {
   if (key === "selected_by_percent") {
     return `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(value)}%`;
   }
-  return new Intl.NumberFormat("en-GB").format(value);
+  return compactInstagramNumber(value);
 };
+
+const formatExactMetric = (player: ShortlistPlayer, key: string) =>
+  new Intl.NumberFormat("en-GB").format(Number(player[key]));
 
 const hasMetricData = (key: string) => props.players.some((player) =>
   player[key] !== null && player[key] !== undefined && player[key] !== "" && Number.isFinite(Number(player[key])),

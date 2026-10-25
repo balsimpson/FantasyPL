@@ -32,6 +32,19 @@
 						Watchlist
 						<span v-if="savedPlayerCount" aria-hidden="true" class="text-xs text-stone-400 tabular-nums">{{ savedPlayerCount }}</span>
 					</NuxtLink>
+					<UButton
+						v-if="route.path === '/'"
+						icon="i-lucide-search"
+						color="neutral"
+						variant="ghost"
+						size="sm"
+						aria-label="Search players"
+						aria-haspopup="dialog"
+						:aria-expanded="homepageSearchOpen"
+						title="Search players"
+						class="text-stone-300 hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+						@click="openHomepageSearch"
+					/>
 					</div>
 			</nav>
 			<div class="grow w-full">
@@ -43,6 +56,14 @@
 </template>
 
 <script setup lang="ts">
+const route = useRoute();
+const homepageSearchOpen = useState("homepage-player-search-open", () => false);
+const homepageSearchOrigin = useState("homepage-player-search-origin", () => ({ x: 0, y: 0 }));
+const openHomepageSearch = (event: MouseEvent) => {
+	const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+	homepageSearchOrigin.value = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+	homepageSearchOpen.value = true;
+};
 const { savedCodes, hasLoaded } = useWatchlist();
 const savedPlayerCount = computed(() => hasLoaded.value ? savedCodes.value.length : 0);
 </script>

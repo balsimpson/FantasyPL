@@ -10,6 +10,9 @@ export default defineSchema({
   articlePrompts: defineTable(articlePromptFields).index('by_scope_and_template', ['scope', 'template']),
   managerShareStats: defineTable({ day: v.string(), clicks: v.number(), copies: v.number() })
     .index('by_day', ['day']),
+  homepageTradeSnapshots: defineTable({
+    key: v.string(), snapshotJson: v.string(), generatedAt: v.number(), gameweek: v.number(), model: v.string(), sourceFetchedAt: v.number(),
+  }).index('by_key', ['key']),
   articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']).index('by_status_and_createdAt', ['status', 'createdAt']),
   articleResearchSources: defineTable({ name: v.string(), hostname: v.string(), url: v.string(), rank: v.number(), createdAt: v.number(), updatedAt: v.number() })
     .index('by_rank', ['rank'])

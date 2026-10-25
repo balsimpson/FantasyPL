@@ -150,8 +150,10 @@ export default defineEventHandler(async (event) => {
 	const fingerprint = createHash("sha256")
 		.update(JSON.stringify({ requestBody, options }))
 		.digest("hex");
-	const cachedFingerprint = String(getQuery(event, "cachedFingerprint") ?? "");
-	if (cachedFingerprint === fingerprint) return { unchanged: true, fingerprint };
+	const cachedFingerprint = getQuery(event).cachedFingerprint;
+	if (typeof cachedFingerprint === "string" && cachedFingerprint === fingerprint) {
+		return { unchanged: true, fingerprint };
+	}
 	const cached = recommendationCache.get(managerId);
 	if (cached?.fingerprint === fingerprint) return cached.response;
 

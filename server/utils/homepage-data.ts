@@ -4,8 +4,8 @@ import type { H3Event } from "h3";
 const playerFields = [
   "id", "code", "first_name", "second_name", "web_name", "birth_date", "team", "element_type", "now_cost",
   "selected_by_percent", "transfers_in_event", "transfers_out_event", "form", "total_points",
-  "points_per_game", "goals_scored", "assists", "clean_sheets", "minutes", "starts", "status",
-  "yellow_cards", "red_cards",
+  "points_per_game", "ep_next", "goals_scored", "assists", "clean_sheets", "minutes", "starts", "status",
+  "yellow_cards", "red_cards", "chance_of_playing_next_round", "can_select", "can_transact",
   "expected_goals_conceded_per_90", "saves_per_90", "expected_goals_per_90", "expected_assists_per_90",
 ];
 const eventFields = ["id", "name", "deadline_time", "finished", "is_current", "is_next", "chip_plays",
@@ -27,7 +27,7 @@ export const getHomepageBootstrap = defineCachedFunction(async (_event?: H3Event
     fetchedAt: new Date().toISOString(),
   };
 }, {
-  name: "homepage-bootstrap-v1",
+  name: "homepage-bootstrap-v3",
   getKey: () => "homepage",
   maxAge: 600,
   swr: true,

@@ -30,7 +30,7 @@ The header and footer follow the same rail on every route. Full-bleed page backg
 
 Use one heading per section and a consistent hierarchy of heading, short context, and action. Keep the page order in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md); visually connect those sections with spacing and alignment rather than adding a separate boxed panel around each one.
 
-1. **Orient and search.** A short introduction and the primary player search form the clear entry point. The search should be the strongest action on the page and visible early on mobile.
+1. **Orient and search.** Keep player search as the main action. A search icon in the shared header opens the full player search surface early on mobile.
 2. **Check the deadline and team.** Show the next deadline as compact, useful context. Keep team lookup in a Teams menu immediately before Watchlist in the shared header. The menu lists successfully resolved teams by name and ID for quick return visits. Detailed behavior and checks are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
 3. **Resume saved choices.** Show saved players only when there are saved choices to resume. Use the same player identity and visual language as discovery.
 4. **Compare players.** Make the discovery section the main browsing surface. Its filters, ranking context, cards, and “show more” action should read as one tool.
@@ -44,7 +44,7 @@ Use a small, repeatable spacing scale. Keep a clear gap between sections and a t
 
 Use dividers only when they help separate related data, such as values in a compact stat row. Avoid repeated full-width rules, thick accent borders, and nested rounded panels. Use a single surface for a data group instead of a card inside a card.
 
-The shared next-deadline panel follows the owner's selected option 1 (24 October 2026): flat charcoal, a fine border, an outlined lime gameweek badge, and white countdown digits with lime seconds. Fine vertical dividers separate the four time units. The date and timer sit side by side when space allows and stack on mobile. The homepage and watchlist share this component; behavior and verification are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
+The shared next-deadline panel follows the owner's selected option 1 (24 October 2026): flat charcoal, a fine border, an outlined lime gameweek badge, and white countdown digits with lime seconds. Fine vertical dividers separate the four time units. The date and timer sit side by side when space allows and stack on mobile. A calendar row uses a lime calendar icon and primary subscription action, with muted refresh/reminder notes and a copy-link fallback. The homepage and watchlist share this component; behavior and verification are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
 
 Section headings should share the same size, weight, and placement. Descriptions should stay short and use the same muted text treatment. Put section actions in a consistent position so visitors can find them quickly.
 
