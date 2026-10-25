@@ -11,6 +11,36 @@ export interface ArticleEvidence {
 }
 const numeric = (value: unknown) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null
 const normalize = (value: string) => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const cleanGeneratedCopy = (value: string) => {
+  const metadataStart = value.search(/\b(?:playerIds|visualType|visualPlayerId)\b/i)
+  return (metadataStart < 0 ? value : value.slice(0, metadataStart))
+    .trim()
+    .replace(/[\s,:;{[("'`-]+$/, '')
+}
+
+type EmphasisBudget = { bold: number; italic: number }
+export interface ArticleLinkTarget { kind: 'article' | 'player'; title: string; url: string }
+interface GeneratedInternalLink { anchor: string; targetUrl: string }
+function formatGeneratedText(value: string, budget: EmphasisBudget): ArticleNode[] {
+  const nodes: ArticleNode[] = []
+  const emphasis = /\*\*([^*\n]+)\*\*|\*([^*\n]+)\*/g
+  let cursor = 0
+  for (const match of value.matchAll(emphasis)) {
+    const index = match.index ?? 0
+    if (index > cursor) nodes.push({ type: 'text', text: value.slice(cursor, index) })
+    const bold = match[1] !== undefined
+    const type = bold ? 'bold' : 'italic'
+    const text = bold ? match[1] : match[2]
+    if (text) {
+      const allowed = budget[type] > 0
+      if (allowed) budget[type] -= 1
+      nodes.push({ type: 'text', text, ...(allowed ? { marks: [{ type }] } : {}) })
+    }
+    cursor = index + match[0].length
+  }
+  if (cursor < value.length) nodes.push({ type: 'text', text: value.slice(cursor) })
+  return nodes
+}
 
 export function buildArticleEvidence(bootstrap: Row, fixtures: Row[], topic: string, template: ArticleTemplate, requestedSeason = '', requestedGameweek: number | null = null): ArticleEvidence {
   if (!Array.isArray(bootstrap.elements) || !Array.isArray(bootstrap.teams) || !Array.isArray(bootstrap.events) || !Array.isArray(fixtures)) throw new Error('Current FPL data is unavailable.')
@@ -71,25 +101,95 @@ export function buildArticleEvidence(bootstrap: Row, fixtures: Row[], topic: str
 }
 
 export const generatedArticleSchema = {
-  type: 'object', additionalProperties: false, required: ['title', 'excerpt', 'sections'],
+  type: 'object', additionalProperties: false, required: ['title', 'excerpt', 'sections', 'internalLinks'],
   properties: {
     title: { type: 'string' }, excerpt: { type: 'string' },
+    internalLinks: { type: 'array', maxItems: 6, items: { type: 'object', additionalProperties: false, required: ['anchor', 'targetUrl'], properties: { anchor: { type: 'string' }, targetUrl: { type: 'string' } } } },
     sections: { type: 'array', minItems: 3, maxItems: 5, items: {
       type: 'object', additionalProperties: false, required: ['heading', 'paragraphs', 'playerIds', 'visualType', 'visualPlayerId'],
-      properties: { heading: { type: 'string' }, paragraphs: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } }, playerIds: { type: 'array', items: { type: 'integer' } }, visualType: { type: 'string', enum: ['none', 'playerCard', 'fixtureRun'] }, visualPlayerId: { type: ['integer', 'null'] } },
+      properties: { heading: { type: 'string' }, paragraphs: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string', description: 'Use **bold** for a short player name or key takeaway, with no more than two bold spans per section. Use *italics* for one brief caveat per section. Use no other Markdown. Keep statistics and club crests in the supplied visual cards.' } }, playerIds: { type: 'array', items: { type: 'integer' } }, visualType: { type: 'string', enum: ['none', 'playerCard', 'fixtureRun'] }, visualPlayerId: { type: ['integer', 'null'] } },
     } },
   },
 }
 
-export function generatedArticle(value: unknown, evidence: ArticleEvidence, template: ArticleTemplate): ArticleDraft {
-  const result = value as { title?: string; excerpt?: string; sections?: { heading: string; paragraphs: string[]; playerIds: number[]; visualType: string; visualPlayerId: number | null }[] }
-  if (!result || typeof result.title !== 'string' || typeof result.excerpt !== 'string' || !Array.isArray(result.sections) || result.sections.length < 3 || result.sections.length > 5) throw new Error('The model returned an incomplete article. The existing draft was preserved.')
+export const generatedEvergreenArticleSchema = {
+  type: 'object', additionalProperties: false, required: ['title', 'excerpt', 'sections', 'internalLinks'],
+  properties: {
+    title: { type: 'string' }, excerpt: { type: 'string' },
+    internalLinks: { type: 'array', maxItems: 6, items: { type: 'object', additionalProperties: false, required: ['anchor', 'targetUrl'], properties: { anchor: { type: 'string' }, targetUrl: { type: 'string' } } } },
+    sections: { type: 'array', minItems: 3, maxItems: 5, items: {
+      type: 'object', additionalProperties: false, required: ['heading', 'paragraphs'],
+      properties: { heading: { type: 'string' }, paragraphs: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string', description: 'Use **bold** for emphasis, with no more than two bold spans per section. Use *italics* for one brief caveat per section. Use no other Markdown.' } },
+    } },
+  },
+}
+}
+
+function addInternalLinks(content: ArticleNode[], links: GeneratedInternalLink[], allowedTargets: ArticleLinkTarget[]) {
+  const allowed = new Set(allowedTargets.map(target => target.url))
+  const used = new Set<string>()
+  for (const link of links.slice(0, 6)) {
+    if (!link || typeof link !== 'object') continue
+    const anchor = typeof link.anchor === 'string' ? link.anchor.trim() : ''
+    if (!anchor || anchor.length > 100 || typeof link.targetUrl !== 'string' || !allowed.has(link.targetUrl) || used.has(link.targetUrl)) continue
+    const findIn = (nodes: ArticleNode[]): boolean => {
+      for (let index = 0; index < nodes.length; index++) {
+        const node = nodes[index]!
+        if (node.type === 'text' && node.text) {
+          const start = node.text.toLocaleLowerCase().indexOf(anchor.toLocaleLowerCase())
+          if (start < 0) continue
+          const end = start + anchor.length
+          const replacement: ArticleNode[] = []
+          if (start) replacement.push({ ...node, text: node.text.slice(0, start) })
+          replacement.push({ ...node, text: node.text.slice(start, end), marks: [...(node.marks || []), { type: 'link', attrs: { href: link.targetUrl } }] })
+          if (end < node.text.length) replacement.push({ ...node, text: node.text.slice(end) })
+          nodes.splice(index, 1, ...replacement)
+          return true
+        }
+        if (node.content && findIn(node.content)) return true
+      }
+      return false
+    }
+    if (findIn(content)) used.add(link.targetUrl)
+  }
+}
+
+export function generatedEvergreenArticle(value: unknown, allowedTargets: ArticleLinkTarget[] = []): ArticleDraft {
+  const result = value as { title?: string; excerpt?: string; sections?: { heading: string; paragraphs: string[] }[]; internalLinks?: GeneratedInternalLink[] }
+  if (!result || typeof result.title !== 'string' || typeof result.excerpt !== 'string' || !Array.isArray(result.sections) || result.sections.length < 3 || result.sections.length > 5 || !Array.isArray(result.internalLinks) || result.internalLinks.length > 6) throw new Error('The model returned an incomplete article. The existing draft was preserved.')
+  const title = cleanGeneratedCopy(result.title)
+  const excerpt = cleanGeneratedCopy(result.excerpt)
+  if (title.length < 8 || title.length > 200 || excerpt.length < 20 || excerpt.length > 600) throw new Error('The evergreen article title or summary is incomplete. The existing draft was preserved.')
+  const emphasisBudget = { bold: 2, italic: 1 }
+  const content: ArticleNode[] = []
+  for (const section of result.sections) {
+    const heading = cleanGeneratedCopy(section.heading)
+    if (!heading || heading.length > 120 || !Array.isArray(section.paragraphs) || !section.paragraphs.length || section.paragraphs.length > 3) throw new Error('The model returned an invalid evergreen section. The existing draft was preserved.')
+    content.push({ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: heading }] })
+    for (const raw of section.paragraphs) {
+      const paragraph = cleanGeneratedCopy(raw)
+      if (!paragraph || paragraph.length > 4000) throw new Error('The model returned an invalid evergreen paragraph. The existing draft was preserved.')
+      content.push({ type: 'paragraph', content: formatGeneratedText(paragraph, emphasisBudget) })
+    }
+  }
+  addInternalLinks(content, result.internalLinks || [], allowedTargets)
+  return validateArticleDraft({ ...emptyArticle(), title, slug: articleSlug(title), excerpt, template: 'evergreen', body: { type: 'doc', content } })
+}
+
+export function generatedArticle(value: unknown, evidence: ArticleEvidence, template: ArticleTemplate, allowedTargets: ArticleLinkTarget[] = []): ArticleDraft {
+  const result = value as { title?: string; excerpt?: string; sections?: { heading: string; paragraphs: string[]; playerIds: number[]; visualType: string; visualPlayerId: number | null }[]; internalLinks?: GeneratedInternalLink[] }
+  if (!result || typeof result.title !== 'string' || typeof result.excerpt !== 'string' || !Array.isArray(result.sections) || result.sections.length < 3 || result.sections.length > 5 || !Array.isArray(result.internalLinks) || result.internalLinks.length > 6) throw new Error('The model returned an incomplete article. The existing draft was preserved.')
+  const title = cleanGeneratedCopy(result.title)
+  const excerpt = cleanGeneratedCopy(result.excerpt)
+  if (!title || !excerpt) throw new Error('The model returned an incomplete article. The existing draft was preserved.')
   const content: ArticleNode[] = []
   const used = new Set<string>()
   for (const section of result.sections) {
     if (typeof section.heading !== 'string' || section.heading.length > 180 || !Array.isArray(section.paragraphs) || !section.paragraphs.length || section.paragraphs.length > 3 || section.paragraphs.some(p => typeof p !== 'string' || p.length > 3000) || !Array.isArray(section.playerIds) || section.playerIds.some(id => !evidence.players.some(p => p.id === id))) throw new Error('The article contains invalid sections or player references.')
-    content.push({ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: section.heading }] })
-    content.push(...section.paragraphs.map(text => ({ type: 'paragraph', content: [{ type: 'text', text }] })))
+    const heading = cleanGeneratedCopy(section.heading)
+    if (heading) content.push({ type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: heading }] })
+    const emphasisBudget = { bold: 2, italic: 1 }
+    content.push(...section.paragraphs.map(cleanGeneratedCopy).filter(Boolean).map(text => ({ type: 'paragraph', content: formatGeneratedText(text, emphasisBudget) })))
     if (section.visualType === 'none') continue
     const player = evidence.players.find(p => p.id === section.visualPlayerId)
     if (!player || !['playerCard', 'fixtureRun'].includes(section.visualType) || !section.playerIds.includes(player.id)) throw new Error('The article requested a visual without supporting player evidence.')
@@ -135,5 +235,6 @@ export function generatedArticle(value: unknown, evidence: ArticleEvidence, temp
       content.splice(nextHeading < 0 ? content.length : nextHeading, 0, { type: cardType, attrs: { players, criteria: evidence.selection } })
     }
   }
-  return validateArticleDraft({ ...emptyArticle(), title: result.title, slug: articleSlug(result.title), excerpt: result.excerpt, template, season: evidence.season, gameweek: evidence.gameweek, body: { type: 'doc', content } })
+  addInternalLinks(content, result.internalLinks || [], allowedTargets)
+  return validateArticleDraft({ ...emptyArticle(), title, slug: articleSlug(title), excerpt, template, season: evidence.season, gameweek: evidence.gameweek, body: { type: 'doc', content } })
 }

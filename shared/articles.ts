@@ -6,6 +6,7 @@ export const articleTemplates = [
   { value: 'budget', label: 'Budget shortlist', sections: ['The shortlist', 'How the players compare', 'Who fits your team?'] },
   { value: 'comparison', label: 'Player comparison', sections: ['The decision', 'Stats and upcoming fixtures', 'The verdict'] },
   { value: 'guide', label: 'Explainer', sections: ['The answer', 'How it works', 'What to do next'] },
+  { value: 'evergreen', label: 'Evergreen guide', sections: ['The answer', 'How it works', 'What to do next'] },
 ] as const
 
 export type ArticleTemplate = typeof articleTemplates[number]['value']
@@ -126,7 +127,12 @@ export function validateArticleDraft(value: unknown): ArticleDraft {
         if (!['bold', 'italic', 'strike', 'underline', 'link'].includes(mark.type)) throw new Error('The article contains unsupported formatting.')
         if (mark.type !== 'link') return { type: mark.type }
         const href = mark.attrs?.href
-        if (typeof href !== 'string' || href.length > 2000 || !/^https?:\/\//i.test(href)) throw new Error('Article links must use a full HTTP or HTTPS URL.')
+        if (typeof href !== 'string' || href.length > 2000 || href.startsWith('//') || href.includes('\\')) throw new Error('The article link is invalid.')
+        if (href.startsWith('/')) {
+          if (!/^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(href) && !/^\/player\/[a-z0-9-]+-\d+$/.test(href)) throw new Error('Internal article links must point to an article or player profile.')
+          return { type: 'link', attrs: { href } }
+        }
+        if (!/^https?:\/\//i.test(href)) throw new Error('Article links must use an HTTP or HTTPS URL.')
         try { const url = new URL(href); if (url.username || url.password) throw new Error() } catch { throw new Error('The article contains an invalid link.') }
         return { type: 'link', attrs: { href, target: '_blank', rel: 'noopener noreferrer' } }
       })

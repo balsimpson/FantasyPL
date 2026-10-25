@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { generationSummary } from './articleJobValidators'
 
-export const articleTemplate = v.union(v.literal('transfers'), v.literal('fixtures'), v.literal('budget'), v.literal('comparison'), v.literal('guide'))
+export const articleTemplate = v.union(v.literal('transfers'), v.literal('fixtures'), v.literal('budget'), v.literal('comparison'), v.literal('guide'), v.literal('evergreen'))
 export const draftFields = {
   title: v.string(), slug: v.string(), excerpt: v.string(), template: articleTemplate,
   season: v.string(), gameweek: v.union(v.number(), v.null()), bodyJson: v.string(),

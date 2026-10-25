@@ -7,10 +7,10 @@ export default defineEventHandler(async event => {
   requireAdminOrigin(event)
   const id = getRouterParam(event, 'id') || ''
   const body = await readBody(event)
-  if (!id || typeof body?.name !== 'string' || typeof body?.instructions !== 'string') throw createError({ statusCode: 400, statusMessage: 'The prompt details are invalid.' })
+  if (!id || typeof body?.name !== 'string' || typeof body?.description !== 'string' || typeof body?.instructions !== 'string') throw createError({ statusCode: 400, statusMessage: 'The prompt details are invalid.' })
   const { client, secret, api } = articleDatabase()
   try {
-    await client.mutation(api.articlePrompts.update, { secret, promptId: id as Id<'articlePrompts'>, name: body.name, instructions: body.instructions })
+    await client.mutation(api.articlePrompts.update, { secret, promptId: id as Id<'articlePrompts'>, name: body.name, description: body.description, instructions: body.instructions })
     return { saved: true }
   } catch (error) { throw articleStorageError(error) }
 })

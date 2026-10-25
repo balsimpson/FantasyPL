@@ -6,6 +6,7 @@ export const articlePromptFields = {
   scope: promptScope,
   template: v.union(v.string(), v.null()),
   name: v.string(),
+  description: v.optional(v.string()),
   instructions: v.string(),
   isDefault: v.boolean(),
   createdAt: v.number(),

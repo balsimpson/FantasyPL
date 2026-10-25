@@ -1,7 +1,7 @@
 import { paginationOptsValidator, paginationResultValidator } from 'convex/server'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
-import { internalMutation, mutation, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { articleDocument, articleSummary, draftFields } from './articleValidators'
 import { articleText, validateArticleDraft } from '../shared/articles'
 import { researchTitleKey } from '../shared/article-research'
@@ -96,6 +96,24 @@ export const listPublished = query({
   },
 })
 
+export const internalPublishedLinkTargets = internalQuery({
+  args: { articleId: v.string() },
+  returns: v.array(v.object({ title: v.string(), slug: v.string() })),
+  handler: async (ctx, args) => {
+    const articles = await ctx.db.query('articles')
+      .withIndex('by_status_and_publishedAt', q => q.eq('status', 'published'))
+      .order('desc')
+      .take(50)
+    return articles.flatMap(article => {
+      if (article.articleId === args.articleId || !article.publishedJson) return []
+      try {
+        const published = JSON.parse(article.publishedJson) as { title?: string; slug?: string }
+        return published.title && published.slug ? [{ title: published.title, slug: published.slug }] : []
+      } catch { return [] }
+    })
+  },
+})
+
 export const save = mutation({
   args: { secret: v.string(), articleId: v.string(), requestId: v.string(), expectedVersion: v.number(), savedBy: v.string(), draft: v.object(draftFields) },
   returns: articleDocument,
@@ -147,8 +165,9 @@ export const publish = mutation({
       if (draft.title.trim().length < 8) throw new Error('Add an article title with at least 8 characters.')
       if (draft.excerpt.trim().length < 20) throw new Error('Add a short summary before publishing.')
       if (!draft.slug) throw new Error('Add a URL slug before publishing.')
-      if (!draft.sources.length || draft.sources.some(source => !source.title || !source.url)) throw new Error('Complete at least one source title and URL before publishing.')
-      if (!draft.season && draft.template !== 'guide') throw new Error('Add the season for this article.')
+      if (draft.sources.some(source => (source.title.trim() || source.url.trim()) && (!source.title.trim() || !source.url.trim()))) throw new Error('Complete or remove each source entry before publishing.')
+      const requiresFplEvidence = !['guide', 'evergreen'].includes(draft.template)
+      if (!draft.season && requiresFplEvidence) throw new Error('Add the season for this article.')
       const paragraphText = (draft.body.content || []).filter(node => node.type === 'paragraph').map(articleText).join(' ').trim()
       if (paragraphText.length < 40) throw new Error('Add at least 40 characters of article text before publishing.')
     } catch (error) {
@@ -157,14 +176,15 @@ export const publish = mutation({
     const collision = await ctx.db.query('articles').withIndex('by_publishedSlug_and_status', q => q.eq('publishedSlug', draft.slug).eq('status', 'published')).first()
     if (collision && collision.articleId !== article.articleId) throw new ConvexError({ code: 'INVALID', message: 'Another published article already uses this URL slug.' })
     const now = Date.now()
+    const sources = draft.sources.filter(source => source.title.trim() && source.url.trim())
     const capturedAt = (draft.body.content || []).flatMap(node => {
       const players = [node.attrs?.player, ...(Array.isArray(node.attrs?.players) ? node.attrs.players : [])] as ({ capturedAt?: string } | null | undefined)[]
       return players.flatMap(player => player?.capturedAt && Number.isFinite(Date.parse(player.capturedAt)) ? [player.capturedAt] : [])
     }).sort()[0]
-    if (draft.template !== 'guide' && !capturedAt) throw new ConvexError({ code: 'INVALID', message: 'Add at least one saved FPL evidence visual so the article can show when its data was captured.' })
+    if (!['guide', 'evergreen'].includes(draft.template) && !capturedAt) throw new ConvexError({ code: 'INVALID', message: 'Add at least one saved FPL evidence visual so the article can show when its data was captured.' })
     const publishedJson = JSON.stringify({
       title: draft.title.trim(), slug: draft.slug, excerpt: draft.excerpt.trim(), template: draft.template,
-      season: draft.season, gameweek: draft.gameweek, body: draft.body, sources: draft.sources, author: args.publishedBy,
+      season: draft.season, gameweek: draft.gameweek, body: draft.body, sources, author: args.publishedBy,
       ...(capturedAt ? { dataCapturedAt: capturedAt } : {}),
       publishedAt: now, updatedAt: now,
     })

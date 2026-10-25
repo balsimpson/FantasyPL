@@ -10,7 +10,16 @@ const instruction = ref('')
 const editing = ref(false)
 const editError = ref('')
 const editNotice = ref('')
+const linkPickerOpen = ref(false)
+const linkSearch = ref('')
+const linkTargets = ref<{ kind: 'article' | 'player'; title: string; url: string }[]>([])
+const linkTargetsLoading = ref(false)
+const linkTargetsError = ref('')
 let currentEditor: Editor | undefined
+const matchingLinkTargets = computed(() => {
+  const query = linkSearch.value.trim().toLocaleLowerCase()
+  return linkTargets.value.filter(target => !query || target.title.toLocaleLowerCase().includes(query)).slice(0, 12)
+})
 const items: EditorToolbarItem[][] = [
   [{ kind: 'undo', icon: 'i-lucide-undo-2', 'aria-label': 'Undo', tooltip: { text: 'Undo' } }, { kind: 'redo', icon: 'i-lucide-redo-2', 'aria-label': 'Redo', tooltip: { text: 'Redo' } }],
   [{ kind: 'heading', level: 2, icon: 'i-lucide-heading-2', 'aria-label': 'Heading 2', tooltip: { text: 'Heading 2' } }, { kind: 'heading', level: 3, icon: 'i-lucide-heading-3', 'aria-label': 'Heading 3', tooltip: { text: 'Heading 3' } }],
@@ -31,6 +40,26 @@ function updateSelection(editor: Editor) {
   })
   const text = editor.state.doc.textBetween(from, to, '\n').trim()
   selection.value = text && text.length <= 3000 && !hasVisual ? { from, to, text } : null
+}
+
+async function openLinkPicker() {
+  linkPickerOpen.value = !linkPickerOpen.value
+  if (!linkPickerOpen.value || linkTargets.value.length || linkTargetsLoading.value) return
+  linkTargetsLoading.value = true
+  linkTargetsError.value = ''
+  try { linkTargets.value = await $fetch('/api/admin/articles/link-targets') }
+  catch { linkTargetsError.value = 'Internal links could not be loaded. Your article is unchanged.' }
+  finally { linkTargetsLoading.value = false }
+}
+
+function insertInternalLink(target: { title: string; url: string }) {
+  const editor = currentEditor
+  const selected = selection.value
+  if (!editor || !selected) return
+  editor.chain().focus().setTextSelection({ from: selected.from, to: selected.to }).setLink({ href: target.url }).run()
+  linkPickerOpen.value = false
+  linkSearch.value = ''
+  editNotice.value = `Linked to ${target.title}. This change will save automatically.`
 }
 
 async function applyEdit() {
@@ -72,6 +101,19 @@ async function applyEdit() {
       </div>
       <p v-if="editError" role="alert" class="text-sm text-error">{{ editError }}</p>
       <p v-else-if="editNotice" role="status" class="text-sm text-success">{{ editNotice }}</p>
+      <div class="flex flex-wrap items-center gap-3">
+        <UButton :label="linkPickerOpen ? 'Close internal links' : 'Add internal link'" icon="i-lucide-link-2" color="neutral" variant="outline" size="sm" @click="openLinkPicker" />
+        <span class="text-xs text-muted">Select words first, then choose an article or player profile.</span>
+      </div>
+      <div v-if="linkPickerOpen" class="space-y-3 rounded-lg border border-default p-3">
+        <UInput v-model="linkSearch" aria-label="Search internal links" placeholder="Search articles or players" class="w-full" />
+        <p v-if="linkTargetsLoading" role="status" class="text-sm text-muted">Loading internal links…</p>
+        <p v-else-if="linkTargetsError" role="alert" class="text-sm text-error">{{ linkTargetsError }}</p>
+        <p v-else-if="!matchingLinkTargets.length" class="text-sm text-muted">No matching pages.</p>
+        <div v-else class="max-h-64 overflow-y-auto">
+          <UButton v-for="target in matchingLinkTargets" :key="target.url" :label="`${target.title} · ${target.kind === 'article' ? 'Article' : 'Player profile'}`" color="neutral" variant="ghost" class="w-full justify-start" @click="insertInternalLink(target)" />
+        </div>
+      </div>
     </div>
     <p v-else-if="!preview && editNotice" role="status" class="mb-4 border-y border-default py-3 text-sm text-success">{{ editNotice }}</p>
     <UEditorToolbar v-if="!preview" :editor="editor" :items="items" aria-label="Article formatting" class="sticky top-0 z-10 flex-wrap border-y border-default bg-default py-2" />

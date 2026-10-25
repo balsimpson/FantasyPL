@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { articleTemplates } from '~/shared/articles'
 
+const emit = defineEmits<{ articleCreated: [] }>()
+
 interface Idea {
   id: string
   researchId: string
@@ -53,6 +55,7 @@ async function write(idea: Idea) {
   try {
     const result = await $fetch<{ articleId: string }>(`/api/admin/research/${idea.researchId}/write`, { method: 'POST', body: { suggestionIndex: idea.suggestionIndex, articleId: articleRequests.get(key) } })
     articles.value[key] = result.articleId
+    emit('articleCreated')
     await refreshArticleStatus(key, result.articleId)
     await refresh()
   } catch (cause: any) { actionError.value = cause.data?.statusMessage || 'The article could not be queued. Please try again.' }
@@ -84,20 +87,20 @@ async function requestInitialFill() {
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h2 id="research-ideas-title" class="text-2xl font-semibold tracking-tight text-highlighted">Article ideas</h2>
-        <p class="mt-2 max-w-3xl leading-7 text-muted">Five current ideas are ready to draft. Choosing one opens its draft and prepares another idea in the background.</p>
+        <p class="mt-2 max-w-3xl leading-7 text-muted">Five current and evergreen ideas are ready to draft. Choosing one opens its draft and prepares another idea in the background.</p>
       </div>
       <UButton v-if="queue?.refillStatus === 'failed'" label="Try again" icon="i-lucide-refresh-cw" color="neutral" variant="outline" :loading="starting" @click="requestFill" />
     </div>
     <UAlert v-if="error || actionError" title="Ideas could not be loaded" :description="actionError || error?.data?.statusMessage || 'Please try again.'" color="error" variant="soft" class="mt-5" />
     <div v-if="queue?.refillStatus === 'working' || (!visibleIdeas.length && !error)" role="status" class="mt-5 flex items-center gap-2 text-sm text-muted">
       <UIcon name="i-lucide-loader-circle" class="size-4 animate-spin text-primary" />
-      <span>{{ visibleIdeas.length ? 'Preparing more ideas in the background.' : 'Finding the most interesting current FPL questions…' }}</span>
+      <span>{{ visibleIdeas.length ? 'Preparing more ideas in the background.' : 'Finding useful current and evergreen FPL questions…' }}</span>
     </div>
     <p v-if="queue?.refillStatus === 'failed' && !error" role="status" class="mt-4 text-sm text-error">{{ queue.error || 'The idea queue could not be replenished.' }}</p>
     <ol v-if="visibleIdeas.length" class="mt-5 divide-y divide-default">
       <li v-for="idea in visibleIdeas" :key="idea.id" class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-4 first:pt-0">
         <div class="min-w-0 flex-1">
-          <p class="text-xs text-primary">{{ articleTemplates.find(t => t.value === idea.template)?.label }} · GW {{ idea.gameweek }} · {{ idea.season }}</p>
+          <p class="text-xs text-primary">{{ articleTemplates.find(t => t.value === idea.template)?.label }}<template v-if="idea.template !== 'evergreen'"> · GW {{ idea.gameweek }} · {{ idea.season }}</template></p>
           <h3 class="mt-1 break-words font-medium text-highlighted">{{ idea.title }}</h3>
           <details class="mt-1 text-sm text-muted">
             <summary class="w-fit cursor-pointer text-xs font-medium text-muted">Why this idea</summary>
@@ -110,7 +113,7 @@ async function requestInitialFill() {
           <UBadge v-if="articleStatuses[idea.id]" :label="({ queued: 'Queued', writing: 'Writing', ready: 'Draft ready', failed: 'Failed' })[articleStatuses[idea.id].status]" :color="articleStatuses[idea.id].status === 'failed' ? 'error' : articleStatuses[idea.id].status === 'ready' ? 'success' : 'info'" variant="subtle" size="sm" />
           <UIcon v-if="['queued', 'writing'].includes(articleStatuses[idea.id]?.status || '')" name="i-lucide-loader-circle" class="size-4 animate-spin text-primary" aria-label="Writing article" />
           <UButton v-if="articles[idea.id]" :to="`/admin/articles/${articles[idea.id]}`" label="Open article" icon="i-lucide-arrow-right" color="neutral" variant="outline" size="sm" />
-          <UButton v-else label="Draft this idea" icon="i-lucide-pen-line" :loading="writing[idea.id]" size="sm" @click="write(idea)" />
+          <UButton v-else label="Write article" icon="i-lucide-pen-line" :loading="writing[idea.id]" size="sm" @click="write(idea)" />
         </div>
       </li>
     </ol>

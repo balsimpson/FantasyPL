@@ -7,6 +7,15 @@ function authorize(secret: string) {
   if (!process.env.CONTENT_SERVICE_TOKEN || secret !== process.env.CONTENT_SERVICE_TOKEN) throw new ConvexError({ code: 'FORBIDDEN', message: 'Article access denied.' })
 }
 
+async function isEvergreenIdea(ctx: any, idea: any) {
+  const run = await ctx.db.get(idea.researchId)
+  if (!run?.resultJson) return false
+  try {
+    const result = JSON.parse(run.resultJson)
+    return validateResearch(result, result.sources, result).suggestions[idea.suggestionIndex]?.template === 'evergreen'
+  } catch { return false }
+}
+
 export const list = query({
   args: { secret: v.string() },
   returns: v.object({ readyCount: v.number(), refillStatus: v.union(v.literal('idle'), v.literal('working'), v.literal('failed')), error: v.union(v.string(), v.null()), ideas: v.array(v.object({ id: v.id('articleResearchIdeas'), researchId: v.id('articleResearch'), suggestionIndex: v.number(), title: v.string(), template: v.string(), intent: v.string(), angle: v.string(), whyNow: v.string(), visuals: v.string(), sourceIds: v.array(v.number()), sources: v.array(v.object({ url: v.string(), title: v.string(), excerpt: v.string() })), season: v.string(), gameweek: v.number(), createdAt: v.number() })) }),
@@ -92,7 +101,7 @@ export const expireStale = internalMutation({
   handler: async (ctx, { season, gameweek }) => {
     const ready = await ctx.db.query('articleResearchIdeas').withIndex('by_status_and_createdAt', q => q.eq('status', 'ready')).take(100)
     for (const idea of ready) {
-      if (idea.season !== season || idea.gameweek !== gameweek) await ctx.db.patch(idea._id, { status: 'expired' })
+      if ((idea.season !== season || idea.gameweek !== gameweek) && !(await isEvergreenIdea(ctx, idea))) await ctx.db.patch(idea._id, { status: 'expired' })
     }
     return null
   },
@@ -128,19 +137,22 @@ export const storeReadyIdeas = internalMutation({
       ctx.db.query('articles').withIndex('by_updatedAt').order('desc').take(100),
       ctx.db.query('articleResearchIdeas').withIndex('by_status_and_createdAt', q => q.eq('status', 'ready')).order('desc').take(10),
     ])
-    const currentReady = ready.filter(idea => idea.season === research.season && idea.gameweek === research.gameweek)
+    const evergreenFlags = await Promise.all(ready.map(idea => isEvergreenIdea(ctx, idea)))
+    const currentReady = ready.filter((idea, index) => evergreenFlags[index] || idea.season === research.season && idea.gameweek === research.gameweek)
     const usedKeys = new Set([...articles.map(article => researchTitleKey(article.title)), ...currentReady.map(idea => idea.titleKey)])
     const now = Date.now()
     const run = await ctx.db.get(researchId)
     if (run) {
       const stale = await ctx.db.query('articleResearchIdeas').withIndex('by_status_and_createdAt', q => q.eq('status', 'ready')).take(100)
       for (const idea of stale) {
-        if (idea.season !== research.season || idea.gameweek !== research.gameweek) await ctx.db.patch(idea._id, { status: 'expired' })
+        if ((idea.season !== research.season || idea.gameweek !== research.gameweek) && !(await isEvergreenIdea(ctx, idea))) await ctx.db.patch(idea._id, { status: 'expired' })
       }
     }
     let stored = 0
     const slots = Math.max(0, 10 - currentReady.length)
-    for (const [suggestionIndex, suggestion] of research.suggestions.entries()) {
+    const orderedSuggestions = research.suggestions.map((suggestion, suggestionIndex) => ({ suggestion, suggestionIndex }))
+      .sort((a, b) => Number(b.suggestion.template === 'evergreen') - Number(a.suggestion.template === 'evergreen'))
+    for (const { suggestion, suggestionIndex } of orderedSuggestions) {
       const titleKey = researchTitleKey(suggestion.title)
       if (!titleKey || usedKeys.has(titleKey) || stored >= slots) continue
       const duplicate = await ctx.db.query('articleResearchIdeas').withIndex('by_researchId_and_suggestionIndex', q => q.eq('researchId', researchId).eq('suggestionIndex', suggestionIndex)).unique()

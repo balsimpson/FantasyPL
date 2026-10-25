@@ -45,6 +45,7 @@ const revisionItems = computed(() => {
 })
 const { user } = useUserSession()
 await load()
+const originalDraftTitle = draft.value.title
 if (!loadError.value && articleId.value) {
   selectedRevision.value = String(version.value)
   try { revisions.value = await $fetch(`/api/admin/articles/${articleId.value}/revisions`) }
@@ -67,7 +68,13 @@ const articlePromptOptions = computed(() => promptOptions.value.filter(prompt =>
 function useDefaultPrompt() {
   selectedPromptId.value = articlePromptOptions.value.find(prompt => prompt.isDefault)?._id || ''
 }
-watch(() => draft.value.template, useDefaultPrompt)
+watch(() => draft.value.template, template => {
+  useDefaultPrompt()
+  if (template === 'evergreen') {
+    draft.value.season = ''
+    draft.value.gameweek = null
+  }
+})
 if (!selectedPromptId.value) useDefaultPrompt()
 const toolbarState = computed<AdminArticleToolbar>(() => ({
   saveLabel: saveLabel.value,
@@ -184,7 +191,7 @@ function updateArticleBody(body: ArticleDraft['body']) {
   if (!preview.value) draft.value.body = body
 }
 watch(() => generation.job.value, job => {
-  if (job?.status === 'ready' && job.result && appliedJob.value !== job.jobId && !dirty.value && wordCount.value === 0 && draft.value.title === job.result.title) {
+  if (job?.status === 'ready' && job.result && appliedJob.value !== job.jobId && !dirty.value && wordCount.value === 0 && draft.value.title === originalDraftTitle) {
     draft.value = structuredClone(toRaw(job.result))
     appliedJob.value = job.jobId
   }
@@ -290,10 +297,10 @@ watch(publishedUrl, url => { if (url) toast.add({ title: 'Article published', de
             <template #hint><NuxtLink to="/admin/settings" class="text-primary underline underline-offset-4">Manage prompts</NuxtLink></template>
           </UFormField>
           <UButton v-if="canApplyTemplate && !preview" label="Add section headings" icon="i-lucide-list-plus" color="neutral" variant="outline" block class="mt-3" @click="applyTemplate" />
-          <UFormField label="Season" help="Use YYYY/YY, or leave empty for an evergreen guide." class="mt-6 w-full">
+          <UFormField v-if="(preview ? previewDraft.template : draft.template) !== 'evergreen'" label="Season" help="Use YYYY/YY, or leave empty for a guide without current FPL data." class="mt-6 w-full">
             <UInput :model-value="preview ? previewDraft.season : draft.season" :maxlength="7" class="w-full" :disabled="preview" @update:model-value="draft.season = $event" />
           </UFormField>
-          <UFormField label="Gameweek" class="mt-5 w-full">
+          <UFormField v-if="(preview ? previewDraft.template : draft.template) !== 'evergreen'" label="Gameweek" class="mt-5 w-full">
             <UInput :model-value="(preview ? previewDraft.gameweek : draft.gameweek) ?? ''" type="number" :min="1" :max="38" :step="1" class="w-full" :disabled="preview" @update:model-value="draft.gameweek = $event === '' ? null : Number($event)" />
           </UFormField>
           <UButton v-if="draft.gameweek && !preview" label="Clear gameweek" variant="link" color="neutral" size="xs" class="mt-1 px-0" @click="draft.gameweek = null" />
@@ -303,7 +310,7 @@ watch(publishedUrl, url => { if (url) toast.add({ title: 'Article published', de
           <UButton v-if="draft.title && !preview" label="Use article title" color="neutral" variant="link" size="xs" class="mt-1 px-0" @click="draft.slug = articleSlug(draft.title)" />
           <div class="mt-7 border-t border-default pt-5">
             <div class="flex items-center justify-between gap-3"><h3 class="text-sm font-medium text-highlighted">Sources</h3><UButton label="Add source" icon="i-lucide-plus" size="xs" color="neutral" variant="outline" :disabled="preview || draft.sources.length >= 20" @click="draft.sources.push({ title: '', url: '' })" /></div>
-            <p class="mt-2 text-xs leading-5 text-muted">Add the sources that support the article. At least one is required to publish.</p>
+            <p class="mt-2 text-xs leading-5 text-muted">Sources are optional. Complete or remove any source you add.</p>
             <div v-for="(source, index) in (preview ? previewDraft.sources : draft.sources)" :key="index" class="mt-4 space-y-2">
               <UFormField :label="`Source ${index + 1} title`" class="w-full"><UInput v-model="source.title" maxlength="200" class="w-full" :disabled="preview" /></UFormField>
               <div class="flex items-end gap-2"><UFormField label="Source URL" class="min-w-0 flex-1"><UInput v-model="source.url" type="url" maxlength="2000" class="w-full" :disabled="preview" /></UFormField><UButton label="Remove" icon="i-lucide-trash-2" color="neutral" variant="ghost" size="sm" :disabled="preview" @click="draft.sources.splice(index, 1)" /></div>

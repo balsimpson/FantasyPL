@@ -2,9 +2,10 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { generationDocument } from './articleJobValidators'
-import { buildArticleEvidence, generatedArticle, generatedArticleSchema } from '../shared/article-generation'
+import { buildArticleEvidence, generatedArticle, generatedArticleSchema, generatedEvergreenArticle, generatedEvergreenArticleSchema } from '../shared/article-generation'
 import { defaultPromptRecords, isArticleTemplate } from '../shared/article-prompts'
 import type { ArticleTemplate } from '../shared/articles'
+import { getPlayerRoute } from '../composables/usePlayerRoute'
 
 function authorize(secret: string) {
   if (!process.env.CONTENT_SERVICE_TOKEN || secret !== process.env.CONTENT_SERVICE_TOKEN) throw new ConvexError({ code: 'FORBIDDEN', message: 'Article access denied.' })
@@ -77,20 +78,35 @@ export const writeArticle = internalAction({
     let error: string | null = null
     try {
       if (!process.env.OPENROUTER_API_KEY) throw new Error('Add OPENROUTER_API_KEY to the Convex environment before generating articles.')
-      const responses = await Promise.all(['bootstrap-static', 'fixtures'].map(path => fetch(`https://fantasy.premierleague.com/api/${path}/`, { signal: AbortSignal.timeout(15_000) })))
-      if (responses.some(response => !response.ok)) throw new Error('Current FPL data could not be loaded. The existing draft was preserved.')
-      const [bootstrap, fixtures] = await Promise.all(responses.map(response => response.json()))
-      const evidence = buildArticleEvidence(bootstrap, fixtures, job.topic, job.template as ArticleTemplate, job.season, job.gameweek)
+      const evergreen = job.template === 'evergreen'
+      let evidence: ReturnType<typeof buildArticleEvidence> | null = null
+      if (!evergreen) {
+        const responses = await Promise.all(['bootstrap-static', 'fixtures'].map(path => fetch(`https://fantasy.premierleague.com/api/${path}/`, { signal: AbortSignal.timeout(15_000) })))
+        if (responses.some(response => !response.ok)) throw new Error('Current FPL data could not be loaded. The existing draft was preserved.')
+        const [bootstrap, fixtures] = await Promise.all(responses.map(response => response.json()))
+        evidence = buildArticleEvidence(bootstrap, fixtures, job.topic, job.template as ArticleTemplate, job.season, job.gameweek)
+      }
+      const publishedTargets = await ctx.runQuery(internal.articles.internalPublishedLinkTargets, { articleId: job.articleId })
+      const allowedLinks = [
+        ...publishedTargets.map(target => ({ kind: 'article' as const, title: target.title, url: `/blog/${encodeURIComponent(target.slug)}` })),
+        ...(evidence?.players.map(player => ({
+          kind: 'player' as const,
+          title: `${player.first_name} ${player.second_name}`.trim() || player.web_name,
+          url: getPlayerRoute({ id: player.id, first_name: player.first_name, second_name: player.second_name, web_name: player.web_name }),
+        })) || []),
+      ]
+      const promptInstructions = job.promptInstructions || defaultPromptRecords().find(prompt => prompt.scope === 'article' && prompt.template === job.template)?.instructions || ''
+      const internalLinkGuidance = 'Internal linking: use the supplied allowedLinks list only. Return internalLinks as a list of { anchor, targetUrl } objects. Each anchor must appear exactly as written in one paragraph, and targetUrl must exactly match an allowedLinks URL. Add only relevant links. Return an empty list when no link fits.'
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120_000),
         headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 6000, temperature: 0.7, provider: { require_parameters: true }, messages: [{ role: 'system', content: job.promptInstructions || defaultPromptRecords().find(prompt => prompt.scope === 'article' && prompt.template === job.template)?.instructions || '' }, { role: 'user', content: JSON.stringify({ topic: job.topic, template: job.template, evidence }) }], response_format: { type: 'json_schema', json_schema: { name: 'fpl_article', strict: true, schema: generatedArticleSchema } } }),
+        body: JSON.stringify({ model, max_tokens: 6000, temperature: 0.7, provider: { require_parameters: true }, messages: [{ role: 'system', content: `${promptInstructions}\n\n${internalLinkGuidance}` }, { role: 'user', content: JSON.stringify(evergreen ? { topic: job.topic, template: job.template, allowedLinks } : { topic: job.topic, template: job.template, evidence, allowedLinks }) }], response_format: { type: 'json_schema', json_schema: { name: 'fpl_article', strict: true, schema: evergreen ? generatedEvergreenArticleSchema : generatedArticleSchema } } }),
       })
       if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'OpenRouter denied access. Check the configured API key.' : response.status === 402 ? 'OpenRouter has no available credit for this request.' : response.status === 429 ? 'OpenRouter is busy. Try generating again later.' : 'OpenRouter could not generate the article. The existing draft was preserved.')
       const completion = await response.json()
       const choice = completion.choices?.[0]
       if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') throw new Error('OpenRouter returned an incomplete article. The existing draft was preserved.')
-      resultJson = JSON.stringify(generatedArticle(JSON.parse(choice.message.content), evidence, job.template as ArticleTemplate))
+      resultJson = JSON.stringify(evergreen ? generatedEvergreenArticle(JSON.parse(choice.message.content), allowedLinks) : generatedArticle(JSON.parse(choice.message.content), evidence!, job.template as ArticleTemplate, allowedLinks))
     } catch (cause) {
       // Provider bodies and credentials never enter saved job errors.
       error = cause instanceof Error && !/fetch|JSON|Unexpected|abort|timeout/i.test(cause.message) ? cause.message.slice(0, 500) : 'Generation could not complete. The existing draft was preserved. Please try again.'

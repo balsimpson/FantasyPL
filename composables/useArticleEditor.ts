@@ -1,4 +1,4 @@
-import { emptyArticle, isAutomaticEvidenceNote, validateArticleDraft, type ArticleNode, type SavedArticle } from '~/shared/articles'
+import { articleText, emptyArticle, isAutomaticEvidenceNote, validateArticleDraft, type ArticleNode, type SavedArticle } from '~/shared/articles'
 
 export function useArticleEditor(id: string) {
   const draft = ref(emptyArticle())

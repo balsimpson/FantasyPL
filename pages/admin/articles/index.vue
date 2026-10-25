@@ -26,6 +26,7 @@ function templateLabel(value: string) { return articleTemplates.find(item => ite
 function updatedDate(timestamp: number) {
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(timestamp)
 }
+function refreshArticles() { void refresh() }
 async function loadMore() {
   loadingMore.value = true
   loadError.value = ''
@@ -77,7 +78,7 @@ async function deleteArticle() {
       </UTooltip>
     </div>
     <div id="research" class="mt-10 py-7">
-      <ArticleResearchPanel />
+      <ArticleResearchPanel @article-created="refreshArticles" />
     </div>
     <div v-if="status === 'pending'" id="saved-articles" class="py-20 text-center text-muted" role="status">Loading articles…</div>
     <UAlert v-else-if="error" id="saved-articles" title="Articles could not be loaded" :description="error.data?.statusMessage || 'Please try again.'" color="error" variant="soft" class="mt-8" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />

@@ -17,6 +17,31 @@ export const list = query({
   args: { secret: v.string() }, returns: v.array(document),
   handler: async (ctx, { secret }) => { authorize(secret); return ctx.db.query('articleResearch').withIndex('by_createdAt').order('desc').take(10) },
 })
+
+export const latestPromptLearnings = query({
+  args: { secret: v.string() },
+  returns: v.object({ capturedAt: v.union(v.string(), v.null()), learnings: v.array(v.object({ title: v.string(), instruction: v.string(), scope: v.union(v.literal('research-search'), v.literal('research-analysis'), v.literal('article')), template: v.union(v.string(), v.null()), sources: v.array(v.object({ title: v.string(), url: v.string() })) })) }),
+  handler: async (ctx, { secret }) => {
+    authorize(secret)
+    const runs = await ctx.db.query('articleResearch').withIndex('by_status_and_createdAt', q => q.eq('status', 'ready')).order('desc').take(10)
+    for (const run of runs) {
+      if (!run.resultJson) continue
+      try {
+        const parsed = JSON.parse(run.resultJson)
+        const result = validateResearch(parsed, parsed.sources, parsed)
+        const learnings = (result.promptLearnings || []).map(item => ({
+          title: item.title,
+          instruction: item.instruction,
+          scope: item.scope,
+          template: item.template,
+          sources: item.sourceIds.map(sourceId => ({ title: result.sources[sourceId].title, url: result.sources[sourceId].url })),
+        }))
+        if (learnings.length) return { capturedAt: result.capturedAt, learnings }
+      } catch { /* Ignore old or invalid research output. */ }
+    }
+    return { capturedAt: null, learnings: [] }
+  },
+})
 export const start = mutation({
   args: { secret: v.string(), requestId: v.string(), focus: v.string(), requestedBy: v.string() }, returns: v.id('articleResearch'),
   handler: async (ctx, args) => {
@@ -68,17 +93,19 @@ export const research = internalAction({
     let error: string | null = null
     try {
       const prompts = await ctx.runQuery(internal.articlePrompts.researchDefaults, {})
-      await ctx.runMutation(internal.articleResearch.capturePrompts, { researchId, searchPrompt: prompts.search, analysisPrompt: prompts.analysis })
+      const searchPrompt = `${prompts.search}\n\nAlso find source articles for both the upcoming gameweek and evergreen FPL guides about stable concepts or recurring manager tasks. Return varied evidence for both kinds of topics.`
+      const analysisPrompt = `${prompts.analysis}\n\nRequired mix: return 10 to 12 ideas, including 3 to 5 Evergreen guide ideas and at least 5 current gameweek ideas. Evergreen guides must not depend on current prices, live stats, or a specific gameweek. Mark their visual approach as none. Do not turn changing FPL rules or unverified facts into evergreen claims.`
+      await ctx.runMutation(internal.articleResearch.capturePrompts, { researchId, searchPrompt, analysisPrompt })
       if (!process.env.OPENROUTER_API_KEY) throw new Error('Add OPENROUTER_API_KEY to the Convex environment before starting research.')
       const responses = await Promise.all(['bootstrap-static', 'fixtures'].map(path => fetch(`https://fantasy.premierleague.com/api/${path}/`, { signal: AbortSignal.timeout(15_000) })))
       if (responses.some(r => !r.ok)) throw new Error('Current FPL gameweek data could not be loaded.')
       const [bootstrap, fixtures] = await Promise.all(responses.map(r => r.json()))
       const context = buildArticleEvidence(bootstrap, fixtures, 'Upcoming gameweek transfer decisions', 'transfers')
       const editorialContext = await ctx.runQuery(internal.articleResearchIdeas.context, {})
-      const search = await articleCompletion([{ role: 'system', content: prompts.search }, { role: 'user', content: JSON.stringify({ date: context.capturedAt, gameweek: context.gameweek, season: context.season, focus: run.focus || 'Transfer trends, budget shortlists and fixture decisions for casual FPL managers.' }) }], { search: true })
+      const search = await articleCompletion([{ role: 'system', content: searchPrompt }, { role: 'user', content: JSON.stringify({ date: context.capturedAt, gameweek: context.gameweek, season: context.season, focus: run.focus || 'Current transfer, budget and fixture decisions plus evergreen FPL guides for casual managers.' }) }], { search: true })
       const sources = researchSources(search.message.annotations)
-      const analysis = await articleCompletion([{ role: 'system', content: prompts.analysis }, { role: 'user', content: JSON.stringify({ focus: run.focus || 'Find the most interesting current manager questions.', gameweek: context.gameweek, season: context.season, sources, availablePlayerEvidence: context.players, existingArticles: editorialContext.titles, readyIdeas: editorialContext.readyIdeas }) }], { schema: researchSchema })
-      resultJson = JSON.stringify(validateResearch(JSON.parse(analysis.message.content), sources, { gameweek: context.gameweek, season: context.season, capturedAt: context.capturedAt }))
+      const analysis = await articleCompletion([{ role: 'system', content: analysisPrompt }, { role: 'user', content: JSON.stringify({ focus: run.focus || 'Find a balanced set of current decisions and durable manager questions.', gameweek: context.gameweek, season: context.season, sources, availablePlayerEvidence: context.players, existingArticles: editorialContext.titles, readyIdeas: editorialContext.readyIdeas }) }], { schema: researchSchema })
+      resultJson = JSON.stringify(validateResearch(JSON.parse(analysis.message.content), sources, { gameweek: context.gameweek, season: context.season, capturedAt: context.capturedAt }, true))
     } catch (cause) { error = generationError(cause) }
     await ctx.runMutation(internal.articleResearch.finish, { researchId, resultJson, error })
     if (resultJson) await ctx.runMutation(internal.articleResearchIdeas.storeReadyIdeas, { researchId, resultJson })
@@ -103,13 +130,14 @@ export const writeSuggestion = mutation({
     const idea = await ctx.db.query('articleResearchIdeas').withIndex('by_researchId_and_suggestionIndex', q => q.eq('researchId', args.researchId).eq('suggestionIndex', args.suggestionIndex)).unique()
     if (!idea || idea.status !== 'ready') throw new ConvexError({ code: 'INVALID', message: 'This idea is no longer available.' })
     const now = Date.now()
-    const { body, ...metadata } = { ...emptyArticle(), title: suggestion.title, template: suggestion.template, season: research.season, gameweek: research.gameweek }
+    const evergreen = suggestion.template === 'evergreen'
+    const { body, ...metadata } = { ...emptyArticle(), title: suggestion.title, template: suggestion.template, season: evergreen ? '' : research.season, gameweek: evergreen ? null : research.gameweek }
     const draft = { ...metadata, bodyJson: JSON.stringify(body) }
     await ctx.db.insert('articles', { ...draft, articleId: args.articleId, status: 'draft', version: 1, createdAt: now, updatedAt: now, updatedBy: args.requestedBy, lastRequestId: args.articleId })
     await ctx.db.insert('articleRevisions', { ...draft, articleId: args.articleId, version: 1, savedAt: now, savedBy: args.requestedBy })
     const promptRows = await ctx.db.query('articlePrompts').withIndex('by_scope_and_template', q => q.eq('scope', 'article').eq('template', suggestion.template)).take(50)
     const prompt = promptRows.find(item => item.isDefault) || defaultPromptRecords().find(item => item.scope === 'article' && item.template === suggestion.template)!
-    const jobId = await ctx.db.insert('articleJobs', { articleId: args.articleId, requestId: args.articleId, requestedBy: args.requestedBy, status: 'queued', topic: `${suggestion.title}\nEditorial angle: ${suggestion.angle}\nReader question: ${suggestion.intent}\nVisual approach: ${suggestion.visuals}`, template: suggestion.template, season: research.season, gameweek: research.gameweek, promptId: promptRows.find(item => item.isDefault)?._id, promptName: prompt.name, promptInstructions: prompt.instructions, resultJson: null, error: null, model: null, createdAt: now, updatedAt: now })
+    const jobId = await ctx.db.insert('articleJobs', { articleId: args.articleId, requestId: args.articleId, requestedBy: args.requestedBy, status: 'queued', topic: `${suggestion.title}\nEditorial angle: ${suggestion.angle}\nReader question: ${suggestion.intent}\nVisual approach: ${suggestion.visuals}`, template: suggestion.template, season: evergreen ? '' : research.season, gameweek: evergreen ? null : research.gameweek, promptId: promptRows.find(item => item.isDefault)?._id, promptName: prompt.name, promptInstructions: prompt.instructions, resultJson: null, error: null, model: null, createdAt: now, updatedAt: now })
     await ctx.db.insert('articleResearchChoices', { researchId: args.researchId, suggestionIndex: args.suggestionIndex, articleId: args.articleId })
     await ctx.db.patch(idea._id, { status: 'used', articleId: args.articleId, usedAt: now })
     await ctx.scheduler.runAfter(0, internal.articleJobs.writeArticle, { jobId })
