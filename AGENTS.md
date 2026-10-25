@@ -68,6 +68,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `pages/index.vue` | Homepage composition, manager lookup, player search, and ranked player lists; consumes the homepage-only data projection |
 | `components/Home*.vue`, `components/GameWeekCardNew.vue` | Homepage deadline, collapsed lookup/filters, saved-player links, portrait shortlists, six upcoming matchups, three-gameweek player fixture runs, and recap |
 | `composables/useHomepageShortlist.ts`, `utils/homepage-shortlist.ts` | Full-catalog price/position filtering, stat ranking, rule-based player trends, and gameweek/fixture grouping |
+| `utils/carousel-layout.ts` | Shared public carousel sizing that reserves a preview of the next item; player-card fixture runs use a fixed grid instead |
 | `composables/useHomepageBootstrap.ts` | Homepage loading, one client recovery attempt after an SSR failure, and retention of already loaded data |
 | `server/utils/homepage-data.ts`, `server/api/homepage-data.ts` | Homepage-only FPL snapshot; the shared bootstrap contract remains unchanged |
 | `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts` | Shared validated bootstrap cache and bounded upstream JSON request recovery |

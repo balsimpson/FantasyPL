@@ -75,7 +75,7 @@
           </div>
 
           <div class="px-4 py-3">
-            <p class="text-sm leading-5 text-stone-200">{{ idea.reason }}</p>
+            <p class="font-mono text-sm font-semibold leading-5 text-stone-200">{{ idea.reason }}</p>
             <p v-if="idea.sampleNote" class="mt-1 text-xs leading-5 text-amber-200">{{ idea.sampleNote }}</p>
             <table class="mt-3 w-full table-fixed font-sans text-sm font-semibold leading-5 tabular-nums">
               <caption class="sr-only">Player comparison for {{ idea.outgoing.web_name }} and {{ idea.incoming.web_name }}</caption>

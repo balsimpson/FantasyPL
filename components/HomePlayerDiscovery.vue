@@ -45,8 +45,8 @@
           />
         </li>
       </ul>
-      <div v-if="visiblePlayers.length && canLoadMore" class="flex justify-center border-t border-white/10 pt-4">
-        <UButton color="neutral" variant="outline" icon="i-lucide-plus" @click="loadMorePlayers">Load more players</UButton>
+      <div v-if="visiblePlayers.length && canLoadMore" ref="loadMoreTarget" class="flex justify-center border-t border-white/10 pt-4">
+        <UButton color="neutral" variant="ghost" icon="i-lucide-plus" class="min-h-10 justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-stone-300 ring-0 transition-colors hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none" @click="loadMorePlayers">Load more players</UButton>
       </div>
     </template>
   </section>
@@ -70,6 +70,8 @@ const canLoadMore = computed(() => visibleCount.value < rankedPlayers.value.leng
 const loadMorePlayers = () => {
   visibleCount.value = Math.min(visibleCount.value + 12, rankedPlayers.value.length);
 };
+const loadMoreTarget = ref<HTMLElement | null>(null);
+usePlayerSearchAutoLoad(loadMoreTarget, canLoadMore, loadMorePlayers);
 const fieldUi = { root: "min-w-0 w-full", label: "text-xs font-semibold text-stone-300" };
 const selectUi = {
   base: "h-10 w-full rounded-lg border border-[#303640] bg-[#0c0f13] text-sm font-semibold text-stone-100 ring-0 hover:border-[#48515f] hover:bg-[#1b2028] hover:text-stone-100 data-[state=open]:bg-[#1b2028] focus-visible:border-lime-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300/50 [color-scheme:dark]",

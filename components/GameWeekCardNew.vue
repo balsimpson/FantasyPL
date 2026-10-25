@@ -3,6 +3,7 @@
     <header class="flex flex-wrap items-center gap-3">
       <h2 id="gameweek-recap-title" class="text-3xl font-black tracking-tight text-white">{{ gameweek.name || 'Gameweek' }}</h2>
       <span class="rounded-full border px-2.5 py-1 text-xs font-medium" :class="gameweek.finished ? 'border-white/10 text-stone-400' : 'border-lime-300/25 text-lime-200'">{{ gameweek.finished ? 'Completed' : 'In progress' }}</span>
+      <CalendarSubscribeActions class="w-full sm:ml-auto sm:w-auto" />
     </header>
 
     <div class="grid gap-5 border-y border-white/10 py-5 lg:grid-cols-2 lg:items-center lg:gap-8">

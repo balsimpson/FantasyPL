@@ -31,36 +31,14 @@
           <h3 class="text-xs font-medium text-stone-300">FPL deadlines</h3>
         </div>
 
-        <div class="flex shrink-0 items-center gap-1">
-          <a
-            :href="webcalUrl"
-            class="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-lime-300/25 bg-lime-300/10 px-2.5 text-xs font-medium text-lime-200 transition-colors hover:bg-lime-300/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none"
-          >
-            <UIcon name="i-lucide-calendar-plus" class="size-4" aria-hidden="true" />
-            Connect calendar
-          </a>
-          <button
-            type="button"
-            :aria-label="calendarLinkCopied ? 'Calendar link copied' : 'Copy calendar link'"
-            :title="calendarLinkCopied ? 'Link copied' : 'Copy calendar link'"
-            class="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-stone-300 transition-colors hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none"
-            @click="copyCalendarLink"
-          >
-            <UIcon :name="calendarLinkCopied ? 'i-lucide-check' : 'i-lucide-copy'" class="size-4" aria-hidden="true" />
-          </button>
-        </div>
+        <CalendarSubscribeActions />
       </div>
 
-      <p v-if="calendarCopyError" class="mt-2 break-words text-xs leading-5 text-amber-200">
-        Copy was blocked; the subscription link is {{ calendarUrl }}.
-      </p>
-      <p v-if="calendarLinkCopied" class="sr-only" role="status">Calendar subscription link copied.</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { DEFAULT_SITE_URL } from "~/utils/site-url";
 
 const props = defineProps({
   gameweek: {
@@ -82,10 +60,6 @@ const props = defineProps({
 });
 
 const mounted = ref(false);
-const calendarLinkCopied = ref(false);
-const calendarCopyError = ref(false);
-const calendarUrl = `${DEFAULT_SITE_URL}/calendar/deadlines.ics`;
-const webcalUrl = calendarUrl.replace(/^https?:/, "webcal:");
 const renderTime = useState("deadline-render-time", () => Date.now());
 const now = ref(import.meta.server || useNuxtApp().isHydrating ? renderTime.value : Date.now());
 let interval;
@@ -134,17 +108,6 @@ const statusText = computed(() => {
   if (!deadlineDate.value) return "The current FPL data did not include a usable deadline.";
   return "Make changes before the gameweek locks.";
 });
-
-async function copyCalendarLink() {
-  calendarCopyError.value = false;
-  try {
-    await navigator.clipboard.writeText(calendarUrl.value);
-    calendarLinkCopied.value = true;
-    window.setTimeout(() => { calendarLinkCopied.value = false; }, 2500);
-  } catch {
-    calendarCopyError.value = true;
-  }
-}
 
 onMounted(() => {
   mounted.value = true;
