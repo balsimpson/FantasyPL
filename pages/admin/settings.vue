@@ -48,6 +48,7 @@ const learnings = ref<Learning[]>([])
 const dismissedLearnings = ref<number[]>([])
 const addedLearnings = ref<number[]>([])
 const toast = useToast()
+const requestFetch = useRequestFetch()
 
 const activeGroup = computed(() => groups.find(group => group.key === selectedGroup.value) || groups[0])
 const groupPrompts = computed(() => prompts.value
@@ -65,13 +66,18 @@ function descriptionFor(prompt: Prompt) {
   return prompt.description?.trim() || promptDescriptions[prompt.scope]
 }
 
+function groupDescription(group: typeof groups[number]) {
+  const defaultPrompt = prompts.value.find(prompt => prompt.scope === group.scope && prompt.template === group.template && prompt.isDefault)
+  return defaultPrompt ? descriptionFor(defaultPrompt) : promptDescriptions[group.scope]
+}
+
 async function load() {
   loading.value = true
   pageError.value = ''
   try {
     const [loadedPrompts, research] = await Promise.all([
-      $fetch<Prompt[]>('/api/admin/prompts'),
-      $fetch<{ capturedAt: string | null; learnings: Learning[] }>('/api/admin/prompts/learnings').catch(() => null),
+      requestFetch<Prompt[]>('/api/admin/prompts'),
+      requestFetch<{ capturedAt: string | null; learnings: Learning[] }>('/api/admin/prompts/learnings').catch(() => null),
     ])
     prompts.value = loadedPrompts
     for (const prompt of loadedPrompts) {
@@ -277,109 +283,119 @@ await load()
     <UAlert v-if="pageError" title="Settings could not be loaded" :description="pageError" color="error" variant="soft" class="mt-5" :actions="[{ label: 'Try again', onClick: load } ]" />
     <div v-if="loading" class="py-16 text-center text-muted" role="status">Loading prompts…</div>
 
-    <div v-else class="grid gap-8 pt-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
-      <nav aria-label="Prompt types" class="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-        <button
-          v-for="group in groups"
-          :key="group.key"
-          type="button"
-          class="flex shrink-0 items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-primary lg:w-full"
-          :class="selectedGroup === group.key ? 'bg-elevated font-medium text-highlighted' : 'text-muted hover:bg-elevated/60 hover:text-highlighted'"
-          :aria-current="selectedGroup === group.key ? 'page' : undefined"
-          @click="selectGroup(group.key)"
-        >
-          <span>{{ group.title }}</span>
-          <span class="text-xs tabular-nums text-muted">{{ prompts.filter(prompt => prompt.scope === group.scope && prompt.template === group.template).length }}</span>
-        </button>
+    <div v-else class="grid gap-6 pt-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <nav aria-label="Prompt types" class="border-b border-default pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
+        <h2 class="mb-3 text-sm font-semibold text-highlighted">Prompt types</h2>
+        <div class="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
+          <button
+            v-for="group in groups"
+            :key="group.key"
+            type="button"
+            class="min-w-52 shrink-0 rounded-md px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary lg:min-w-0 lg:w-full"
+            :class="selectedGroup === group.key ? 'bg-primary/10 text-highlighted' : 'text-muted hover:bg-elevated/70 hover:text-highlighted'"
+            :aria-current="selectedGroup === group.key ? 'page' : undefined"
+            @click="selectGroup(group.key)"
+          >
+            <span class="flex items-center justify-between gap-2">
+              <span class="text-sm font-medium">{{ group.title }}</span>
+              <UBadge v-if="prompts.some(prompt => prompt.scope === group.scope && prompt.template === group.template && prompt.isDefault)" label="Default" color="primary" variant="subtle" size="xs" />
+            </span>
+            <span class="mt-1 block text-xs leading-5 text-muted">{{ groupDescription(group) }}</span>
+          </button>
+        </div>
       </nav>
 
       <div class="min-w-0">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-xl font-semibold text-highlighted">{{ activeGroup.title }}</h2>
-            <p class="mt-1 text-sm text-muted">{{ groupPrompts.length }} {{ groupPrompts.length === 1 ? 'prompt' : 'prompts' }} for this type</p>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h2 class="text-xl font-semibold text-highlighted">{{ formMode === 'edit' && selectedPrompt ? selectedPrompt.name : activeGroup.title }}</h2>
+            <p class="mt-1 max-w-2xl text-sm leading-6 text-muted">{{ formMode === 'edit' && selectedPrompt ? descriptionFor(selectedPrompt) : groupDescription(activeGroup) }}</p>
           </div>
-          <div class="flex gap-2">
-            <UButton label="New prompt" icon="i-lucide-plus" color="neutral" variant="outline" size="sm" @click="startNew()" />
+          <div class="flex shrink-0 gap-2">
             <UButton v-if="selectedPrompt && formMode === 'edit'" label="Copy prompt" icon="i-lucide-copy" color="neutral" variant="ghost" size="sm" @click="startNew(selectedPrompt)" />
+            <UButton label="Add prompt" icon="i-lucide-plus" size="sm" @click="startNew()" />
           </div>
         </div>
 
-        <div class="mt-5 flex gap-2 overflow-x-auto border-b border-default pb-3" role="group" :aria-label="`${activeGroup.title} prompts`">
-          <button
-            v-for="prompt in groupPrompts"
-            :key="prompt._id"
-            type="button"
-            class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-primary"
-            :class="formMode === 'edit' && selectedPromptId === prompt._id ? 'bg-primary/10 font-medium text-primary' : 'text-muted hover:bg-elevated hover:text-highlighted'"
-            :aria-pressed="formMode === 'edit' && selectedPromptId === prompt._id"
-            @click="selectPrompt(prompt)"
-          >
-            {{ prompt.name }}
-            <UBadge v-if="prompt.isDefault" label="Default" color="primary" variant="subtle" size="xs" />
-          </button>
-          <p v-if="!groupPrompts.length" class="py-2 text-sm text-muted">No prompts yet.</p>
-          <span v-if="formMode !== 'edit'" class="shrink-0 rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">{{ formMode === 'copy' ? 'Copy' : 'New prompt' }}</span>
+        <div class="mt-5 border-b border-default pb-4">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-sm font-medium text-highlighted">{{ activeGroup.title }} prompts</h3>
+            <span class="text-xs text-muted">{{ groupPrompts.length }} {{ groupPrompts.length === 1 ? 'option' : 'options' }}</span>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2" role="group" :aria-label="`${activeGroup.title} prompts`">
+            <button
+              v-for="prompt in groupPrompts"
+              :key="prompt._id"
+              type="button"
+              class="inline-flex min-h-9 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+              :class="formMode === 'edit' && selectedPromptId === prompt._id ? 'border-primary bg-primary text-inverted' : 'border-default text-muted hover:bg-elevated hover:text-highlighted'"
+              :aria-pressed="formMode === 'edit' && selectedPromptId === prompt._id"
+              @click="selectPrompt(prompt)"
+            >
+              {{ prompt.name }}
+              <UBadge v-if="prompt.isDefault" label="Default" :color="formMode === 'edit' && selectedPromptId === prompt._id ? 'neutral' : 'primary'" :variant="formMode === 'edit' && selectedPromptId === prompt._id ? 'solid' : 'subtle'" size="xs" />
+            </button>
+            <span v-if="formMode !== 'edit'" class="inline-flex min-h-9 items-center rounded-md border border-primary px-3 py-1.5 text-sm font-medium text-primary">{{ formMode === 'copy' ? 'Copy' : 'New prompt' }}</span>
+            <p v-if="!groupPrompts.length && formMode === 'edit'" class="py-2 text-sm text-muted">No prompts yet. Add one to start using this type.</p>
+          </div>
         </div>
 
-        <div v-if="formMode === 'edit' && !selectedPrompt" class="py-8 text-sm text-muted">Add a prompt to start using this type.</div>
-        <section v-else class="space-y-5 pt-5" :aria-label="formMode === 'edit' ? 'Edit prompt' : 'Create prompt'">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 class="font-semibold text-highlighted">{{ formMode === 'edit' ? 'Edit prompt' : formMode === 'copy' ? 'Copy prompt' : 'New prompt' }}</h3>
-              <p v-if="formMode === 'copy'" class="mt-1 text-sm text-muted">Make changes to the copy, then save it as a separate variant.</p>
+        <div class="mt-5 grid gap-8 xl:grid-cols-[minmax(0,1fr)_18rem]">
+          <section v-if="formMode !== 'edit' || selectedPrompt" class="min-w-0 space-y-5" :aria-label="formMode === 'edit' ? 'Edit prompt' : 'Create prompt'">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-semibold text-highlighted">{{ formMode === 'edit' ? 'Edit prompt' : formMode === 'copy' ? 'Copy prompt' : 'New prompt' }}</h3>
+                <p v-if="formMode === 'copy'" class="mt-1 text-sm text-muted">Edit the copy, then save it as a separate option.</p>
+              </div>
+              <UButton v-if="formMode !== 'edit'" label="Cancel" color="neutral" variant="ghost" size="sm" @click="cancelNew" />
             </div>
-            <UButton v-if="formMode !== 'edit'" label="Cancel" color="neutral" variant="ghost" size="sm" @click="cancelNew" />
-          </div>
 
-          <UFormField label="Title" class="w-full">
-            <UInput v-model="currentValue.name" maxlength="80" class="w-full" @update:model-value="markDetailsEdited" />
-          </UFormField>
-          <UFormField label="Description" description="One line to explain when to use this prompt." class="w-full">
-            <UInput v-model="currentValue.description" maxlength="160" class="w-full" @update:model-value="markDetailsEdited" />
-          </UFormField>
-          <UFormField label="Prompt" class="w-full">
-          <template #label><span>Prompt <span v-if="suggesting || suggestionScheduled" class="ml-2 text-xs font-normal text-muted" role="status">Updating title and description…</span></span></template>
-            <template #description>Title and description fill automatically from the prompt. You can edit them any time.</template>
-            <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" maxlength="30000" class="w-full" @update:model-value="onPromptInstructionsChanged" />
-          </UFormField>
+            <UFormField label="Title" class="w-full">
+              <UInput v-model="currentValue.name" maxlength="80" class="w-full" @update:model-value="markDetailsEdited" />
+            </UFormField>
+            <UFormField label="Description" description="One line to explain when to use this prompt." class="w-full">
+              <UInput v-model="currentValue.description" maxlength="160" class="w-full" @update:model-value="markDetailsEdited" />
+            </UFormField>
+            <UFormField label="Prompt" class="w-full">
+              <template #label><span>Prompt <span v-if="suggesting || suggestionScheduled" class="ml-2 text-xs font-normal text-muted" role="status">Updating title and description…</span></span></template>
+              <template #description>Title and description fill automatically from the prompt. You can edit them any time.</template>
+              <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" maxlength="30000" class="w-full" :ui="{ base: 'font-mono' }" @update:model-value="onPromptInstructionsChanged" />
+            </UFormField>
 
-          <p v-if="suggestionError" role="alert" class="text-sm text-error">{{ suggestionError }}</p>
-          <p v-if="formError" role="alert" class="text-sm text-error">{{ formError }}</p>
-          <div class="flex flex-wrap items-center gap-2">
-            <UButton :label="formMode === 'edit' ? 'Save changes' : 'Save prompt'" icon="i-lucide-save" :loading="savingId !== ''" :disabled="suggesting || suggestionScheduled" @click="savePrompt" />
-            <UButton v-if="formMode === 'edit' && selectedPrompt && !selectedPrompt.isDefault" label="Make default" color="neutral" variant="outline" :loading="savingId === selectedPromptId" @click="makeDefault" />
-            <span v-else-if="formMode === 'edit' && selectedPrompt?.isDefault" class="text-sm text-muted">This is the default prompt for {{ activeGroup.title.toLowerCase() }}.</span>
-          </div>
-        </section>
+            <p v-if="suggestionError" role="alert" class="text-sm text-error">{{ suggestionError }}</p>
+            <p v-if="formError" role="alert" class="text-sm text-error">{{ formError }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton :label="formMode === 'edit' ? 'Save changes' : 'Save prompt'" icon="i-lucide-save" :loading="savingId !== ''" :disabled="suggesting || suggestionScheduled" @click="savePrompt" />
+              <UButton v-if="formMode === 'edit' && selectedPrompt && !selectedPrompt.isDefault" label="Make default" color="neutral" variant="outline" :loading="savingId === selectedPromptId" @click="makeDefault" />
+              <span v-else-if="formMode === 'edit' && selectedPrompt?.isDefault" class="text-sm text-muted">Default for {{ activeGroup.title.toLowerCase() }}</span>
+            </div>
+          </section>
+          <p v-else class="py-4 text-sm text-muted">Choose a prompt type or add a prompt to start editing.</p>
 
-        <section v-if="visibleLearnings.length" class="mt-10 border-t border-default pt-5" aria-labelledby="learnings-title">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <div>
+          <aside class="border-t border-default pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0" aria-labelledby="learnings-title">
+            <div class="flex items-baseline justify-between gap-2">
               <h3 id="learnings-title" class="font-semibold text-highlighted">Research learnings</h3>
-              <p class="mt-1 text-sm text-muted">Optional suggestions from cited articles. Add one to a prompt to review it before saving.</p>
+              <span v-if="visibleLearnings.length" class="text-xs text-muted">{{ visibleLearnings.length }}</span>
             </div>
-            <span class="text-xs text-muted">{{ visibleLearnings.length }} suggestions</span>
-          </div>
-          <ul class="mt-3 divide-y divide-default">
-            <li v-for="learning in visibleLearnings" :key="learning.index" class="flex flex-wrap items-start justify-between gap-3 py-4">
-              <div class="min-w-0 flex-1">
+            <p class="mt-1 text-sm leading-6 text-muted">Add useful findings from cited articles to a prompt.</p>
+            <ul v-if="visibleLearnings.length" class="mt-3 divide-y divide-default">
+              <li v-for="learning in visibleLearnings" :key="learning.index" class="py-4 first:pt-2">
                 <h4 class="text-sm font-medium text-highlighted">{{ learning.title }}</h4>
                 <p class="mt-1 text-sm leading-6 text-muted">{{ learning.instruction }}</p>
-                <p class="mt-1 text-xs text-muted">For {{ groups.find(group => group.scope === learning.scope && group.template === learning.template)?.title || 'prompt' }}</p>
-                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <p class="mt-2 text-xs text-muted">For {{ groups.find(group => group.scope === learning.scope && group.template === learning.template)?.title || 'prompt' }}</p>
+                <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
                   <a v-for="source in learning.sources" :key="source.url" :href="source.url" target="_blank" rel="noopener noreferrer" class="text-primary underline underline-offset-4">{{ source.title }}</a>
                 </div>
-              </div>
-              <div class="flex shrink-0 items-center gap-2">
-                <UButton v-if="!addedLearnings.includes(learning.index)" label="Add to prompt" icon="i-lucide-plus" size="sm" variant="outline" color="neutral" @click="addLearning(learning, learning.index)" />
-                <span v-else class="text-xs font-medium text-primary">Added to unsaved edits</span>
-                <UButton v-if="!addedLearnings.includes(learning.index)" label="Dismiss" color="neutral" variant="ghost" size="sm" @click="dismissedLearnings.push(learning.index)" />
-              </div>
-            </li>
-          </ul>
-        </section>
-        <p v-else class="mt-10 border-t border-default pt-5 text-sm text-muted">Research learnings will appear here after a research run finds useful, cited patterns.</p>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  <UButton v-if="!addedLearnings.includes(learning.index)" label="Add to prompt" icon="i-lucide-plus" size="xs" @click="addLearning(learning, learning.index)" />
+                  <span v-else class="text-xs font-medium text-primary">Added to unsaved edits</span>
+                  <UButton v-if="!addedLearnings.includes(learning.index)" label="Dismiss" color="neutral" variant="ghost" size="xs" @click="dismissedLearnings.push(learning.index)" />
+                </div>
+              </li>
+            </ul>
+            <p v-else class="mt-4 text-sm leading-6 text-muted">Suggestions from research will appear here when useful patterns are found.</p>
+          </aside>
+        </div>
       </div>
     </div>
   </section>
