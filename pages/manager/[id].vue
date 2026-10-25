@@ -34,13 +34,13 @@
 								</div>
 							</div>
 							<dl class="text-right lg:text-left">
-								<dt class="text-xs text-stone-300 lg:text-sm">Season points</dt>
-								<dd class="mt-1 text-4xl font-black tracking-tight tabular-nums text-primary lg:text-6xl">{{ formatNumber(managerData.summary_overall_points) }}</dd>
+								<dt class="text-xs font-medium leading-4 text-stone-400">Season points</dt>
+								<dd class="mt-1 font-sans text-4xl font-bold leading-none tracking-tight tabular-nums text-primary">{{ formatNumber(managerData.summary_overall_points) }}</dd>
 							</dl>
 						</div>
 						<dl class="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
-							<div><dt class="text-xs text-stone-400">Overall rank</dt><dd class="mt-1 text-xl font-bold tabular-nums text-white">{{ formatNumber(managerData.summary_overall_rank) }}</dd></div>
-							<div><dt class="text-xs text-stone-400">Gameweek rank</dt><dd class="mt-1 text-xl font-bold tabular-nums text-white">{{ formatNumber(managerData.summary_event_rank) }}</dd></div>
+							<div><dt class="text-xs font-medium leading-4 text-stone-400">Overall rank</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ formatNumber(managerData.summary_overall_rank) }}</dd></div>
+							<div><dt class="text-xs font-medium leading-4 text-stone-400">Gameweek rank</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ formatNumber(managerData.summary_event_rank) }}</dd></div>
 						</dl>
 					</section>
 

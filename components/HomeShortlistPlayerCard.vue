@@ -20,7 +20,7 @@
           <p class="text-xs font-semibold uppercase tracking-[0.12em] text-white/75">{{ team?.name || 'Club unavailable' }} · {{ positionLabel }}</p>
           <div class="mt-1 flex flex-wrap items-center gap-2"><h3 class="text-[1.75rem] font-black leading-none tracking-tight text-white [overflow-wrap:anywhere]">{{ player.web_name }}</h3><PlayerAge :player="player" class="text-white/80" /></div>
         </div>
-        <span class="shrink-0 rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold tabular-nums text-white">£{{ (player.now_cost / 10).toFixed(1) }}m</span>
+        <span class="shrink-0 rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-sans text-lg font-bold leading-6 tabular-nums text-white">£{{ (player.now_cost / 10).toFixed(1) }}m</span>
       </div>
     </NuxtLink>
 
@@ -31,9 +31,9 @@
         <p v-if="buyEvidence.caution" class="mt-1 text-xs leading-5 text-amber-200">{{ buyEvidence.caution }}</p>
       </div>
       <div class="border-b border-white/10 py-4">
-        <p class="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-stone-400">{{ leadStat.label }}</p>
+        <p class="text-xs font-medium leading-4 text-stone-400">{{ leadStat.label }}</p>
         <div class="mt-1 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <p class="font-serif text-[2.5rem] font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">{{ leadStat.value }}</p>
+          <p class="font-sans text-4xl font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">{{ leadStat.value }}</p>
           <div class="flex min-h-10 items-center justify-end gap-2">
             <p v-if="player.status && player.status !== 'a'" class="flex max-w-28 items-center gap-1.5 text-xs leading-4" :class="availability.color">
               <UIcon :name="availability.icon" class="size-3.5 shrink-0" aria-hidden="true" />
@@ -47,8 +47,8 @@
       <div class="flex min-w-0 items-center gap-2 border-b border-white/10 py-2.5">
         <dl class="grid min-w-0 flex-1 grid-cols-3 divide-x divide-white/10 text-center">
           <div v-for="stat in secondaryStats" :key="stat.label" class="px-1">
-            <dt class="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-stone-400">{{ stat.label }}</dt>
-            <dd class="mt-1 font-serif text-lg font-bold tabular-nums text-white">{{ stat.value }}</dd>
+            <dt class="text-xs font-medium leading-4 text-stone-400">{{ stat.label }}</dt>
+            <dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ stat.value }}</dd>
           </div>
         </dl>
         <PlayerWatchlistButton v-if="sortKey !== 'form'" :player="player" />

@@ -10,7 +10,7 @@
 					<summary class="cursor-pointer list-none rounded-md focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
 						<span class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
 							<span class="text-sm font-semibold leading-5 text-stone-200 [overflow-wrap:anywhere]">{{ league.name }}</span>
-							<span class="flex items-center gap-1.5"><span class="sr-only">Current rank </span><span class="text-lg font-bold leading-5 tabular-nums text-white">#{{ number(league.entry_rank) }}</span><UIcon name="i-lucide-chevron-down" class="size-3 shrink-0 text-stone-500 transition-transform group-open:rotate-180" aria-hidden="true" /></span>
+							<span class="flex items-center gap-1.5"><span class="sr-only">Current rank </span><span class="font-sans text-lg font-bold leading-6 tabular-nums text-white">#{{ number(league.entry_rank) }}</span><UIcon name="i-lucide-chevron-down" class="size-3 shrink-0 text-stone-500 transition-transform group-open:rotate-180" aria-hidden="true" /></span>
 						</span>
 						<span class="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
 							<span class="inline-flex items-center gap-1 tabular-nums" :class="movementClass(league)"><UIcon :name="league.rankMovement.icon" class="size-3.5" aria-hidden="true" />{{ hasRank(league.entry_rank) && hasRank(league.entry_last_rank) ? league.rankMovement.label : 'Movement unavailable' }}</span>
@@ -25,8 +25,8 @@
 						</span>
 					</summary>
 					<dl class="mt-3 grid grid-cols-2 gap-3 border-t border-white/10 pt-3 text-xs">
-						<div><dt class="text-stone-400">Previous rank</dt><dd class="mt-1 font-semibold tabular-nums text-white">{{ number(league.entry_last_rank) }}</dd></div>
-						<div><dt class="text-stone-400">Percentile</dt><dd class="mt-1 font-semibold tabular-nums text-white">{{ league.entry_percentile_rank == null ? 'Unavailable' : `${league.entry_percentile_rank}%` }}</dd></div>
+						<div><dt class="text-xs font-medium leading-4 text-stone-400">Previous rank</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ number(league.entry_last_rank) }}</dd></div>
+						<div><dt class="text-xs font-medium leading-4 text-stone-400">Percentile</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ league.entry_percentile_rank == null ? 'Unavailable' : `${league.entry_percentile_rank}%` }}</dd></div>
 					</dl>
 				</details>
 			</li>

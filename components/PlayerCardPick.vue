@@ -1,7 +1,8 @@
 <template>
 	<article class="group relative flex h-full min-w-0 flex-col text-white" :class="compact ? 'text-center' : 'overflow-hidden rounded-xl border border-white/10 bg-[#101216]'" :style="cardStyle">
-		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative isolate block min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-			<div class="relative overflow-hidden" :class="compact ? 'h-20 sm:h-28' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
+		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative isolate block min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" :class="compact ? 'transition-transform duration-200 motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1 motion-reduce:transition-none' : ''">
+			<div v-if="compact" aria-hidden="true" class="pointer-events-none absolute inset-x-[15%] top-14 h-4 rounded-[50%] bg-black/35 blur-sm sm:top-20" />
+			<div class="relative overflow-hidden" :class="compact ? 'h-18 sm:h-24' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
 				<PlayerPortrait :player="player" :alt="playerName" :hover="true" class="h-full w-full" />
 				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 z-20 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
 				<PlayerDisciplineBadges v-if="!compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-1 top-1 z-30" />
@@ -11,9 +12,9 @@
 					<h3 class="mt-1 text-base font-bold leading-tight text-white [overflow-wrap:anywhere]">{{ playerName }}</h3><PlayerAge :player="player" compact class="mt-1 text-white/80" />
 				</div>
 			</div>
-			<PlayerDisciplineBadges v-if="compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-20 z-10 -translate-y-[calc(50%_+_6px)] sm:top-28" />
+			<PlayerDisciplineBadges v-if="compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-18 z-10 -translate-y-[calc(50%_+_6px)] sm:top-24" />
 			<template v-if="compact">
-				<p class="relative z-20 rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white [overflow-wrap:anywhere] sm:px-1 sm:text-xs">
+				<p class="relative z-20 rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white transition-colors group-hover:bg-[#173d2c] group-focus-within:bg-[#173d2c] [overflow-wrap:anywhere] motion-reduce:transition-none sm:px-1 sm:text-xs">
 					{{ playerName }}
 				</p>
         <p class="flex flex-wrap items-center justify-center gap-x-1 rounded-b-md bg-[#07140f]/95 px-0.5 py-1 text-[0.6rem] tabular-nums text-emerald-100 sm:text-xs"><span>£{{ costLabel }}</span><span aria-hidden="true">·</span><span class="font-bold text-primary">{{ totalPoints }}<span class="sr-only"> season</span> pts</span></p>
@@ -22,14 +23,14 @@
 		<PlayerWatchlistButton v-if="!compact" :player="player" class="absolute right-1 top-1 z-10" />
 		<div v-if="!compact" class="flex flex-1 flex-col px-3 pb-3 sm:px-4 sm:pb-4">
 			<dl class="grid grid-cols-3 items-end gap-2">
-				<div><dt class="text-[0.65rem] text-stone-400">Current price</dt><dd class="mt-1 text-sm font-semibold tabular-nums">£{{ costLabel }}</dd></div>
-				<div class="text-center"><dt class="text-[0.65rem] text-stone-400">Season pts</dt><dd class="mt-1 text-xl font-bold tabular-nums text-[var(--club-light)]">{{ totalPoints }}</dd></div>
-				<div class="text-right"><dt class="text-[0.65rem] text-stone-400">{{ expectedPointsLabel }}</dt><dd class="mt-1 text-xl font-bold tabular-nums text-white" :title="expectedPoints == null ? 'FPL has not supplied expected points for the next gameweek.' : 'FPL expected points for the next gameweek'">{{ expectedPoints == null ? '—' : expectedPoints.toFixed(1) }}</dd></div>
+				<div><dt class="text-xs font-medium leading-4 text-stone-400">Current price</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums">£{{ costLabel }}</dd></div>
+				<div class="text-center"><dt class="text-xs font-medium leading-4 text-stone-400">Season pts</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-[var(--club-light)]">{{ totalPoints }}</dd></div>
+				<div class="text-right"><dt class="text-xs font-medium leading-4 text-stone-400">{{ expectedPointsLabel }}</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white" :title="expectedPoints == null ? 'FPL has not supplied expected points for the next gameweek.' : 'FPL expected points for the next gameweek'">{{ expectedPoints == null ? '—' : expectedPoints.toFixed(1) }}</dd></div>
 			</dl>
 			<dl v-if="detailed" class="mt-3 grid grid-cols-3 gap-x-2 gap-y-3 border-t border-white/10 pt-3 text-center">
 				<div v-for="stat in playerStats" :key="stat.label" class="min-w-0">
-					<dt class="text-[0.65rem] text-stone-400">{{ stat.label }}</dt>
-					<dd class="mt-1 text-base font-bold tabular-nums text-white">{{ stat.value }}</dd>
+					<dt class="text-xs font-medium leading-4 text-stone-400">{{ stat.label }}</dt>
+					<dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ stat.value }}</dd>
 				</div>
 			</dl>
 			<p v-if="news" class="mt-3 flex items-start gap-2 border-t border-white/10 pt-3 text-xs leading-5 text-amber-200"><UIcon name="i-lucide-triangle-alert" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />{{ news }}</p>

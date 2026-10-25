@@ -184,6 +184,8 @@ The local production build returned HTTP 200 for `/watchlist`, rendered `Watchli
 
 **Data-loading correction (24 October 2026).** Following reports of truncated history and missing fixtures until a hard refresh, the watchlist now renders its own `useFetch` bootstrap response rather than relying on a shared Pinia store updated as a request side effect. Bootstrap and player-detail requests revalidate browser caches. The chart now includes the last seven completed gameweeks instead of six. A player-detail response must include both history and fixture arrays; incomplete responses show the existing error/retry state. Local read-only API checks returned completed GWs 1–7, player history for GWs 1–8, and upcoming player fixtures. The scoped diff check passed. No build or automated tests were run for this small fix, and the normal-navigation journey has not been browser-verified.
 
+**Search access (25 October 2026).** The watchlist navbar now offers the homepage search icon. Removed the separate Find players button. Browse players and Search current players use the existing lime accent and dark border styling and open the shared search surface without leaving the watchlist. Shared component details are in `HOMEPAGE_UX_PLAN.md`. Source review and scoped diff checks only; no tests, build, browser, or hosted verification for this small change.
+
 **Hosted status:** Watchlist navigation, save/remove behavior, hosted cache behavior, and deployment remain unverified on Vercel because deployment was not requested.
 
 ### 8. P2: Player pages explain the data less than they help make a decision

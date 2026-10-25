@@ -48,7 +48,7 @@
 							{{ playerName }}
 						</h3><PlayerAge :player="player" class="text-white/80" /></div>
 					</div>
-					<span class="shrink-0 rounded-lg border border-white/15 bg-black/55 px-2.5 py-2 font-serif text-lg font-bold tabular-nums text-white">
+					<span class="shrink-0 rounded-lg border border-white/15 bg-black/55 px-2.5 py-2 font-sans text-lg font-bold leading-6 tabular-nums text-white">
 						{{ playerPrice }}
 					</span>
 				</div>
@@ -58,8 +58,8 @@
 		<div class="flex flex-1 flex-col px-4 pb-4">
 			<div class="grid min-h-[6.5rem] shrink-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-white/10 py-3">
 				<div class="min-w-0">
-					<p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-stone-400">{{ leadStat.label }}</p>
-					<p class="mt-1 font-serif text-[2.25rem] font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">
+					<p class="text-xs font-medium leading-4 text-stone-400">{{ leadStat.label }}</p>
+					<p class="mt-1 font-sans text-4xl font-bold leading-none tracking-tight tabular-nums text-[var(--club-light)]">
 						{{ leadStat.value }}
 					</p>
 				</div>
@@ -73,8 +73,8 @@
 
 			<dl class="grid min-h-[5rem] shrink-0 min-w-0 grid-cols-3 items-center divide-x divide-white/10 border-b border-white/10 py-2.5 text-center">
 				<div v-for="stat in secondaryStats" :key="stat.key" class="min-w-0 px-1">
-					<dt class="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-stone-400">{{ stat.label }}</dt>
-					<dd class="mt-1 font-serif text-lg font-bold tabular-nums text-white">{{ stat.value }}</dd>
+					<dt class="text-xs font-medium leading-4 text-stone-400">{{ stat.label }}</dt>
+					<dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ stat.value }}</dd>
 				</div>
 			</dl>
 
@@ -85,6 +85,7 @@
 				:error="detailError"
 			/>
 			<WatchlistPointsChart
+				full-width
 				:player-id="player.id"
 				:events="bootstrapData?.events || []"
 				:history="playerDetails?.history || []"

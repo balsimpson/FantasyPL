@@ -68,8 +68,8 @@
         </span>
       </span>
 
-      <span :title="metricTitle || undefined" :class="compact ? 'min-w-[3.75rem] text-center' : 'pt-0.5 text-right text-sm font-bold leading-5 tabular-nums text-white'">
-        <span v-if="compact" class="flex items-center justify-end gap-1 border-b border-lime-100/25 pb-1 text-xl leading-6 text-lime-100">
+      <span :title="metricTitle || undefined" class="font-sans" :class="compact ? 'min-w-[3.75rem] text-center' : 'pt-0.5 text-right text-lg font-bold leading-6 tabular-nums text-white'">
+        <span v-if="compact" class="flex items-center justify-end gap-1 border-b border-lime-100/25 pb-1 text-lg leading-6 text-lime-100">
           <span class="font-bold tabular-nums">{{ metricValue }}</span>
           <span v-if="metricUnit" class="text-[0.62rem] font-semibold">{{ metricUnit }}</span>
         </span>

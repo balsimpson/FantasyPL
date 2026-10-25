@@ -2,7 +2,7 @@
 	<main id="main-content" class="site-content-rail flex w-full flex-col gap-7 py-5 sm:py-7">
 		<section
 			aria-labelledby="watchlist-title"
-			class="flex min-w-0 flex-col gap-5 border-b border-white/10 pb-5"
+			class="flex min-w-0 flex-col gap-5 pb-5"
 		>
 			<div class="flex min-w-0 flex-wrap items-center justify-between gap-4">
 				<div class="min-w-0">
@@ -13,9 +13,6 @@
 						Compare recent returns and upcoming fixtures for the players you are considering.
 					</p>
 				</div>
-				<UButton to="/" color="primary" icon="i-lucide-search" class="w-fit">
-					Find players
-				</UButton>
 			</div>
 			<HomeDeadlinePanel
 				:gameweek="nextGameweek?.id"
@@ -42,27 +39,43 @@
 			</UButton>
 		</div>
 
-		<div v-else-if="!savedCodes.length" class="grid min-h-64 place-items-center border-y border-white/10 py-10 text-center">
+		<div v-else-if="!savedCodes.length" class="grid min-h-64 place-items-center py-10 text-center">
 			<div class="max-w-lg">
 				<UIcon name="i-lucide-bookmark-plus" class="size-9 text-lime-300" aria-hidden="true" />
-				<h2 class="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">Save players as you compare them.</h2>
+				<h2 class="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">Build your transfer shortlist</h2>
 				<p class="mt-3 text-sm leading-6 text-stone-300 sm:text-base">
-					Your shortlist will bring their form and fixture runs together before the next deadline.
+					Use the bookmark icon on a player to save them here. Compare their form and upcoming fixtures before your next transfer.
 				</p>
-				<UButton class="mt-5" to="/" color="primary" icon="i-lucide-search">
+				<UButton
+					:class="searchButtonClass"
+					color="neutral"
+					variant="outline"
+					icon="i-lucide-search"
+					aria-haspopup="dialog"
+					:aria-expanded="searchOpen"
+					@click="openPlayerSearch"
+				>
 					Browse players
 				</UButton>
 			</div>
 		</div>
 
-		<div v-else-if="!savedPlayers.length" class="grid min-h-64 place-items-center border-y border-white/10 py-10 text-center">
+		<div v-else-if="!savedPlayers.length" class="grid min-h-64 place-items-center py-10 text-center">
 			<div class="max-w-lg">
 				<UIcon name="i-lucide-users-round" class="size-9 text-lime-300" aria-hidden="true" />
 				<h2 class="mt-3 text-2xl font-bold tracking-tight text-white">No saved players are in the current FPL data.</h2>
 				<p class="mt-3 text-sm leading-6 text-stone-300">
 					The current player list may have changed. Search it to start a fresh shortlist.
 				</p>
-				<UButton class="mt-5" to="/" color="primary" icon="i-lucide-search">
+				<UButton
+					:class="searchButtonClass"
+					color="neutral"
+					variant="outline"
+					icon="i-lucide-search"
+					aria-haspopup="dialog"
+					:aria-expanded="searchOpen"
+					@click="openPlayerSearch"
+				>
 					Search current players
 				</UButton>
 			</div>
@@ -91,7 +104,7 @@
 				H = home · A = away · Fixture difficulty (FDR): 1 easiest, 5 hardest.
 			</p>
 
-			<div v-if="!filteredPlayers.length" class="flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-6">
+			<div v-if="!filteredPlayers.length" class="flex flex-wrap items-center justify-between gap-3 py-6">
 				<p class="text-sm text-stone-300">No saved players match this position.</p>
 				<UButton color="neutral" variant="outline" @click="resetPosition">
 					Show all positions
@@ -108,11 +121,24 @@
 				</li>
 			</ul>
 		</section>
+		<PlayerSearchSurface>
+			<HomePlayerDiscovery
+				:players="bootstrap?.elements || []"
+				:teams="bootstrap?.teams || []"
+				:fixtures="fixtureData?.fixtures || []"
+				:gameweeks="searchGameweeks"
+				:fixtures-available="Array.isArray(fixtureData?.fixtures)"
+				:fixtures-loading="fixturesStatus === 'pending'"
+				:loading="pending"
+				:error="Boolean(dataError) || !hasPlayerCatalog"
+				@retry="retrySearch"
+			/>
+		</PlayerSearchSurface>
 	</main>
 </template>
 
 <script setup lang="ts">
-import { SHORTLIST_POSITIONS } from "~/utils/homepage-shortlist";
+import { SHORTLIST_POSITIONS, getShortlistGameweeks } from "~/utils/homepage-shortlist";
 import { WATCHLIST_SORTS, useWatchlistView } from "~/composables/useWatchlistView";
 
 const { data: bootstrap, pending, error: requestError, refresh } = await useFetch(
@@ -125,6 +151,18 @@ const { data: bootstrap, pending, error: requestError, refresh } = await useFetc
 	},
 );
 const { savedCodes, hasLoaded: watchlistReady } = useWatchlist();
+const { isOpen: searchOpen, open: openPlayerSearch } = usePlayerSearchSurface();
+const { data: fixtureData, status: fixturesStatus, refresh: refreshFixtures } = useLazyAsyncData(
+	"watchlist-search-fixtures",
+	() => $fetch("/api/homepage-fixtures"),
+	{ server: false, immediate: false },
+);
+watch(searchOpen, (open) => {
+	if (open && !fixtureData.value && fixturesStatus.value !== "pending") refreshFixtures();
+}, { immediate: true });
+const searchGameweeks = computed(() => getShortlistGameweeks(bootstrap.value?.events || []));
+const searchButtonClass = "mt-5 min-h-11 justify-center rounded-lg border border-lime-300/30 bg-lime-300/10 px-5 font-semibold text-lime-300 ring-0 transition-colors hover:border-lime-300/50 hover:bg-lime-300/20 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300";
+const retrySearch = () => Promise.all([refresh(), refreshFixtures()]);
 
 const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
 const dataError = computed(() => requestError.value);

@@ -5,23 +5,15 @@
 			<div v-if="result && result.suggestions.length" class="flex items-center gap-2">
 				<span aria-live="polite" aria-atomic="true" class="min-w-8 text-center text-xs tabular-nums text-stone-400">{{ activeSlide + 1 }} / {{ result.suggestions.length }}</span>
 				<div v-if="result.suggestions.length > 1" class="flex items-center gap-1">
-					<UButton
-						icon="i-lucide-chevron-left"
-						color="neutral"
-						variant="ghost"
-						size="xs"
-						class="size-8 justify-center text-stone-300"
+					<CarouselArrowButton
+						direction="previous"
 						aria-label="Previous recommendation"
 						aria-controls="manager-recommendations-list"
 						:disabled="activeSlide === 0"
 						@click="scrollToSlide(activeSlide - 1)"
 					/>
-					<UButton
-						icon="i-lucide-chevron-right"
-						color="neutral"
-						variant="ghost"
-						size="xs"
-						class="size-8 justify-center text-stone-300"
+					<CarouselArrowButton
+						direction="next"
 						aria-label="Next recommendation"
 						aria-controls="manager-recommendations-list"
 						:disabled="activeSlide === result.suggestions.length - 1"
@@ -65,14 +57,14 @@
 					>
 						<div class="grid h-full min-w-0 grid-rows-[18rem_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)] lg:grid-rows-1">
 							<div class="relative grid h-full min-w-0 grid-cols-2 border-b border-white/10 lg:border-b-0 lg:border-r">
-								<ManagerRecommendationPlayer label="Current player" align="left" :player="suggestion.outgoing" />
+								<ManagerRecommendationPlayer label="" align="left" :player="suggestion.outgoing" />
 								<ManagerRecommendationPlayer label="Recommended player" align="right" :player="suggestion.incoming" />
 								<span class="pointer-events-none absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-[#101216] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-stone-200" aria-hidden="true">vs</span>
 							</div>
 
 							<div class="flex h-full min-h-0 min-w-0 flex-col p-3 sm:p-4">
 								<div class="min-h-0 min-w-0 flex-1 overflow-x-auto">
-									<table class="h-full w-full min-w-[15.5rem] table-fixed text-left text-sm">
+									<table class="h-full w-full min-w-[15.5rem] table-fixed text-left font-sans text-sm font-semibold leading-5 tabular-nums">
 										<caption class="sr-only">Current, recommended, and difference in player performance measures</caption>
 										<colgroup>
 											<col class="w-[39%]" />
@@ -82,19 +74,19 @@
 										</colgroup>
 										<thead>
 											<tr class="text-stone-400">
-												<th scope="col" class="pb-2 pr-2 text-left text-[0.65rem] font-medium leading-tight sm:text-xs">Measure</th>
-												<th scope="col" class="px-1 pb-2 text-right text-[0.65rem] font-medium leading-tight sm:text-xs">Current</th>
-												<th scope="col" class="px-1 pb-2 text-right text-[0.65rem] font-medium leading-tight sm:text-xs">Recommended</th>
-												<th scope="col" aria-label="Difference, recommended minus current" title="Recommended minus current" class="pb-2 pl-1 text-right text-[0.65rem] font-medium leading-tight sm:text-xs">Δ</th>
+												<th scope="col" class="pb-2 pr-2 text-left text-xs font-medium leading-4">Measure</th>
+												<th scope="col" class="px-1 pb-2 text-right text-xs font-medium leading-4">Current</th>
+													<th scope="col" class="px-1 pb-2 text-right text-xs font-medium leading-4 [overflow-wrap:anywhere]">Recommended</th>
+												<th scope="col" aria-label="Difference, recommended minus current" title="Recommended minus current" class="pb-2 pl-1 text-right text-xs font-medium leading-4">Δ</th>
 											</tr>
 										</thead>
 										<tbody class="divide-y divide-white/5 tabular-nums">
 											<tr v-for="metric in getMetricRows(suggestion, result.nextGameweek)" :key="metric.label">
-												<th scope="row" class="py-2 pr-2 text-left font-medium leading-tight text-stone-300">{{ metric.label }}</th>
+												<th scope="row" class="py-2 pr-2 text-left text-xs font-medium leading-4 text-stone-400">{{ metric.label }}</th>
 												<td class="px-1 py-2 text-right text-white [overflow-wrap:anywhere]">{{ metric.currentValue }}</td>
 												<td class="px-1 py-2 text-right font-semibold text-white [overflow-wrap:anywhere]">{{ metric.recommendedValue }}</td>
 												<td class="py-2 pl-1 text-right">
-													<span v-if="metric.delta !== null" class="inline-flex items-center justify-end gap-1 whitespace-nowrap tabular-nums" :class="getDeltaClass(metric.delta)">
+													<span v-if="metric.delta !== null" class="inline-flex items-center justify-end gap-1 whitespace-nowrap text-xs font-semibold leading-4 tabular-nums" :class="getDeltaClass(metric.delta)">
 														<UIcon v-if="metric.delta > 0" name="i-lucide-arrow-up" class="size-3 shrink-0" aria-hidden="true" />
 														<UIcon v-else-if="metric.delta < 0" name="i-lucide-arrow-down" class="size-3 shrink-0" aria-hidden="true" />
 														{{ metric.deltaLabel }}
@@ -143,6 +135,7 @@
 </template>
 
 <script setup>
+import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 const props = defineProps({ managerId: { type: [String, Number], required: true } });
 const loading = ref(true);
 const errorMessage = ref("");

@@ -19,11 +19,11 @@
           <li v-for="manager in rankedManagers" :key="manager.id" class="flex items-center">
             <NuxtLink :to="`/manager/${manager.id}`" class="group box-border flex min-w-0 flex-1 items-center justify-between gap-3 rounded-md border border-transparent py-3.5 pl-5 pr-2 transition-colors hover:border-white/10 hover:bg-white/[0.08] focus-visible:border-lime-300 focus-visible:bg-white/[0.08] focus-visible:outline-none" @click="open = false">
               <div class="min-w-0">
-                <span class="block text-sm font-semibold text-white [overflow-wrap:anywhere]">{{ manager.teamName }}</span>
-                <span v-if="manager.managerName" class="mt-1 block text-xs text-stone-400 [overflow-wrap:anywhere]">{{ manager.managerName }}</span>
+                <span class="block text-base font-bold text-white [overflow-wrap:anywhere]">{{ manager.managerName || manager.teamName }}</span>
+                <span v-if="manager.managerName" class="mt-1 block text-xs text-stone-400 [overflow-wrap:anywhere]">{{ manager.teamName }}</span>
               </div>
               <div class="flex shrink-0 items-center gap-2">
-                <span class="rounded border border-white/15 px-1.5 py-1 text-[11px] leading-none text-stone-300 tabular-nums">{{ manager.points !== null ? `${manager.points.toLocaleString('en-GB')} pts` : loadingPoints ? 'Loading…' : 'Unavailable' }}</span>
+                <span class="text-sm text-stone-300 tabular-nums">{{ manager.points !== null ? `${manager.points.toLocaleString('en-GB')} pts` : loadingPoints ? 'Loading…' : 'Unavailable' }}</span>
                 <UIcon name="i-lucide-chevron-right" class="size-4 text-stone-500 group-hover:text-lime-300" aria-hidden="true" />
               </div>
             </NuxtLink>

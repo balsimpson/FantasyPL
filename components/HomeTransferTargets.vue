@@ -11,8 +11,8 @@
         <label for="buy-price" class="sr-only">Maximum price</label>
         <USelect id="buy-price" v-model="maxPrice" :items="SHORTLIST_PRICE_LIMITS" variant="none" size="sm" class="w-32 shrink-0" :ui="selectUi" />
         <div v-if="targets.length" class="flex shrink-0 items-center gap-1">
-          <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" size="sm" class="text-stone-300 hover:bg-white/5 hover:text-white" aria-label="Previous recommended buys" :disabled="!canScrollPrevious" @click="scrollTargets(-1)" />
-          <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" size="sm" class="text-stone-300 hover:bg-white/5 hover:text-white" aria-label="Next recommended buys" :disabled="!canScrollNext" @click="scrollTargets(1)" />
+          <CarouselArrowButton direction="previous" aria-label="Previous recommended buys" :disabled="!canScrollPrevious" @click="scrollTargets(-1)" />
+          <CarouselArrowButton direction="next" aria-label="Next recommended buys" :disabled="!canScrollNext" @click="scrollTargets(1)" />
         </div>
       </div>
     </div>
@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 import { SHORTLIST_POSITIONS, SHORTLIST_PRICE_LIMITS, type ShortlistPlayer, type ShortlistFixture } from "~/utils/homepage-shortlist";
 import { availableBuy, type HomepageBuyIdea } from "~/shared/homepage-buys";
 

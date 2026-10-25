@@ -64,32 +64,19 @@
       <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
     </main>
 
-    <UModal
-      v-model:open="homepageSearchOpen"
-      title="Search players"
-      description="Search, filter and compare the full player list."
-      fullscreen
-      scrollable
-      :content="searchModalContent"
-      :ui="searchModalUi"
-      @after:enter="focusPlayerSearch"
-    >
-      <template #body>
-        <div class="site-content-rail mx-auto w-full py-2 sm:py-4">
-          <HomePlayerDiscovery
-            :players="bootstrap?.elements || []"
-            :teams="bootstrap?.teams || []"
-            :fixtures="fixturesList"
-            :gameweeks="shortlistGameweeks"
-            :fixtures-available="hasFixtures"
-            :fixtures-loading="fixturesPending && !hasFixtures"
-            :loading="bootstrapPending"
-            :error="bootstrapFailed"
-            @retry="retryBootstrap"
-          />
-        </div>
-      </template>
-    </UModal>
+    <PlayerSearchSurface>
+      <HomePlayerDiscovery
+        :players="bootstrap?.elements || []"
+        :teams="bootstrap?.teams || []"
+        :fixtures="fixturesList"
+        :gameweeks="shortlistGameweeks"
+        :fixtures-available="hasFixtures"
+        :fixtures-loading="fixturesPending && !hasFixtures"
+        :loading="bootstrapPending"
+        :error="bootstrapFailed"
+        @retry="retryBootstrap"
+      />
+    </PlayerSearchSurface>
   </div>
 </template>
 
@@ -101,25 +88,6 @@ definePageMeta({
 });
 
 const canonicalUrl = useCanonicalUrl();
-const route = useRoute();
-const homepageSearchOpen = useState("homepage-player-search-open", () => false);
-const homepageSearchOrigin = useState("homepage-player-search-origin", () => ({ x: 0, y: 0 }));
-const searchModalContent = computed(() => ({
-  style: { transformOrigin: `${homepageSearchOrigin.value.x}px ${homepageSearchOrigin.value.y}px` },
-}));
-const searchModalUi = {
-  content: "min-h-dvh bg-[#050608] text-stone-50",
-  header: "sticky top-0 z-30 h-14 min-h-14 shrink-0 border-b border-white/10 bg-[#0b0d10] px-4 py-3 sm:px-6",
-  body: "min-w-0 px-0 py-4 sm:py-6",
-};
-
-const focusPlayerSearch = () => {
-  nextTick(() => document.getElementById("player-search")?.focus({ preventScroll: true }));
-};
-
-watch(() => route.path, (path) => {
-  if (path !== "/") homepageSearchOpen.value = false;
-});
 
 useHead({
   link: [{ rel: "canonical", href: canonicalUrl }],

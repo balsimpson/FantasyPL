@@ -33,7 +33,7 @@
 						<span v-if="savedPlayerCount" aria-hidden="true" class="text-xs text-stone-400 tabular-nums">{{ savedPlayerCount }}</span>
 					</NuxtLink>
 					<UButton
-						v-if="route.path === '/'"
+						v-if="route.path === '/' || route.path === '/watchlist'"
 						icon="i-lucide-search"
 						color="neutral"
 						variant="ghost"
@@ -57,13 +57,10 @@
 
 <script setup lang="ts">
 const route = useRoute();
-const homepageSearchOpen = useState("homepage-player-search-open", () => false);
-const homepageSearchOrigin = useState("homepage-player-search-origin", () => ({ x: 0, y: 0 }));
-const openHomepageSearch = (event: MouseEvent) => {
-	const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-	homepageSearchOrigin.value = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
-	homepageSearchOpen.value = true;
-};
+const { isOpen: homepageSearchOpen, open: openHomepageSearch } = usePlayerSearchSurface();
+watch(() => route.path, () => {
+	homepageSearchOpen.value = false;
+});
 const { savedCodes, hasLoaded } = useWatchlist();
 const savedPlayerCount = computed(() => hasLoaded.value ? savedCodes.value.length : 0);
 </script>

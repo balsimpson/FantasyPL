@@ -1,6 +1,6 @@
 # FPL Insights design direction
 
-Updated: 24 October 2026.
+Updated: 25 October 2026.
 
 This document defines the shared FPL Insights visual direction and site content rail, with the homepage as its primary reference. It keeps the current identity and describes how the homepage should feel as one connected decision path. It does not replace [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md), which owns section order, behavior, affected files, and implementation status.
 
@@ -56,6 +56,8 @@ Club and kit colors belong inside player-specific content, where they help ident
 
 Use tabular numerals for points, prices, minutes, and transfer counts so columns scan cleanly. Pair every number with a clear label and relevant period. Keep player and club names readable; do not truncate them into cryptic fragments.
 
+**Shared stat typography (25 October 2026).** Manager, watchlist, and homepage stats use Public Sans with tabular numerals. Regular card values, prices, recap totals, and ranks use `font-sans text-lg font-bold leading-6 tabular-nums` (18px). Lead card values and the manager's season total use `font-sans text-4xl font-bold leading-none tracking-tight tabular-nums` (36px). Stat labels use sentence case and `text-xs font-medium leading-4` (12px), with muted colour. Comparison tables and compact recap values use `font-sans text-sm font-semibold leading-5 tabular-nums` (14px); table deltas use 12px semibold text. Dense pitch nameplates keep their existing responsive sizes. Club highlights and gain/loss colours retain their meaning. Local source review and scoped diff checks passed; no tests, build, browser, hosted, or physical-device verification was run for this styling change.
+
 ## Cards and data presentation
 
 Use player cards as the homepage's distinctive visual element. Let portrait imagery run edge to edge within the card, then place name, club, price, and the most useful stats in a deliberate hierarchy. Use a restrained gradient only where text needs protection over an image.
@@ -68,9 +70,15 @@ Use color to support meaning, not as the only signal. Difficulty should remain u
 
 ## Responsive behavior
 
+Carousel previous/next controls use `components/CarouselArrowButton.vue`: a 32px rounded button with a subtle dark background and border, lime hover highlight, visible keyboard focus, and reduced opacity when disabled. Manager recommendations, recommended buys, recommended trades, and captain picks share this component. Local source and diff checks passed on 25 October 2026; no tests, build, or browser verification were run for this styling change.
+
 The desktop and mobile layouts use the same reading order and content rail. Desktop may place related controls side by side, but mobile stacks them without moving the primary search below secondary content.
 
 Carousels should make their direction and next item clear. Avoid nested horizontal scrolling where a player card contains a second swipe area that competes with the page carousel. On narrow screens, keep the key fixture information visible without clipping dates or club names. Controls must remain reachable by touch and keyboard.
+
+**Manager pitch perspective (25 October 2026).** `components/ManagerPitchSurface.vue` draws a projected SVG field with perspective markings, broad subtle turf bands, and darker distant grass. The owner's follow-up increases convergence to a far-end width of 70% on desktop and 89% on mobile, compresses distant field space, and lowers the far edge so forwards protrude above it. `ManagerSquadBoard.vue` has a transparent, borderless pitch wrapper, with upright portraits and full labels in position-specific rows. Your squad, the labelled lime formation, and unboxed Pitch/Gallery controls share one header; a lime underline marks the selected view. Compact `PlayerCardPick.vue` portraits have grounding shadows and a small hover/focus lift with a highlighted nameplate; reduced-motion preferences disable the lift. Badges, prices, points, bench, and Gallery remain available.
+
+Brave checks of the final refinement at 1221px, 390px, and 320px found all 11 players with no page or pitch overflow. The wrapper had no border or background. The forwards extended 74px above the turf on desktop and 60–65px on mobile; desktop pitch height was 710px. Keyboard activation switched to Gallery and restored Pitch, with no page errors. Desktop and 390px screenshots were inspected with all portraits loaded. The initial pass also checked visible keyboard focus, hover lift, reduced motion, and a light colour preference. Source/diff checks and the design detector passed. No production build, hosted verification, or physical-device check was run.
 
 ## States and accessibility
 

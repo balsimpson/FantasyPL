@@ -1,28 +1,21 @@
 <template>
 	<section aria-labelledby="manager-squad-title" class="min-w-0 space-y-4">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<div class="flex items-baseline gap-3">
-				<h2 id="manager-squad-title" class="text-xl font-bold tracking-tight text-white">Your squad</h2>
-				<span class="text-sm tabular-nums text-stone-400">{{ formation }}</span>
+		<header class="flex flex-wrap items-end justify-between gap-3">
+			<div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+				<h2 id="manager-squad-title" class="text-xl font-bold tracking-tight text-white sm:text-2xl">Your squad</h2>
+				<span class="text-xs text-stone-400">Formation <span class="ml-1 font-semibold tabular-nums text-lime-300">{{ formation }}</span></span>
 			</div>
-			<div class="flex gap-1 rounded-lg border border-white/15 bg-[#181d1c] p-1" role="group" aria-label="Squad view">
-				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="view === option.value ? 'bg-lime-300 text-lime-950 hover:bg-lime-200' : 'text-white/75 hover:bg-white/5 hover:text-white'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
+			<div class="flex shrink-0 items-center gap-1" role="group" aria-label="Squad view">
+				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-white'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
 			</div>
 		</header>
 
 		<template v-if="view === 'pitch'">
-			<div class="relative isolate overflow-hidden rounded-2xl border border-emerald-300/20 bg-[#0c3024] px-2 pb-5 pt-7 sm:px-5 sm:pt-9">
-				<div aria-hidden="true" class="pointer-events-none absolute inset-3 -z-10 border border-emerald-100/15 sm:inset-5">
-					<div class="absolute inset-x-0 top-1/2 border-t border-emerald-100/15" />
-					<div class="absolute left-1/2 top-1/2 size-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-100/15 sm:size-44" />
-					<div class="absolute inset-x-[24%] top-0 h-[13%] border-x border-b border-emerald-100/15" />
-					<div class="absolute inset-x-[24%] bottom-0 h-[13%] border-x border-t border-emerald-100/15" />
-					<div class="absolute inset-x-[38%] top-0 h-[5%] border-x border-b border-emerald-100/15" />
-					<div class="absolute inset-x-[38%] bottom-0 h-[5%] border-x border-t border-emerald-100/15" />
-				</div>
-				<div class="relative space-y-5 sm:space-y-6">
-					<ul v-for="row in pitchRows" :key="row.key" :aria-label="row.label" class="flex items-start justify-evenly gap-1 sm:gap-3">
-						<li v-for="pick in row.items" :key="pick.element.id" class="min-w-0 flex-1 basis-0 max-w-32">
+			<div class="relative isolate px-1 pb-4 sm:px-3">
+				<ManagerPitchSurface />
+				<div class="relative">
+					<ul v-for="row in pitchRows" :key="row.key" :aria-label="row.label" class="mx-auto flex items-start justify-evenly gap-1 sm:gap-3" :class="row.pitchClass">
+						<li v-for="pick in row.items" :key="pick.element.id" class="min-w-0 max-w-32 flex-1 basis-0">
 							<PlayerCardPick :pick="pick" compact />
 						</li>
 					</ul>
@@ -65,15 +58,16 @@
 </template>
 
 <script setup>
+import ManagerPitchSurface from '~/components/ManagerPitchSurface.vue';
 const props = defineProps({ squad: { type: Object, required: true } });
 const view = ref('pitch');
 const selection = ref('starting');
 const views = [{ value: 'pitch', label: 'Pitch', icon: 'i-lucide-panels-top-left' }, { value: 'gallery', label: 'Gallery', icon: 'i-lucide-layout-grid' }];
 const pitchRows = computed(() => [
-	{ key: 'Forward', label: 'Forwards' },
-	{ key: 'Midfielder', label: 'Midfielders' },
-	{ key: 'Defender', label: 'Defenders' },
-	{ key: 'Goalkeeper', label: 'Goalkeepers' },
+	{ key: 'Forward', label: 'Forwards', pitchClass: 'w-[94%] sm:w-[76%]' },
+	{ key: 'Midfielder', label: 'Midfielders', pitchClass: 'mt-2 w-full sm:mt-3 sm:w-[90%]' },
+	{ key: 'Defender', label: 'Defenders', pitchClass: 'mt-3 w-full sm:mt-5' },
+	{ key: 'Goalkeeper', label: 'Goalkeepers', pitchClass: 'mt-4 w-full sm:mt-6' },
 ].map((row) => ({ ...row, items: props.squad.groupedByType[row.key] ?? [] })).filter((row) => row.items.length));
 const formation = computed(() => ['Defender', 'Midfielder', 'Forward'].map((position) => (props.squad.groupedByType[position] ?? []).length).join('–'));
 const galleryPicks = computed(() => [...(selection.value === 'bench' ? props.squad.bench : props.squad.startingXI)].sort((a, b) => Number(b.element.element_type) - Number(a.element.element_type)));

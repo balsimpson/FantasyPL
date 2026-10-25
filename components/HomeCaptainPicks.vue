@@ -50,14 +50,15 @@
     <div class="mt-2 flex items-center justify-between">
       <p class="text-xs text-stone-400" aria-live="polite">{{ sections[activeSection]?.title }} · {{ activeSection + 1 }} of {{ sections.length }}</p>
       <div class="flex items-center gap-1">
-        <UButton icon="i-lucide-chevron-left" color="neutral" variant="outline" size="xs" aria-label="Previous pick list" :disabled="activeSection === 0" @click="scrollToSection(activeSection - 1)" />
-        <UButton icon="i-lucide-chevron-right" color="neutral" variant="outline" size="xs" aria-label="Next pick list" :disabled="activeSection === sections.length - 1" @click="scrollToSection(activeSection + 1)" />
+        <CarouselArrowButton direction="previous" aria-label="Previous pick list" :disabled="activeSection === 0" @click="scrollToSection(activeSection - 1)" />
+        <CarouselArrowButton direction="next" aria-label="Next pick list" :disabled="activeSection === sections.length - 1" @click="scrollToSection(activeSection + 1)" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 import { getHomepageCaptainPicks, type ShortlistPlayer } from "~/utils/homepage-shortlist";
 
 const props = withDefaults(defineProps<{

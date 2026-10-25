@@ -6,8 +6,8 @@
         <p v-if="updatedAtLabel" class="mt-1 text-xs text-stone-500">Updated {{ updatedAtLabel }}</p>
       </header>
       <div v-if="tradeIdeas.length" class="flex shrink-0 items-center gap-1">
-        <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" size="sm" class="text-stone-300 hover:bg-white/5 hover:text-white" aria-label="Previous recommended trades" :disabled="!canScrollPrevious" @click="scrollTradeIdeas(-1)" />
-        <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" size="sm" class="text-stone-300 hover:bg-white/5 hover:text-white" aria-label="Next recommended trades" :disabled="!canScrollNext" @click="scrollTradeIdeas(1)" />
+        <CarouselArrowButton direction="previous" aria-label="Previous recommended trades" :disabled="!canScrollPrevious" @click="scrollTradeIdeas(-1)" />
+        <CarouselArrowButton direction="next" aria-label="Next recommended trades" :disabled="!canScrollNext" @click="scrollTradeIdeas(1)" />
       </div>
     </div>
 
@@ -50,7 +50,7 @@
                   <img v-if="getTeamCode(idea.outgoing.team)" :src="`https://resources.premierleague.com/premierleague/badges/t${getTeamCode(idea.outgoing.team)}.png`" alt="" width="16" height="16" loading="lazy" decoding="async" class="size-4 shrink-0 object-contain" />
                   <span class="[overflow-wrap:anywhere]">{{ getTeamName(idea.outgoing.team) }} · {{ getPositionName(idea.outgoing) }}</span>
                 </span>
-                <span class="mt-2 inline-block rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold tabular-nums text-white">£{{ (Number(idea.outgoing.now_cost) / 10).toFixed(1) }}m</span>
+                <span class="mt-2 inline-block rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-sans text-lg font-bold leading-6 tabular-nums text-white">£{{ (Number(idea.outgoing.now_cost) / 10).toFixed(1) }}m</span>
               </span>
             </NuxtLink>
 
@@ -65,7 +65,7 @@
                   <span class="[overflow-wrap:anywhere]">{{ getTeamName(idea.incoming.team) }} · {{ getPositionName(idea.incoming) }}</span>
                 </span>
                 <span class="mt-2 flex flex-wrap items-center justify-end gap-1.5 tabular-nums">
-                  <span class="rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold text-white">£{{ (Number(idea.incoming.now_cost) / 10).toFixed(1) }}m</span>
+                  <span class="rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-sans text-lg font-bold leading-6 tabular-nums text-white">£{{ (Number(idea.incoming.now_cost) / 10).toFixed(1) }}m</span>
                   <span v-if="idea.priceChange" class="text-xs font-semibold" :class="idea.priceChange > 0 ? 'text-amber-200' : 'text-lime-200'">({{ formatPriceChange(idea.priceChange) }})</span>
                 </span>
               </span>
@@ -77,19 +77,19 @@
           <div class="px-4 py-3">
             <p class="text-sm leading-5 text-stone-200">{{ idea.reason }}</p>
             <p v-if="idea.sampleNote" class="mt-1 text-xs leading-5 text-amber-200">{{ idea.sampleNote }}</p>
-            <table class="mt-3 w-full table-fixed text-xs tabular-nums">
+            <table class="mt-3 w-full table-fixed font-sans text-sm font-semibold leading-5 tabular-nums">
               <caption class="sr-only">Player comparison for {{ idea.outgoing.web_name }} and {{ idea.incoming.web_name }}</caption>
               <thead class="sr-only">
                 <tr><th scope="col">Sell</th><th scope="col">Measure</th><th scope="col">Buy and change</th></tr>
               </thead>
               <tbody>
                 <tr v-for="row in getComparisonRows(idea)" :key="row.label" class="border-t border-white/10">
-                  <td class="w-[30%] py-2.5 text-left font-serif text-lg font-bold text-white">{{ row.outgoing }}</td>
-                  <th scope="row" class="w-[40%] px-1 py-2.5 text-center text-[0.6rem] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-400">{{ row.label }}</th>
+                  <td class="w-[30%] py-2.5 text-left text-white">{{ row.outgoing }}</td>
+                  <th scope="row" class="w-[40%] px-1 py-2.5 text-center text-xs font-medium leading-4 text-stone-400">{{ row.label }}</th>
                   <td class="w-[30%] py-2.5 text-right">
                     <span class="flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 sm:gap-x-2">
-                      <span class="font-serif text-lg font-bold text-white">{{ row.incoming }}</span>
-                      <span class="inline-flex w-12 shrink-0 items-center justify-end gap-0.5 text-[0.65rem] font-semibold" :class="getChangeClass(row)">
+                      <span class="text-white">{{ row.incoming }}</span>
+                      <span class="inline-flex w-12 shrink-0 items-center justify-end gap-0.5 text-xs font-semibold leading-4" :class="getChangeClass(row)">
                         <UIcon :name="getChangeIcon(row.delta)" class="size-3 shrink-0" aria-hidden="true" />
                         <span>{{ formatDelta(row.delta, row.precision) }}{{ row.suffix }}</span>
                       </span>
@@ -121,6 +121,7 @@
 </template>
 
 <script setup lang="ts">
+import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 import { type ShortlistPlayer } from "~/utils/homepage-shortlist";
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
 import { getInstagramClubTheme } from "~/utils/instagram-designs";
