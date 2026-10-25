@@ -45,7 +45,7 @@ export function formatSchedulerPostTiming(post: SchedulerPostRecord, now = Date.
   const scheduled = post.status === 'scheduled'
   const value = published ? post.sentAt : scheduled ? post.dueAt : post.createdAt
   const status = schedulerStatusLabels[post.status]
-  if (value === null || !Number.isFinite(value)) return { label: `${status} · ${scheduled ? 'Time pending' : 'Time unavailable'}`, datetime: undefined, title: status }
+  if (value === null || !Number.isFinite(value)) return { label: `${status} · ${scheduled ? 'Time pending' : 'Time unavailable'}`, timeLabel: scheduled ? 'Time pending' : 'Time unavailable', datetime: undefined, title: status, awaitingConfirmation: false }
   const timeZone = 'Asia/Kolkata'
   const calendar = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
   const day = (date: number) => {
@@ -56,6 +56,7 @@ export function formatSchedulerPostTiming(post: SchedulerPostRecord, now = Date.
   const sameYear = calendar.formatToParts(value).find(part => part.type === 'year')?.value === calendar.formatToParts(now).find(part => part.type === 'year')?.value
   const date = difference === 0 ? 'today' : difference === -1 ? 'yesterday' : difference === 1 ? 'tomorrow' : new Intl.DateTimeFormat('en-GB', { timeZone, day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' as const }) }).format(value)
   const time = new Intl.DateTimeFormat('en-GB', { timeZone, hour: 'numeric', minute: '2-digit', hour12: true }).format(value)
-  const prefix = published || scheduled ? status : `${status} · Created`
-  return { label: `${prefix} ${date} at ${time}`, datetime: new Date(value).toISOString(), title: `${prefix} ${formatSchedulerDate(value)} IST` }
+  const awaitingConfirmation = scheduled && value <= now
+  const prefix = awaitingConfirmation ? 'Awaiting confirmation · scheduled' : published || scheduled ? status : `${status} · Created`
+  return { label: `${prefix} ${date} at ${time}`, timeLabel: `${date} at ${time}`, datetime: new Date(value).toISOString(), title: `${prefix} ${formatSchedulerDate(value)} IST`, awaitingConfirmation }
 }

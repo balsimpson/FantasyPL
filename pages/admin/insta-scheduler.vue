@@ -7,6 +7,7 @@ import SchedulerPostPreview from '~/components/SchedulerPostPreview.vue'
 import SchedulerPickReason from '~/components/SchedulerPickReason.vue'
 import SchedulerPostHistory from '~/components/SchedulerPostHistory.vue'
 import SchedulerTemplateEditor from '~/components/SchedulerTemplateEditor.vue'
+import SchedulerInstagramPost from '~/components/SchedulerInstagramPost.vue'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'InstaScheduler' })
@@ -261,19 +262,10 @@ onScopeDispose(() => {
             <div class="flex h-5 w-[min(45vh,78vw)] max-w-[660px] items-center truncate text-xs font-medium text-success" role="status" aria-live="polite">
               <span v-if="queueNotice" class="truncate">{{ queueNotice }}</span>
             </div>
-            <article v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] shrink-0 overflow-hidden rounded-xl border border-default bg-default shadow-sm">
-              <header class="flex items-center justify-between px-3 py-2.5">
-                <div class="flex min-w-0 items-center gap-2.5">
-                  <div class="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400 p-[2px]">
-                    <div class="grid size-full place-items-center rounded-full bg-default text-[9px] font-bold text-highlighted">FPL</div>
-                  </div>
-                  <div class="min-w-0">
-                    <p class="truncate text-xs font-semibold text-highlighted">fplinsights</p>
-                    <p class="text-[10px] text-muted">Original audio</p>
-                  </div>
-                </div>
+            <SchedulerInstagramPost v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] shrink-0">
+              <template #header-actions>
                 <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" size="xs" aria-label="Post options" />
-              </header>
+              </template>
               <SchedulerTemplateEditor :key="activePreviewKey" ref="preview" v-model:editing="editingLayout" :draft="activeDraft" :editor="layoutEditor" :disabled="busy || Boolean(bufferJobs[activePick.id])" toolbar-target="#scheduler-post-toolbar">
                 <template #actions>
                   <span class="mx-0.5 h-4 w-px shrink-0 bg-white/15" aria-hidden="true" />
@@ -285,13 +277,7 @@ onScopeDispose(() => {
                   </UTooltip>
                 </template>
               </SchedulerTemplateEditor>
-              <div class="flex items-center gap-3 px-3 py-2">
-                <UIcon name="i-lucide-heart" class="size-5 text-highlighted" aria-hidden="true" />
-                <UIcon name="i-lucide-message-circle" class="size-5 text-highlighted" aria-hidden="true" />
-                <UIcon name="i-lucide-send" class="size-5 text-highlighted" aria-hidden="true" />
-                <UIcon name="i-lucide-bookmark" class="ml-auto size-5 text-highlighted" aria-hidden="true" />
-              </div>
-              <div class="px-3 pb-3">
+              <template #caption>
                 <p v-if="caption" class="whitespace-pre-wrap break-words text-xs leading-relaxed text-default">
                   <span class="mr-1 font-semibold text-highlighted">fplinsights</span>
                   <span
@@ -308,8 +294,8 @@ onScopeDispose(() => {
                 <p v-if="captionError && !captionLoading" class="text-xs leading-5 text-error" role="alert">{{ captionError }}</p>
                 <p v-else-if="captionLoading" class="text-xs text-muted" role="status">Generating caption…</p>
                 <p v-else-if="!caption" class="text-xs text-muted">Your generated caption will appear here.</p>
-              </div>
-            </article>
+              </template>
+            </SchedulerInstagramPost>
             <div v-else class="flex aspect-square w-[min(45vh,78vw)] max-w-[660px] flex-col items-center justify-center gap-3 text-center text-sm text-muted" role="status">
               <template v-if="historyError"><p>Post history could not load. Retry to find players you can post.</p><UButton label="Retry history" color="neutral" variant="soft" @click="history.refresh()" /></template>
               <span v-else>{{ picksReady ? 'No unposted players match the current picks.' : 'Checking queued and posted players…' }}</span>

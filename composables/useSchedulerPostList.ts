@@ -9,7 +9,7 @@ export function schedulerClientError(error: unknown) {
 export function useSchedulerPostList(search: Ref<string>, status: Ref<string>) {
   type Page = { posts: SchedulerPostRecord[]; cursor: string | null; hasMore: boolean; loading: boolean; error: string; revision: number; request: number }
   const pages = useState<Record<string, Page>>('scheduler-history-pages', () => ({}))
-  const provider = useState('scheduler-history-provider', () => ({ syncing: false, error: '', cursor: null as string | null, hasOlder: false }))
+  const provider = useState('scheduler-history-provider', () => ({ syncing: false, error: '', cursor: null as string | null, hasOlder: false, nextRefreshAt: 0, lastFullRefreshAt: 0, pendingOffset: 0 }))
   const deleting = ref('')
   const deleteError = ref('')
   const revision = useState('scheduler-history-revision', () => 0)
@@ -23,22 +23,33 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>) {
   const hasMore = computed(() => page.value?.hasMore ?? false)
   const hasOlder = computed(() => provider.value.hasOlder)
 
-  async function load(more = false) {
+  async function load(more = false, keepCount = false) {
     pages.value[key.value] ??= { posts: [], cursor: null, hasMore: false, loading: false, error: '', revision: -1, request: 0 }
     const currentPage = pages.value[key.value]!
     if (more && (currentPage.loading || !currentPage.hasMore)) return
     more = more && currentPage.revision === revision.value
     const current = ++currentPage.request
     const currentRevision = revision.value
+    const targetCount = keepCount ? Math.max(20, currentPage.posts.length) : 20
+    const query = { search: search.value.trim(), status: status.value === 'all' ? '' : status.value }
     currentPage.loading = true
     currentPage.error = ''
     try {
-      const result = await $fetch('/api/scheduler/history', { query: { search: search.value.trim(), status: status.value === 'all' ? '' : status.value, cursor: more ? currentPage.cursor || '' : '' }, retry: 0 })
-      if (current !== currentPage.request) return
-      const incoming = result.page as SchedulerPostRecord[]
+      const incoming: SchedulerPostRecord[] = []
+      let cursor = more ? currentPage.cursor : null
+      let isDone = false
+      do {
+        const previousCursor = cursor
+        const result = await $fetch('/api/scheduler/history', { query: { ...query, cursor: cursor || '' }, retry: 0 })
+        if (current !== currentPage.request) return
+        incoming.push(...result.page as SchedulerPostRecord[])
+        cursor = result.continueCursor
+        isDone = result.isDone
+        if (!isDone && (!cursor || cursor === previousCursor)) throw new Error('Post history pagination did not advance. Please try again.')
+      } while (!more && incoming.length < targetCount && !isDone)
       currentPage.posts = more ? [...currentPage.posts, ...incoming.filter(item => !currentPage.posts.some(existing => existing._id === item._id))] : incoming
-      currentPage.cursor = result.continueCursor
-      currentPage.hasMore = !result.isDone
+      currentPage.cursor = cursor
+      currentPage.hasMore = !isDone
       currentPage.revision = currentRevision
     } catch (cause) { if (current === currentPage.request) currentPage.error = schedulerClientError(cause) }
     finally { if (current === currentPage.request) currentPage.loading = false }
@@ -47,28 +58,61 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>) {
     if (syncing.value) return
     provider.value.syncing = true
     provider.value.error = ''
+    if (!older) provider.value.lastFullRefreshAt = Date.now()
+    provider.value.nextRefreshAt = Date.now() + 60_000
     try {
       const result = await $fetch('/api/scheduler/sync', { method: 'POST', body: { cursor: older ? provider.value.cursor : null }, retry: 0 })
       provider.value.cursor = result.cursor
       provider.value.hasOlder = result.hasMore
       revision.value++
-    } catch (cause) { provider.value.error = schedulerClientError(cause) }
+    } catch (cause) {
+      provider.value.error = schedulerClientError(cause)
+      provider.value.nextRefreshAt = Date.now() + 300_000
+    }
     finally {
-      await load()
+      await load(false, true)
       provider.value.syncing = false
-      if (!page.value || (page.value.revision !== revision.value && !page.value.error)) await load()
+      if (!page.value || (page.value.revision !== revision.value && !page.value.error)) await load(false, true)
     }
   }
   async function initialize() {
     if (syncing.value || page.value?.loading) return
-    if (!page.value || page.value.revision !== revision.value) await load()
+    if (!page.value || page.value.revision !== revision.value) await load(false, true)
+    if (document.hidden) return
+    if (Date.now() >= (provider.value.nextRefreshAt || 0) && Date.now() - (provider.value.lastFullRefreshAt || 0) >= 300_000) await sync()
+    else void refreshPending()
   }
-  async function deleteFailed(post: SchedulerPostRecord) {
-    if (post.status !== 'failed' || deleting.value) return
+  async function refreshPending() {
+    const now = Date.now()
+    if (document.hidden || syncing.value || loading.value || deleting.value || now < (provider.value.nextRefreshAt || 0)) return
+    const candidates = [...posts.value, ...Object.values(pages.value).flatMap(cached => cached.posts)]
+    const eligibleIds = [...new Set(candidates.filter(post => post.bufferPostId && (
+      post.status === 'submitting' || post.status === 'unknown' || (post.status === 'scheduled' && (post.dueAt === null || post.dueAt <= now))
+    )).map(post => post.bufferPostId!))]
+    if (!eligibleIds.length) return
+    const offset = (provider.value.pendingOffset || 0) % eligibleIds.length
+    const postIds = [...eligibleIds.slice(offset), ...eligibleIds.slice(0, offset)].slice(0, 20)
+    provider.value.pendingOffset = (offset + postIds.length) % eligibleIds.length
+    provider.value.syncing = true
+    provider.value.error = ''
+    provider.value.nextRefreshAt = now + 60_000
+    try {
+      await $fetch('/api/scheduler/sync', { method: 'POST', body: { postIds }, retry: 0 })
+      revision.value++
+      await load(false, true)
+    } catch (cause) {
+      provider.value.error = schedulerClientError(cause)
+      provider.value.nextRefreshAt = Date.now() + 300_000
+    } finally {
+      provider.value.syncing = false
+    }
+  }
+  async function deleteEntry(post: SchedulerPostRecord) {
+    if (deleting.value) return
     deleting.value = post._id
     deleteError.value = ''
     try {
-      await $fetch('/api/scheduler/delete-failed', { method: 'POST', body: { postId: post._id }, retry: 0 })
+      await $fetch('/api/scheduler/delete-entry', { method: 'POST', body: { postId: post._id }, retry: 0 })
       for (const cached of Object.values(pages.value)) {
         cached.posts = cached.posts.filter(item => item._id !== post._id)
         cached.request++
@@ -83,6 +127,6 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>) {
     const timer = setTimeout(() => initialize(), 300)
     onCleanup(() => clearTimeout(timer))
   })
-  watch(revision, () => { if (!syncing.value) void load() }, { flush: 'sync' })
-  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteFailed, dismissSyncError }
+  watch(revision, () => { if (!syncing.value) void load(false, true) }, { flush: 'sync' })
+  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, refreshPending, revision, deleting, deleteError, deleteEntry, dismissSyncError }
 }

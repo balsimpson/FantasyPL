@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { SHORTLIST_POSITIONS, SHORTLIST_PRICE_LIMITS, SHORTLIST_SORTS, type ShortlistPlayer, type ShortlistFixture } from "~/utils/homepage-shortlist";
+import { usePlayerSearchAutoLoad } from "~/composables/usePlayerSearchAutoLoad";
 const props = withDefaults(defineProps<{
   players: ShortlistPlayer[];
   teams: Record<string, any>[];

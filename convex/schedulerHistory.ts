@@ -83,6 +83,21 @@ export const overview = query({
   },
 })
 
+export const deleteEntry = mutation({
+  args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const post = await ctx.db.get(args.postId)
+    if (!post || post.channelId !== args.channelId) throw new ConvexError('The history record was not found.')
+    if (post.deletedAt !== undefined) return null
+    const now = Date.now()
+    await ctx.db.patch(post._id, { deletedAt: now, updatedAt: now })
+    // Keep player exclusions: removing history does not cancel or unpublish a post.
+    return null
+  },
+})
+
 export const deleteFailed = mutation({
   args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
   returns: v.null(),

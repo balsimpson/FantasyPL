@@ -2,7 +2,7 @@
 import type { InstagramPlayer } from '~/utils/instagram-templates'
 import type { SchedulerPostRecord } from '~/utils/scheduler-history'
 import { schedulerClientError } from '~/composables/useSchedulerPostList'
-const props = defineProps<{ post: SchedulerPostRecord; players: InstagramPlayer[] }>()
+const props = withDefaults(defineProps<{ post: SchedulerPostRecord; players: InstagramPlayer[]; showTrigger?: boolean }>(), { showTrigger: true })
 const emit = defineEmits<{ saved: [] }>()
 const open = ref(false)
 const codes = ref<number[]>(props.post.players.map(player => player.code))
@@ -10,6 +10,7 @@ const gameweek = ref(props.post.gameweek?.toString() ?? '')
 const season = ref(props.post.season ?? '')
 const busy = ref(false)
 const error = ref('')
+defineExpose({ edit: () => { open.value = true } })
 const items = computed(() => props.players.map(player => ({ label: `${player.fullName} · ${player.club}`, value: player.code })))
 async function save() {
   busy.value = true
@@ -25,8 +26,8 @@ async function save() {
 
 <template>
   <div :class="open ? 'w-full' : ''">
-    <UButton v-if="!open" size="xs" color="neutral" variant="link" class="p-0" icon="i-lucide-user-round-plus" :label="post.players.length ? 'Edit players' : 'Link players'" @click="open = true" />
-    <form v-else class="mt-2 grid gap-3" @submit.prevent="save">
+    <UButton v-if="!open && showTrigger" size="xs" color="neutral" variant="link" class="p-0" icon="i-lucide-user-round-plus" :label="post.players.length ? 'Edit players' : 'Link players'" @click="open = true" />
+    <form v-if="open" class="mt-2 grid gap-3" @submit.prevent="save">
       <UFormField label="Players" class="w-full"><USelectMenu v-model="codes" :items="items" multiple value-key="value" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
       <div class="grid gap-3 sm:grid-cols-2">
         <UFormField label="Season" class="w-full"><UInput v-model="season" class="w-full" :ui="{ base: 'w-full' }" :disabled="busy" /></UFormField>
