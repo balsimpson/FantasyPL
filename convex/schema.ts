@@ -4,8 +4,10 @@ import { nullableNumber, nullableString, postFields, postStatus } from './schedu
 import { articleFields, draftFields } from './articleValidators'
 import { generationFields } from './articleJobValidators'
 import { researchFields, researchIdeaFields } from './articleResearchValidators'
+import { articlePromptFields } from './articlePromptValidators'
 
 export default defineSchema({
+  articlePrompts: defineTable(articlePromptFields).index('by_scope_and_template', ['scope', 'template']),
   managerShareStats: defineTable({ day: v.string(), clicks: v.number(), copies: v.number() })
     .index('by_day', ['day']),
   articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']).index('by_status_and_createdAt', ['status', 'createdAt']),

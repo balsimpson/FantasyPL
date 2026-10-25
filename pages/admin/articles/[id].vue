@@ -5,6 +5,10 @@ definePageMeta({ layout: 'admin', middleware: 'admin', key: route => route.param
 const route = useRoute()
 const { draft, articleId, version, status, publishedVersion, savedAt, saving, saveError, loadError, loading, conflict, dirty, wordCount, load, save } = useArticleEditor(String(route.params.id))
 const generation = useArticleGeneration(articleId)
+interface PromptOption { _id: string; scope: string; template: string | null; name: string; isDefault: boolean }
+const promptOptions = ref<PromptOption[]>([])
+const selectedPromptId = ref('')
+try { promptOptions.value = await $fetch<PromptOption[]>('/api/admin/prompts') } catch { /* Generation can still use the saved default prompt. */ }
 const revisions = ref<{ version: number; savedAt: number; title: string }[]>([])
 const selectedRevision = ref('')
 const viewedRevision = ref<ArticleDraft | null>(null)
@@ -17,6 +21,7 @@ const publishing = ref(false)
 const publishError = ref('')
 const publishedUrl = ref('')
 const detailsOpen = ref(false)
+const revisionSelectorOpen = ref(false)
 const detailsSide = ref<'right' | 'bottom'>('bottom')
 const toast = useToast()
 const articleToolbar = inject<Ref<AdminArticleToolbar | null>>('admin-article-toolbar')
@@ -58,6 +63,12 @@ const saveLabel = computed(() => saveError.value ? 'Save failed' : saving.value 
 const articleStatusLabel = computed(() => status.value === 'published' && publishedVersion.value < version.value ? 'Draft changes not live' : status.value === 'published' ? 'Published' : 'Draft')
 const savedTime = computed(() => savedAt.value ? new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(savedAt.value) : '')
 const canApplyTemplate = computed(() => !articleText(draft.value.body).trim())
+const articlePromptOptions = computed(() => promptOptions.value.filter(prompt => prompt.scope === 'article' && prompt.template === draft.value.template))
+function useDefaultPrompt() {
+  selectedPromptId.value = articlePromptOptions.value.find(prompt => prompt.isDefault)?._id || ''
+}
+watch(() => draft.value.template, useDefaultPrompt)
+if (!selectedPromptId.value) useDefaultPrompt()
 const toolbarState = computed<AdminArticleToolbar>(() => ({
   saveLabel: saveLabel.value,
   saveDisabled: loading.value || !!loadError.value || saving.value || !dirty.value,
@@ -120,7 +131,7 @@ async function publishArticle() {
 }
 async function generateDraft() {
   if (dirty.value || version.value === 0) { if (!await save() || dirty.value) return }
-  if (await generation.start() && route.params.id === 'new') {
+  if (await generation.start(selectedPromptId.value || null) && route.params.id === 'new') {
     leavingAfterSave = true
     await navigateTo(`/admin/articles/${articleId.value}`, { replace: true })
   }
@@ -135,11 +146,13 @@ async function selectRevision(value: string | number) {
     if (!result) return
     viewedRevision.value = structuredClone(toRaw(result))
     preview.value = true
+    closeDetails()
     return
   }
   if (Number(selected) === version.value) {
     viewedRevision.value = null
     preview.value = true
+    closeDetails()
     return
   }
   try {
@@ -147,6 +160,7 @@ async function selectRevision(value: string | number) {
     const { articleId: _articleId, version: _version, savedAt: _savedAt, ...content } = revision as ArticleDraft & { articleId: string; version: number; savedAt: number }
     viewedRevision.value = content
     preview.value = true
+    closeDetails()
   } catch {
     selectedRevision.value = String(version.value)
     revisionError.value = 'This version could not be opened. Please try again.'
@@ -191,7 +205,15 @@ async function discardAndLeave() {
 function saveShortcut(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void saveDraft() }
 }
+function closeDetails() {
+  revisionSelectorOpen.value = false
+  detailsOpen.value = false
+}
+function closeDetailsOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape' && detailsOpen.value) closeDetails()
+}
 onMounted(() => window.addEventListener('keydown', saveShortcut))
+onMounted(() => document.addEventListener('keydown', closeDetailsOnEscape, true))
 onMounted(() => {
   detailsMediaQuery = window.matchMedia('(min-width: 768px)')
   updateDetailsSide = () => { detailsSide.value = detailsMediaQuery?.matches ? 'right' : 'bottom' }
@@ -200,6 +222,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', saveShortcut)
+  document.removeEventListener('keydown', closeDetailsOnEscape, true)
   if (detailsMediaQuery && updateDetailsSide) detailsMediaQuery.removeEventListener('change', updateDetailsSide)
   if (articleToolbar) articleToolbar.value = null
 })
@@ -245,19 +268,26 @@ watch(publishedUrl, url => { if (url) toast.add({ title: 'Article published', de
             <span v-if="savedAt">{{ viewedRevision ? `Version ${selectedRevision}` : `Saved at ${savedTime} IST · Revision ${version}` }}</span>
           </div>
         </section>
-        <USlideover v-model:open="detailsOpen" :side="detailsSide" title="Article details" description="Article settings, sources and saved versions.">
+        <USlideover v-model:open="detailsOpen" :side="detailsSide" title="Article details" description="Article settings, sources and saved versions." :dismissible="true">
           <template #body>
           <aside class="min-w-0" aria-label="Article details">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-semibold text-highlighted">Article details</h2>
-            <UBadge :label="articleStatusLabel" :color="articleStatusLabel === 'Published' ? 'success' : 'neutral'" variant="subtle" />
+            <div class="flex items-center gap-2">
+              <UBadge :label="articleStatusLabel" :color="articleStatusLabel === 'Published' ? 'success' : 'neutral'" variant="subtle" />
+              <UButton icon="i-lucide-x" color="neutral" variant="ghost" size="sm" aria-label="Close article details" @click="closeDetails" />
+            </div>
           </div>
           <UFormField v-if="version > 0" label="Version history" class="mt-6 w-full">
-            <USelect :model-value="selectedRevision" :items="revisionItems" class="w-full" aria-label="Article version history" :disabled="dirty || saving || loading" @update:model-value="selectRevision" />
+            <USelect v-model:open="revisionSelectorOpen" :model-value="selectedRevision" :items="revisionItems" class="w-full" aria-label="Article version history" :disabled="dirty || saving || loading" @update:model-value="selectRevision" />
             <p v-if="revisionError" role="alert" class="mt-2 text-sm text-error">{{ revisionError }}</p>
           </UFormField>
           <UFormField label="Template" class="mt-6 w-full">
             <USelect :model-value="preview ? previewDraft.template : draft.template" :items="articleTemplates.map(({ label, value }) => ({ label, value }))" class="w-full" :disabled="preview" @update:model-value="draft.template = $event" />
+          </UFormField>
+          <UFormField label="Writing prompt" help="This prompt will be saved with the next generated draft." class="mt-5 w-full">
+            <USelect v-model="selectedPromptId" :items="articlePromptOptions.map(prompt => ({ label: `${prompt.name}${prompt.isDefault ? ' · Default' : ''}`, value: prompt._id }))" class="w-full" :disabled="generation.active.value || generation.starting.value" />
+            <template #hint><NuxtLink to="/admin/settings" class="text-primary underline underline-offset-4">Manage prompts</NuxtLink></template>
           </UFormField>
           <UButton v-if="canApplyTemplate && !preview" label="Add section headings" icon="i-lucide-list-plus" color="neutral" variant="outline" block class="mt-3" @click="applyTemplate" />
           <UFormField label="Season" help="Use YYYY/YY, or leave empty for an evergreen guide." class="mt-6 w-full">

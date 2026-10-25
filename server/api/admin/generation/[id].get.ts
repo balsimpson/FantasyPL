@@ -9,6 +9,6 @@ export default defineEventHandler(async event => {
   const { client, secret, api } = articleDatabase()
   try {
     const job = await client.query(api.articleJobs.latest, { secret, articleId })
-    return job ? { jobId: job._id, status: job.status, error: job.error, model: job.model, updatedAt: job.updatedAt, result: job.resultJson ? validateArticleDraft(JSON.parse(job.resultJson)) : null } : null
+    return job ? { jobId: job._id, status: job.status, error: job.error, model: job.model, promptName: job.promptName || null, updatedAt: job.updatedAt, result: job.resultJson ? validateArticleDraft(JSON.parse(job.resultJson)) : null } : null
   } catch (error) { throw articleStorageError(error) }
 })

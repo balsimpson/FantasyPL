@@ -10,6 +10,7 @@ const pageTitle = computed(() => {
   if (route.path.startsWith('/admin/articles')) return 'Articles'
   if (route.path.startsWith('/admin/insta-scheduler')) return 'InstaScheduler'
   if (route.path.startsWith('/admin/sharing')) return 'Sharing'
+  if (route.path.startsWith('/admin/settings')) return 'Settings'
   return 'Workspace'
 })
 const articleToolbar = shallowRef<import('~/composables/adminArticleToolbar').AdminArticleToolbar | null>(null)
@@ -21,6 +22,7 @@ const articleMenu = computed(() => articleToolbar.value ? [[
 
 const navigation = computed<NavigationMenuItem[][]>(() => [[
   { label: 'Articles', icon: 'i-lucide-files', to: '/admin/articles' },
+  { label: 'Settings', icon: 'i-lucide-settings-2', to: '/admin/settings' },
   { label: 'New article', icon: 'i-lucide-file-plus-2', to: '/admin/articles/new' },
 ], [
   { label: 'InstaScheduler', icon: 'i-lucide-instagram', to: '/admin/insta-scheduler' },
