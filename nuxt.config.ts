@@ -73,17 +73,29 @@ export default defineNuxtConfig({
 			config: true,
 		},
 		workbox: {
-			navigateFallback: "/offline.html",
-			navigateFallbackDenylist: [/^\/api\//],
+			navigateFallback: null,
+			runtimeCaching: [{
+				urlPattern: ({ request }) => request.mode === "navigate",
+				handler: "NetworkOnly",
+				options: { precacheFallback: { fallbackURL: "/offline.html" } },
+			}],
 			globPatterns: [
 				"_nuxt/**/*.{js,css,woff2}",
 				"offline.html",
-				"manifest.webmanifest",
 				"pwa-*.png",
 				"maskable-icon-*.png",
 				"apple-touch-icon-*.png",
 				"favicon.ico",
 			],
+		},
+	},
+	hooks: {
+		"pwa:beforeBuildServiceWorker"(options) {
+			// Nuxt's PWA transform strips .html from static files. Keep this public asset's real URL.
+			options.workbox.manifestTransforms?.push(async (entries) => ({
+				manifest: entries.map((entry) => entry.url === "offline" ? { ...entry, url: "offline.html" } : entry),
+				warnings: [],
+			}));
 		},
 	},
 	routeRules: {

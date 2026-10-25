@@ -66,8 +66,18 @@
 
 		<div v-else class="site-content-rail relative flex w-full flex-col gap-8 py-5 sm:py-7">
       <UBreadcrumb :items="breadcrumbLinks" class="min-w-0" :ui="{ link: 'text-stone-300 hover:text-white', linkLabel: 'whitespace-normal [overflow-wrap:anywhere]' }" />
+      <p v-if="bootstrap?.fetchedAt" class="text-xs text-stone-400">
+        FPL data updated <time :datetime="bootstrap.fetchedAt">{{ new Date(bootstrap.fetchedAt).toUTCString() }}</time>
+      </p>
       <PlayerPerformanceCard v-if="playerData" :player="playerData" :bootstrap="bootstrap" />
-      <PlayerProfileHistory v-if="player" :player-id="playerId" :details="player" :bootstrap="bootstrap" />
+      <PlayerProfileHistory
+        :player-id="playerId"
+        :details="player"
+        :bootstrap="bootstrap"
+        :loading="!player && (playerStatus === 'idle' || playerStatus === 'pending')"
+        :error="Boolean(playerError) && !player"
+        @retry="refreshPlayer()"
+      />
     </div>
 	</main>
 </template>
@@ -80,16 +90,20 @@
 	const playersStore = usePlayersStore();
 	const { bootstrap, loading: bootstrapLoading } = storeToRefs(playersStore);
 
-	const playerRequest = useFetch(() => `/api/players/${playerId.value}`);
 	const bootstrapRequest = useAsyncData("player-bootstrap", () => playersStore.fetchPlayers());
 	const {
 		data: player,
-		pending: playerPending,
+		status: playerStatus,
 		error: playerError,
 		refresh: refreshPlayer,
-	} = await playerRequest;
+	} = useLazyFetch(() => `/api/players/${playerId.value}`, { server: false, retry: 0 });
 	const { pending: bootstrapPending } = await bootstrapRequest;
-	// const { data: fixtures } = useLazyFetch("/api/fixtures");
+	const bootstrapRecovering = ref(!Array.isArray(bootstrap.value?.elements));
+	onMounted(async () => {
+		if (!bootstrapRecovering.value) return;
+		try { await playersStore.fetchPlayers(true); }
+		finally { bootstrapRecovering.value = false; }
+	});
 
 	const playerData = computed(() => {
 		if (Array.isArray(bootstrap.value?.elements)) {
@@ -109,45 +123,19 @@
 	});
 
 	const hasBootstrapCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
-	const bootstrapRequestPending = computed(() => bootstrapPending.value || bootstrapLoading.value);
+	const bootstrapRequestPending = computed(() => bootstrapPending.value || bootstrapLoading.value || bootstrapRecovering.value);
 	const bootstrapFailed = computed(() => !bootstrapRequestPending.value && !hasBootstrapCatalog.value);
 	const isMalformedPlayerRoute = computed(() => !/^[1-9]\d*$/.test(String(playerId.value).trim()));
-	const playerDetailSettled = computed(() => !playerPending.value);
-	const allRequestsSettled = computed(() => !playerPending.value && !bootstrapRequestPending.value);
-
-	const getErrorStatusCode = (error) => {
-		if (!error || typeof error !== "object") return 0;
-
-		return Number(error.response?.status ?? error.statusCode ?? error.status ?? 0);
-	};
-
-	const playerErrorStatus = computed(() => getErrorStatusCode(playerError.value));
 	const isPlayerNotFound = computed(() => {
-		if (!playerDetailSettled.value) return false;
-		if (isMalformedPlayerRoute.value || playerErrorStatus.value === 404) return true;
-		if (!allRequestsSettled.value) return false;
-
-		return Boolean(
-			hasBootstrapCatalog.value &&
-			!bootstrapFailed.value &&
-			!playerError.value &&
-			player.value &&
-			!playerData.value
-		);
+		if (isMalformedPlayerRoute.value) return true;
+		return hasBootstrapCatalog.value && !playerData.value;
 	});
 
-	const isTemporaryFailure = computed(() => {
-		if (!playerDetailSettled.value || isPlayerNotFound.value) return false;
-		if (playerError.value && playerErrorStatus.value !== 404) return true;
-		if (!allRequestsSettled.value) return false;
-		if (bootstrapFailed.value) return true;
-
-		return !player.value || !playerData.value;
-	});
+	const isTemporaryFailure = computed(() => !isPlayerNotFound.value && bootstrapFailed.value);
 
 	const pageState = computed(() => {
 		if (isPlayerNotFound.value || isTemporaryFailure.value) return "error";
-		if (!allRequestsSettled.value) return "loading";
+		if (bootstrapRequestPending.value) return "loading";
 
 		return playerData.value ? "ready" : "error";
 	});

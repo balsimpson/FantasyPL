@@ -11,21 +11,25 @@
   >
     <template #body>
       <div class="site-content-rail mx-auto w-full py-2 sm:py-4">
-        <slot />
+        <HomePlayerDiscovery
+          :players="bootstrap?.elements || []"
+          :teams="bootstrap?.teams || []"
+          :fixtures="fixtures"
+          :gameweeks="gameweeks"
+          :fixtures-available="hasFixtures"
+          :fixtures-loading="fixturesPending"
+          :loading="pending"
+          :error="failed"
+          @retry="retry"
+        />
       </div>
     </template>
   </UModal>
 </template>
 
 <script setup lang="ts">
-const { isOpen: searchOpen, origin } = usePlayerSearchSurface();
-const active = ref(true);
-onActivated(() => { active.value = true; });
-onDeactivated(() => { active.value = false; });
-const isOpen = computed({
-  get: () => active.value && searchOpen.value,
-  set: (value) => { searchOpen.value = value; },
-});
+const { isOpen, origin } = usePlayerSearchSurface();
+const { bootstrap, fixtures, gameweeks, hasFixtures, pending, fixturesPending, failed, retry } = usePlayerSearchData();
 const modalContent = computed(() => ({
   style: { transformOrigin: `${origin.value.x}px ${origin.value.y}px` },
 }));

@@ -1,16 +1,6 @@
-import { getBootstrapStatic } from "~~/composables/usePremiereLeague";
+import { getCachedFplBootstrap } from "../utils/fpl-bootstrap";
 
-export default defineCachedEventHandler(async () => {
-	try {
-		const data = await getBootstrapStatic();
-		return data;
-	} catch (error) {
-		console.log("getBootstrapStatic-error", error);
-		return {
-			message: "getBootstrapStatic: Error" + error,
-		};
-	}
-}, {
-	maxAge: 60 * 10,
-	swr: true,
+export default defineEventHandler(async (event) => {
+	const { data, fetchedAt } = await getCachedFplBootstrap(event);
+	return { ...data, fetchedAt };
 });

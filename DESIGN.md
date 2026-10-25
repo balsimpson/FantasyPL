@@ -14,6 +14,8 @@ The tone is calm, focused, and data-rich. Use clear labels and visible evidence.
 
 ## Shared page frame
 
+All public pages inherit the sticky navigation and one player-search panel from `layouts/default.vue`. Keep shared navigation and search in the layout so new public routes receive the same controls automatically. Admin uses its separate layout. Data loading and verification are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md).
+
 Every page-level content area, the shared header and footer, and each homepage section use one shared content rail. Headings, descriptions, controls, carousels, card rows, and empty states align to the same left and right edges. Use the `.site-content-rail` class in `assets/css/main.css`; do not let individual pages choose unrelated maximum widths or gutters.
 
 Use this as the layout target:

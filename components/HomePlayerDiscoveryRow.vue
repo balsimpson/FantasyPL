@@ -8,8 +8,7 @@
     >
       <span class="relative flex items-end justify-center overflow-visible" :class="compact ? 'h-[4.75rem] w-[4.25rem]' : 'size-12'">
         <span class="relative flex h-full w-full items-end justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(200,255,61,0.2),transparent_58%),linear-gradient(145deg,#1a2422,#0b1111)]">
-          <span v-if="compact" aria-hidden="true" class="absolute inset-x-2 top-2 h-px bg-gradient-to-r from-transparent via-lime-200/60 to-transparent" />
-          <span v-else class="absolute left-1.5 top-1.5 z-20 inline-flex min-w-5 items-center justify-center rounded-full border border-white/15 bg-black/50 px-1 py-0.5 text-[0.62rem] font-black tabular-nums text-white backdrop-blur-sm">
+          <span v-if="!compact" class="absolute left-1.5 top-1.5 z-20 inline-flex min-w-5 items-center justify-center rounded-full border border-white/15 bg-black/50 px-1 py-0.5 text-[0.62rem] font-black tabular-nums text-white backdrop-blur-sm">
             {{ rank }}
           </span>
           <img
@@ -66,6 +65,13 @@
             <span class="font-semibold tabular-nums text-stone-200">{{ priceLabel }}</span>
           </span>
         </span>
+        <span v-if="showAvailability && (availability || playerNews)" class="mt-1.5 block text-xs leading-5">
+          <span v-if="availability" class="inline-flex items-center gap-1.5 font-medium" :class="availability.color">
+            <UIcon :name="availability.icon" class="size-3.5 shrink-0" aria-hidden="true" />
+            {{ availability.label }}
+          </span>
+          <span v-if="playerNews" class="block text-stone-300 [overflow-wrap:anywhere]">{{ playerNews }}</span>
+        </span>
       </span>
 
       <span :title="metricTitle || undefined" class="font-sans" :class="compact ? 'min-w-[3.75rem] text-center' : 'pt-0.5 text-right text-lg font-bold leading-6 tabular-nums text-white'">
@@ -101,6 +107,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showAvailability: {
+    type: Boolean,
+    default: false,
+  },
   metricLabel: {
     type: String,
     required: true,
@@ -118,6 +128,19 @@ const props = defineProps({
     required: true,
   },
 });
+
+const availability = computed(() => {
+  const statuses = {
+    d: { label: "Doubtful", icon: "i-lucide-circle-help", color: "text-amber-200" },
+    i: { label: "Injured", icon: "i-lucide-bandage", color: "text-rose-300" },
+    s: { label: "Suspended", icon: "i-lucide-ban", color: "text-rose-300" },
+    u: { label: "Unavailable", icon: "i-lucide-user-round-minus", color: "text-stone-400" },
+    n: { label: "Unavailable", icon: "i-lucide-user-round-x", color: "text-stone-400" },
+  };
+  if (!props.player.status || props.player.status === "a") return null;
+  return statuses[props.player.status] || { label: "Status unconfirmed", icon: "i-lucide-circle-help", color: "text-amber-200" };
+});
+const playerNews = computed(() => typeof props.player.news === "string" ? props.player.news.trim() : "");
 
 const positionLabel = computed(() => {
   const labels = {

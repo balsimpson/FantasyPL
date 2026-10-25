@@ -2,6 +2,12 @@
   <div class="relative min-h-screen text-stone-50">
     <main id="main-content" class="site-content-rail flex w-full flex-col gap-8 py-5 sm:py-7">
       <h1 class="sr-only">FPL player stats and fixtures</h1>
+      <section v-if="bootstrapFailed" class="space-y-4 py-10" role="status">
+        <h2 class="text-xl font-semibold text-white">FPL data is taking longer than usual</h2>
+        <p class="text-sm text-stone-300">The latest player stats are temporarily unavailable. Please try again in a moment.</p>
+        <UButton color="neutral" variant="outline" @click="retryBootstrap">Try again</UButton>
+      </section>
+      <template v-else>
       <HomeDeadlinePanel
         :deadline="nextGameweek?.deadline_time"
         :gameweek="nextGameweek?.id"
@@ -61,22 +67,12 @@
         @retry="refreshFixtures"
       />
 
+      <p v-if="bootstrap?.fetchedAt" class="text-xs text-stone-400">
+        FPL data updated <time :datetime="bootstrap.fetchedAt">{{ new Date(bootstrap.fetchedAt).toUTCString() }}</time>
+      </p>
       <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
+      </template>
     </main>
-
-    <PlayerSearchSurface>
-      <HomePlayerDiscovery
-        :players="bootstrap?.elements || []"
-        :teams="bootstrap?.teams || []"
-        :fixtures="fixturesList"
-        :gameweeks="shortlistGameweeks"
-        :fixtures-available="hasFixtures"
-        :fixtures-loading="fixturesPending && !hasFixtures"
-        :loading="bootstrapPending"
-        :error="bootstrapFailed"
-        @retry="retryBootstrap"
-      />
-    </PlayerSearchSurface>
   </div>
 </template>
 
@@ -106,12 +102,9 @@ useSeoMeta({
     "Find your next FPL player. Compare prices, form, ownership and upcoming fixtures, then save your shortlist before the next gameweek deadline.",
 });
 
-const {
-  data: bootstrap,
-  pending: bootstrapPending,
-  error: bootstrapRequestError,
-  refresh: refreshBootstrap,
-} = await useAsyncData("homepage-bootstrap", () => $fetch("/api/homepage-bootstrap"));
+const { request: bootstrapRequest, pending: bootstrapPending, failed: bootstrapFailed } = useHomepageBootstrap();
+await bootstrapRequest;
+const { data: bootstrap, refresh: refreshBootstrap } = bootstrapRequest;
 
 const {
   data: fixtureData,
@@ -144,9 +137,6 @@ const {
 });
 const buysPending = computed(() => buyRecommendationStatus.value === "idle" || buyRecommendationStatus.value === "pending");
 const retryBuyRecommendations = () => Promise.all([retryBootstrap(), refreshBuyRecommendations()]);
-
-const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
-const bootstrapFailed = computed(() => !bootstrapPending.value && Boolean(bootstrapRequestError.value || !hasPlayerCatalog.value));
 
 const hasFixtures = computed(() => Array.isArray(fixtureData.value?.fixtures));
 const fixturesPending = computed(() => fixturesStatus.value === "idle" || fixturesStatus.value === "pending");

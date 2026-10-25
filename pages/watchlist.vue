@@ -121,24 +121,11 @@
 				</li>
 			</ul>
 		</section>
-		<PlayerSearchSurface>
-			<HomePlayerDiscovery
-				:players="bootstrap?.elements || []"
-				:teams="bootstrap?.teams || []"
-				:fixtures="fixtureData?.fixtures || []"
-				:gameweeks="searchGameweeks"
-				:fixtures-available="Array.isArray(fixtureData?.fixtures)"
-				:fixtures-loading="fixturesStatus === 'pending'"
-				:loading="pending"
-				:error="Boolean(dataError) || !hasPlayerCatalog"
-				@retry="retrySearch"
-			/>
-		</PlayerSearchSurface>
 	</main>
 </template>
 
 <script setup lang="ts">
-import { SHORTLIST_POSITIONS, getShortlistGameweeks } from "~/utils/homepage-shortlist";
+import { SHORTLIST_POSITIONS } from "~/utils/homepage-shortlist";
 import { WATCHLIST_SORTS, useWatchlistView } from "~/composables/useWatchlistView";
 
 const { data: bootstrap, pending, error: requestError, refresh } = await useFetch(
@@ -152,17 +139,7 @@ const { data: bootstrap, pending, error: requestError, refresh } = await useFetc
 );
 const { savedCodes, hasLoaded: watchlistReady } = useWatchlist();
 const { isOpen: searchOpen, open: openPlayerSearch } = usePlayerSearchSurface();
-const { data: fixtureData, status: fixturesStatus, refresh: refreshFixtures } = useLazyAsyncData(
-	"watchlist-search-fixtures",
-	() => $fetch("/api/homepage-fixtures"),
-	{ server: false, immediate: false },
-);
-watch(searchOpen, (open) => {
-	if (open && !fixtureData.value && fixturesStatus.value !== "pending") refreshFixtures();
-}, { immediate: true });
-const searchGameweeks = computed(() => getShortlistGameweeks(bootstrap.value?.events || []));
 const searchButtonClass = "mt-5 min-h-11 justify-center rounded-lg border border-lime-300/30 bg-lime-300/10 px-5 font-semibold text-lime-300 ring-0 transition-colors hover:border-lime-300/50 hover:bg-lime-300/20 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300";
-const retrySearch = () => Promise.all([refresh(), refreshFixtures()]);
 
 const hasPlayerCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
 const dataError = computed(() => requestError.value);

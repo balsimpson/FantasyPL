@@ -93,6 +93,8 @@ Google permits useful AI-assisted content, but warns against generating many pag
 
 ## Public article experience
 
+The blog index and article pages inherit the shared public navigation and player search from `layouts/default.vue`; keep admin in its separate layout. Shared-shell implementation and checks are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md).
+
 Use `/blog` and `/blog/[slug]` on the existing domain. Add Blog to navigation and show a small selection of recent relevant posts on the homepage and player profiles.
 
 Every article should provide the answer early, followed by a readable evidence table, reasoning, limitations, and one useful next action. Include a real author/editor, publication time, meaningful update time, applicable season/gameweek, and data capture time. Include source links when available, but do not block publication when an article has none. Keep the article in a readable single column and make tables usable on mobile. Avoid an oversized player image pushing the answer below the first screen.

@@ -1,5 +1,12 @@
 <template>
-  <div class="grid min-w-0 gap-x-10 gap-y-8 lg:grid-cols-2">
+  <div v-if="loading" class="grid gap-6 lg:grid-cols-2" role="status" aria-label="Loading player fixtures and history">
+    <USkeleton v-for="index in 2" :key="index" class="h-64 rounded-lg" />
+  </div>
+  <section v-else-if="error" aria-label="Player fixtures and history" class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 py-6">
+    <p class="text-sm text-stone-400">Fixtures and match history are temporarily unavailable.</p>
+    <UButton color="neutral" variant="outline" @click="$emit('retry')">Try again</UButton>
+  </section>
+  <div v-else class="grid min-w-0 gap-x-10 gap-y-8 lg:grid-cols-2">
     <section aria-labelledby="profile-fixtures-title" class="min-w-0">
       <header class="flex items-baseline justify-between gap-3 border-b border-white/10 pb-4">
         <h2 id="profile-fixtures-title" class="text-xl font-semibold tracking-tight text-white sm:text-2xl">Next fixtures</h2>
@@ -41,18 +48,21 @@
 <script setup>
 const props = defineProps({
   playerId: { type: [String, Number], required: true },
-  details: { type: Object, required: true },
+  details: { type: Object, default: null },
   bootstrap: { type: Object, required: true },
+  loading: { type: Boolean, default: false },
+  error: { type: Boolean, default: false },
 });
+defineEmits(["retry"]);
 const showAllFixtures = ref(false);
 const showAllHistory = ref(false);
 watch(() => props.playerId, () => {
   showAllFixtures.value = false;
   showAllHistory.value = false;
 });
-const fixtures = computed(() => props.details.fixtures || []);
-const history = computed(() => [...(props.details.history || [])].reverse());
-const seasons = computed(() => [...(props.details.history_past || [])].reverse());
+const fixtures = computed(() => props.details?.fixtures || []);
+const history = computed(() => [...(props.details?.history || [])].reverse());
+const seasons = computed(() => [...(props.details?.history_past || [])].reverse());
 const visibleFixtures = computed(() => showAllFixtures.value ? fixtures.value : fixtures.value.slice(0, 5));
 const visibleHistory = computed(() => showAllHistory.value ? history.value : history.value.slice(0, 5));
 </script>

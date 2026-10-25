@@ -68,11 +68,14 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `pages/index.vue` | Homepage composition, manager lookup, player search, and ranked player lists; consumes the homepage-only data projection |
 | `components/Home*.vue`, `components/GameWeekCardNew.vue` | Homepage deadline, collapsed lookup/filters, saved-player links, portrait shortlists, six upcoming matchups, three-gameweek player fixture runs, and recap |
 | `composables/useHomepageShortlist.ts`, `utils/homepage-shortlist.ts` | Full-catalog price/position filtering, stat ranking, rule-based player trends, and gameweek/fixture grouping |
+| `composables/useHomepageBootstrap.ts` | Homepage loading, one client recovery attempt after an SSR failure, and retention of already loaded data |
 | `server/utils/homepage-data.ts`, `server/api/homepage-data.ts` | Homepage-only FPL snapshot; the shared bootstrap contract remains unchanged |
+| `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts` | Shared validated bootstrap cache and bounded upstream JSON request recovery |
 | `pages/player/[id].vue` | Player profile, fixtures, history, and metadata |
 | `pages/manager/[id].vue` | Manager and team journey |
 | `pages/watchlist.vue`, `components/PlayerWatchlistCard.vue` | Existing incomplete saved-player experience |
-| `layouts/default.vue`, `components/AppFooter.vue` | Shared shell, navigation, and footer |
+| `layouts/default.vue`, `components/AppFooter.vue` | Shared public shell, sticky navigation, and footer; public pages inherit these by default, while admin uses its separate layout |
+| `components/PlayerSearchSurface.vue`, `composables/usePlayerSearchSurface.ts`, `composables/usePlayerSearchData.ts` | One layout-owned public player search, shared opening state and origin, and on-demand data that reuses loaded homepage/watchlist snapshots |
 | `assets/css/main.css` | Tailwind/Nuxt UI imports, Public Sans, and green palette |
 | `stores/players.ts` | Shared bootstrap/player loading and state |
 | `composables/usePremiereLeague.ts` | Existing FPL fetching, lookup, and scoring helpers; preserve this exact filename |

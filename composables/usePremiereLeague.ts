@@ -1,11 +1,9 @@
+import { fetchFplJson, isFplBootstrap } from "../utils/fpl-fetch";
+
 export const getBootstrapStatic = async () => {
 	try {
-		const url = "https://fantasy.premierleague.com/api/bootstrap-static/";
-		const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-		const data = await response.json();
-		return data;
-	} catch (error) {
-		console.log(error);
+		return await fetchFplJson("https://fantasy.premierleague.com/api/bootstrap-static/", isFplBootstrap);
+	} catch {
 		return null;
 	}
 };
@@ -415,7 +413,10 @@ export function getMostTransferredOutPlayers(players: any[], topN = 5) {
 export async function getPlayerInfoDetails(id: number) {
 	const BASE_URL = "https://fantasy.premierleague.com/api/element-summary";
 	const url = `${BASE_URL}/${id}/`;
-	return await $fetch(url, { timeout: 10_000 });
+	return await fetchFplJson(url, (data): data is Record<string, any> => {
+		const value = data as Record<string, any> | null;
+		return Boolean(value && Array.isArray(value.fixtures) && Array.isArray(value.history) && Array.isArray(value.history_past));
+	});
 }
 
 export async function getUpcomingFixtures(count: number = 12) {

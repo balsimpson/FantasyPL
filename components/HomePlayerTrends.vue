@@ -18,9 +18,9 @@
       variant="pill"
       color="primary"
       :ui="{
-        list: 'w-full rounded-lg border border-white/10 bg-white/[0.035] p-1',
-        indicator: 'rounded-md bg-lime-300 shadow-sm',
-        trigger: 'data-[state=active]:text-[#11160d] data-[state=inactive]:text-stone-400 hover:data-[state=inactive]:text-white',
+        list: 'w-full gap-0 divide-x divide-white/10 rounded-lg border border-white/10 bg-white/[0.04] p-0 sm:w-fit',
+        indicator: 'hidden',
+        trigger: 'min-h-8 flex-1 justify-center whitespace-normal rounded-none first:rounded-l-lg last:rounded-r-lg bg-transparent px-3 py-1 text-center text-xs leading-4 text-stone-400 ring-0 transition-colors hover:bg-lime-300/10 hover:text-lime-200 data-[state=active]:bg-lime-300/10 data-[state=active]:text-lime-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lime-300 focus-visible:ring-0 motion-reduce:transition-none sm:flex-none sm:text-sm',
       }"
       class="min-w-0"
     >
@@ -34,6 +34,7 @@
               :team="getTeam(player)"
               :rank="index + 1"
               compact
+              :show-availability="item.id === 'most-sold'"
               :metric-label="item.metricLabel"
               :metric-value="formatMetric(player, item.metricKey)"
               :metric-title="formatExactMetric(player, item.metricKey)"

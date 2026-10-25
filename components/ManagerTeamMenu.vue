@@ -5,9 +5,11 @@
       variant="ghost"
       icon="i-lucide-users-round"
       trailing-icon="i-lucide-chevron-down"
-      :ui="{ leadingIcon: 'size-4', trailingIcon: 'size-3.5' }"
-      class="gap-2 rounded-sm bg-transparent px-1.5 py-2 text-sm font-medium text-stone-300 transition-colors hover:bg-transparent hover:text-lime-300"
-    >Teams</UButton>
+      aria-label="Teams"
+      title="Teams"
+      :ui="{ leadingIcon: 'size-4', trailingIcon: 'hidden size-3.5 sm:block' }"
+      class="size-8 justify-center gap-0 rounded-sm bg-transparent p-0 text-sm font-medium text-stone-300 transition-colors hover:bg-transparent hover:text-lime-300 sm:h-auto sm:w-auto sm:gap-2 sm:px-1.5 sm:py-2"
+    ><span class="hidden sm:inline">Teams</span></UButton>
 
     <template #content>
       <section v-if="savedManagers.length" aria-labelledby="saved-teams-title" class="border-b border-white/15 px-5 pt-4">
