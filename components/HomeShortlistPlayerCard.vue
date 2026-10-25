@@ -9,10 +9,7 @@
       <img :src="imageSrc" :alt="player.web_name" width="440" height="560" loading="lazy" decoding="async"
         class="absolute inset-0 h-full w-full object-contain object-bottom drop-shadow-[0_18px_24px_rgba(0,0,0,0.5)] transition-transform duration-300 motion-safe:group-hover:scale-[1.025]" @error="useFallbackImage" />
       <div aria-hidden="true" class="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,7,10,0.64),transparent_28%,transparent_55%,rgba(5,7,10,0.86))]" />
-      <header class="absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3">
-        <span class="max-w-[75%] rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--club-light)] backdrop-blur-sm">{{ sectionLabel }}</span>
-        <img v-if="team?.code" :src="`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`" :alt="team.name" width="44" height="44" loading="lazy" decoding="async" class="size-11 rounded-full bg-white/95 p-1.5 object-contain shadow-lg" />
-      </header>
+      <img v-if="team?.code" :src="`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`" :alt="team.name" width="44" height="44" loading="lazy" decoding="async" class="absolute right-4 top-4 z-10 size-11 rounded-full bg-white/95 p-1.5 object-contain shadow-lg" />
       <PlayerDisciplineBadges :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-4 top-16 z-10" />
       <div class="absolute inset-x-4 bottom-4 z-10 flex items-end justify-between gap-2">
         <div class="min-w-0">
@@ -68,7 +65,6 @@ import { getTeamFixtureRun, type ShortlistPlayer, type ShortlistFixture } from "
 const props = defineProps<{ player: ShortlistPlayer; teams: Record<string, any>[]; fixtures: ShortlistFixture[]; gameweeks: number[]; fixturesAvailable: boolean; fixturesLoading?: boolean; sortKey: string }>();
 const team = computed(() => props.teams.find((item) => item.id === props.player.team));
 const positionLabel = computed(() => ["", "Goalkeeper", "Defender", "Midfielder", "Forward"][props.player.element_type] || "Player");
-const sectionLabel = computed(() => ({ form: 'Form leaders', total_points: 'Season points', selected_by_percent: 'Most selected', transfers_in_event: 'Most bought this gameweek', transfers_out_event: 'Most sold this gameweek' }[props.sortKey] || 'Player shortlist'));
 const validTransferCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 const transfersIn = computed(() => validTransferCount(props.player.transfers_in_event));
 const transfersOut = computed(() => validTransferCount(props.player.transfers_out_event));

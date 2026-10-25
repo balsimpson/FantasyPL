@@ -1,7 +1,7 @@
 <template>
   <section aria-labelledby="player-discovery-title" class="grid min-w-0 gap-3">
     <div class="grid min-w-0 gap-3">
-      <h2 id="player-discovery-title" class="text-lg font-bold tracking-tight text-white">Players</h2>
+      <h2 id="player-discovery-title" class="text-lg font-bold tracking-tight text-white">{{ sectionTitle }}</h2>
       <HomePlayerSearch v-model="query" />
       <div class="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3">
         <UFormField label="Position" :ui="fieldUi">
@@ -16,7 +16,6 @@
       </div>
       <p v-if="!loading && !error" class="text-sm text-stone-400" role="status">
         <span class="font-semibold text-stone-200">{{ rankedPlayers.length }}</span> {{ rankedPlayers.length === 1 ? 'player matches' : 'players match' }} {{ query.trim() ? 'your search and filters' : 'your filters' }}
-        <span class="text-stone-500"> · {{ visiblePlayers.length }} loaded</span>
       </p>
     </div>
     <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite">
@@ -65,6 +64,12 @@ const props = withDefaults(defineProps<{
 }>(), { loading: false, error: false, fixturesLoading: false });
 defineEmits(["retry"]);
 const { query, position, maxPrice, sortKey, visibleCount, rankedPlayers, visiblePlayers } = useHomepageShortlist(() => props.players, () => props.teams);
+const sectionTitle = computed(() => ({
+  total_points: "Season points",
+  selected_by_percent: "Most selected",
+  transfers_in_event: "Most bought this gameweek",
+  transfers_out_event: "Most sold this gameweek",
+} as Record<string, string>)[sortKey.value] || "Players");
 const playerRail = ref<HTMLElement | null>(null);
 const { canScrollBack, canScrollForward, onScroll, scrollPlayers } = useHomepagePlayerRail(
   playerRail, visibleCount, () => rankedPlayers.value.length, [query, position, maxPrice, sortKey],
