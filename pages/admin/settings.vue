@@ -38,8 +38,13 @@ const savingId = ref('')
 const formMode = ref<'edit' | 'new' | 'copy'>('edit')
 const newPrompt = reactive({ name: '', description: '', instructions: '' })
 const formError = ref('')
+const suggestionError = ref('')
+const suggesting = ref(false)
+const suggestionScheduled = ref(false)
+const detailsManuallyEdited = ref(false)
+let suggestionTimer: ReturnType<typeof setTimeout> | undefined
+let suggestionRequest = 0
 const learnings = ref<Learning[]>([])
-const learningsError = ref('')
 const dismissedLearnings = ref<number[]>([])
 const addedLearnings = ref<number[]>([])
 const toast = useToast()
@@ -66,47 +71,124 @@ async function load() {
   try {
     const [loadedPrompts, research] = await Promise.all([
       $fetch<Prompt[]>('/api/admin/prompts'),
-      $fetch<{ capturedAt: string | null; learnings: Learning[] }>('/api/admin/prompts/learnings').catch(() => ({ capturedAt: null, learnings: [] })),
+      $fetch<{ capturedAt: string | null; learnings: Learning[] }>('/api/admin/prompts/learnings').catch(() => null),
     ])
     prompts.value = loadedPrompts
     for (const prompt of loadedPrompts) {
       edits[prompt._id] = { name: prompt.name, description: descriptionFor(prompt), instructions: prompt.instructions }
     }
-    learnings.value = research.learnings
+    learnings.value = research?.learnings || []
     if (!groups.some(group => group.key === selectedGroup.value)) selectedGroup.value = groups[0].key
     if (!groupPrompts.value.some(prompt => prompt._id === selectedPromptId.value)) {
       selectedPromptId.value = groupPrompts.value[0]?._id || ''
     }
+    const active = prompts.value.find(prompt => prompt._id === selectedPromptId.value)
+    if (import.meta.client && active && !active.description) schedulePromptDetails(0)
   } catch (cause: any) {
     pageError.value = cause.data?.statusMessage || 'Prompt settings could not be loaded.'
   } finally { loading.value = false }
 }
 
 function selectGroup(key: string) {
+  cancelPendingSuggestion()
   selectedGroup.value = key
   formMode.value = 'edit'
+  detailsManuallyEdited.value = false
   selectedPromptId.value = groupPrompts.value[0]?._id || ''
   formError.value = ''
 }
 
 function selectPrompt(prompt: Prompt) {
+  cancelPendingSuggestion()
   formMode.value = 'edit'
+  detailsManuallyEdited.value = false
   selectedPromptId.value = prompt._id
   formError.value = ''
+  if (!prompt.description) schedulePromptDetails(0)
 }
 
 function startNew(source?: Prompt) {
+  cancelPendingSuggestion()
   formMode.value = source ? 'copy' : 'new'
   newPrompt.name = source ? `${source.name} copy` : ''
   newPrompt.description = source ? descriptionFor(source) : ''
   newPrompt.instructions = source ? source.instructions : ''
   formError.value = ''
+  suggestionError.value = ''
+  detailsManuallyEdited.value = false
+  if (source) schedulePromptDetails(0)
 }
 
 function cancelNew() {
+  cancelPendingSuggestion()
   formMode.value = 'edit'
   formError.value = ''
+  suggestionRequest++
+  suggesting.value = false
 }
+
+function schedulePromptDetails(delay = 900) {
+  if (suggestionTimer) clearTimeout(suggestionTimer)
+  suggestionScheduled.value = false
+  if (detailsManuallyEdited.value || !currentValue.value?.instructions.trim()) return
+  suggestionError.value = ''
+  suggestionScheduled.value = true
+  suggestionTimer = setTimeout(() => {
+    suggestionScheduled.value = false
+    void suggestPromptDetails()
+  }, delay)
+}
+
+function cancelPendingSuggestion() {
+  if (suggestionTimer) clearTimeout(suggestionTimer)
+  suggestionTimer = undefined
+  suggestionScheduled.value = false
+  suggestionRequest++
+  suggesting.value = false
+}
+
+async function suggestPromptDetails() {
+  const value = currentValue.value
+  if (!value?.instructions.trim() || detailsManuallyEdited.value) return
+  const instructions = value.instructions
+  const requestId = ++suggestionRequest
+  suggesting.value = true
+  suggestionError.value = ''
+  try {
+    const result = await $fetch<{ name: string; description: string }>('/api/admin/prompts/suggest', {
+      method: 'POST',
+      body: { instructions },
+    })
+    if (requestId === suggestionRequest && !detailsManuallyEdited.value && value.instructions === instructions) {
+      value.name = result.name
+      value.description = result.description
+      const legacyPrompt = formMode.value === 'edit' && selectedPrompt.value && !selectedPrompt.value.description ? selectedPrompt.value : null
+      if (legacyPrompt) {
+        await $fetch(`/api/admin/prompts/${legacyPrompt._id}`, { method: 'PUT', body: result })
+        legacyPrompt.name = result.name
+        legacyPrompt.description = result.description
+      }
+    }
+  } catch (cause: any) {
+    if (requestId === suggestionRequest) suggestionError.value = cause.data?.statusMessage || 'Title and description could not be suggested. Please try again.'
+  } finally {
+    if (requestId === suggestionRequest) suggesting.value = false
+  }
+}
+
+function markDetailsEdited() {
+  detailsManuallyEdited.value = true
+  cancelPendingSuggestion()
+}
+
+function onPromptInstructionsChanged() {
+  schedulePromptDetails()
+}
+
+onBeforeUnmount(() => {
+  if (suggestionTimer) clearTimeout(suggestionTimer)
+  suggestionRequest++
+})
 
 async function savePrompt() {
   const value = currentValue.value
@@ -163,12 +245,15 @@ function addLearning(learning: Learning, index: number) {
     newPrompt.description = promptDescriptions[learning.scope]
     newPrompt.instructions = learning.instruction
     addedLearnings.value.push(index)
+    detailsManuallyEdited.value = false
+    schedulePromptDetails()
     return
   }
   selectPrompt(target)
   const edit = edits[target._id]
   if (!edit.instructions.includes(learning.instruction)) {
     edit.instructions = `${edit.instructions.trim()}\n\nResearch learning: ${learning.instruction}`
+    if (!detailsManuallyEdited.value) schedulePromptDetails()
   }
   addedLearnings.value.push(index)
 }
@@ -217,22 +302,21 @@ await load()
           </div>
         </div>
 
-        <div class="mt-5 flex gap-2 overflow-x-auto border-b border-default pb-3" role="tablist" :aria-label="`${activeGroup.title} prompts`">
+        <div class="mt-5 flex gap-2 overflow-x-auto border-b border-default pb-3" role="group" :aria-label="`${activeGroup.title} prompts`">
           <button
             v-for="prompt in groupPrompts"
             :key="prompt._id"
             type="button"
-            role="tab"
             class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-primary"
             :class="formMode === 'edit' && selectedPromptId === prompt._id ? 'bg-primary/10 font-medium text-primary' : 'text-muted hover:bg-elevated hover:text-highlighted'"
-            :aria-selected="formMode === 'edit' && selectedPromptId === prompt._id"
+            :aria-pressed="formMode === 'edit' && selectedPromptId === prompt._id"
             @click="selectPrompt(prompt)"
           >
             {{ prompt.name }}
             <UBadge v-if="prompt.isDefault" label="Default" color="primary" variant="subtle" size="xs" />
           </button>
           <p v-if="!groupPrompts.length" class="py-2 text-sm text-muted">No prompts yet.</p>
-          <button v-if="formMode !== 'edit'" type="button" role="tab" aria-selected="true" class="shrink-0 rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">{{ formMode === 'copy' ? 'Copy' : 'New prompt' }}</button>
+          <span v-if="formMode !== 'edit'" class="shrink-0 rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">{{ formMode === 'copy' ? 'Copy' : 'New prompt' }}</span>
         </div>
 
         <div v-if="formMode === 'edit' && !selectedPrompt" class="py-8 text-sm text-muted">Add a prompt to start using this type.</div>
@@ -246,18 +330,21 @@ await load()
           </div>
 
           <UFormField label="Title" class="w-full">
-            <UInput v-model="currentValue.name" maxlength="80" class="w-full" />
+            <UInput v-model="currentValue.name" maxlength="80" class="w-full" @update:model-value="markDetailsEdited" />
           </UFormField>
           <UFormField label="Description" description="One line to explain when to use this prompt." class="w-full">
-            <UInput v-model="currentValue.description" maxlength="160" class="w-full" />
+            <UInput v-model="currentValue.description" maxlength="160" class="w-full" @update:model-value="markDetailsEdited" />
           </UFormField>
           <UFormField label="Prompt" class="w-full">
-            <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" class="w-full" />
+          <template #label><span>Prompt <span v-if="suggesting || suggestionScheduled" class="ml-2 text-xs font-normal text-muted" role="status">Updating title and description…</span></span></template>
+            <template #description>Title and description fill automatically from the prompt. You can edit them any time.</template>
+            <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" class="w-full" @update:model-value="onPromptInstructionsChanged" />
           </UFormField>
 
+          <p v-if="suggestionError" role="alert" class="text-sm text-error">{{ suggestionError }}</p>
           <p v-if="formError" role="alert" class="text-sm text-error">{{ formError }}</p>
           <div class="flex flex-wrap items-center gap-2">
-            <UButton :label="formMode === 'edit' ? 'Save changes' : 'Save prompt'" icon="i-lucide-save" :loading="savingId !== ''" @click="savePrompt" />
+            <UButton :label="formMode === 'edit' ? 'Save changes' : 'Save prompt'" icon="i-lucide-save" :loading="savingId !== ''" :disabled="suggesting || suggestionScheduled" @click="savePrompt" />
             <UButton v-if="formMode === 'edit' && selectedPrompt && !selectedPrompt.isDefault" label="Make default" color="neutral" variant="outline" :loading="savingId === selectedPromptId" @click="makeDefault" />
             <span v-else-if="formMode === 'edit' && selectedPrompt?.isDefault" class="text-sm text-muted">This is the default prompt for {{ activeGroup.title.toLowerCase() }}.</span>
           </div>
@@ -289,7 +376,7 @@ await load()
             </li>
           </ul>
         </section>
-        <p v-else-if="!learningsError" class="mt-10 border-t border-default pt-5 text-sm text-muted">Research learnings will appear here after a research run finds useful, cited patterns.</p>
+        <p v-else class="mt-10 border-t border-default pt-5 text-sm text-muted">Research learnings will appear here after a research run finds useful, cited patterns.</p>
       </div>
     </div>
   </section>

@@ -34,7 +34,10 @@ export const latestPromptLearnings = query({
           instruction: item.instruction,
           scope: item.scope,
           template: item.template,
-          sources: item.sourceIds.map(sourceId => ({ title: result.sources[sourceId].title, url: result.sources[sourceId].url })),
+          sources: item.sourceIds.flatMap(sourceId => {
+            const source = result.sources[sourceId]
+            return source ? [{ title: source.title, url: source.url }] : []
+          }),
         }))
         if (learnings.length) return { capturedAt: result.capturedAt, learnings }
       } catch { /* Ignore old or invalid research output. */ }
@@ -94,7 +97,7 @@ export const research = internalAction({
     try {
       const prompts = await ctx.runQuery(internal.articlePrompts.researchDefaults, {})
       const searchPrompt = `${prompts.search}\n\nAlso find source articles for both the upcoming gameweek and evergreen FPL guides about stable concepts or recurring manager tasks. Return varied evidence for both kinds of topics.`
-      const analysisPrompt = `${prompts.analysis}\n\nRequired mix: return 10 to 12 ideas, including 3 to 5 Evergreen guide ideas and at least 5 current gameweek ideas. Evergreen guides must not depend on current prices, live stats, or a specific gameweek. Mark their visual approach as none. Do not turn changing FPL rules or unverified facts into evergreen claims.`
+      const analysisPrompt = `${prompts.analysis}\n\nRequired mix: return 10 to 12 ideas, including 3 to 5 Evergreen guide ideas and at least 5 current gameweek ideas. Evergreen guides must not depend on current prices, live stats, or a specific gameweek. Mark their visual approach as none. Do not turn changing FPL rules or unverified facts into evergreen claims. Also return up to 5 promptLearnings. Each learning must be a short reusable instruction grounded in cited source patterns, name a target scope (research-search, research-analysis or article), include an article template when its scope is article, and cite sourceIds. Do not make performance claims without evidence. Return an empty array when there is no useful supported learning.`
       await ctx.runMutation(internal.articleResearch.capturePrompts, { researchId, searchPrompt, analysisPrompt })
       if (!process.env.OPENROUTER_API_KEY) throw new Error('Add OPENROUTER_API_KEY to the Convex environment before starting research.')
       const responses = await Promise.all(['bootstrap-static', 'fixtures'].map(path => fetch(`https://fantasy.premierleague.com/api/${path}/`, { signal: AbortSignal.timeout(15_000) })))

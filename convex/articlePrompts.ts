@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { action, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { articlePromptDocument, promptScope } from './articlePromptValidators'
-import { defaultPromptRecords, isArticleTemplate, promptDescriptions, type ArticlePromptScope } from '../shared/article-prompts'
+import { defaultPromptRecords, isArticleTemplate, type ArticlePromptScope } from '../shared/article-prompts'
 import { articleCompletion } from './articleProvider'
 
 function authorize(secret: string) {
@@ -52,11 +52,7 @@ export const ensureDefaults = mutation({
     const now = Date.now()
     for (const prompt of defaultPromptRecords()) {
       const rows = await scopeRows(ctx, prompt.scope, prompt.template)
-      if (rows.length) {
-        const missing = rows.filter(row => !row.description)
-        for (const row of missing) await ctx.db.patch(row._id, { description: promptDescriptions[row.scope], updatedAt: now })
-        continue
-      }
+      if (rows.length) continue
       await ctx.db.insert('articlePrompts', { ...prompt, isDefault: true, createdAt: now, updatedAt: now })
     }
     return null
