@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ArticleResearchPanel from '~/components/admin/ArticleResearchPanel.vue'
+import ArticleResearchSources from '~/components/admin/ArticleResearchSources.vue'
 import { articleTemplates, type ArticleSummary } from '~/shared/articles'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'Articles' })
@@ -79,6 +80,7 @@ async function deleteArticle() {
     </div>
     <div id="research" class="mt-10 py-7">
       <ArticleResearchPanel @article-created="refreshArticles" />
+      <ArticleResearchSources />
     </div>
     <div v-if="status === 'pending'" id="saved-articles" class="py-20 text-center text-muted" role="status">Loading articles…</div>
     <UAlert v-else-if="error" id="saved-articles" title="Articles could not be loaded" :description="error.data?.statusMessage || 'Please try again.'" color="error" variant="soft" class="mt-8" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />

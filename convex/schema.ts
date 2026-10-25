@@ -11,6 +11,9 @@ export default defineSchema({
   managerShareStats: defineTable({ day: v.string(), clicks: v.number(), copies: v.number() })
     .index('by_day', ['day']),
   articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']).index('by_status_and_createdAt', ['status', 'createdAt']),
+  articleResearchSources: defineTable({ name: v.string(), hostname: v.string(), url: v.string(), rank: v.number(), createdAt: v.number(), updatedAt: v.number() })
+    .index('by_rank', ['rank'])
+    .index('by_hostname', ['hostname']),
   articleResearchChoices: defineTable({ researchId: v.id('articleResearch'), suggestionIndex: v.number(), articleId: v.string() }).index('by_researchId_and_suggestionIndex', ['researchId', 'suggestionIndex']),
   articleResearchIdeas: defineTable(researchIdeaFields)
     .index('by_status_and_createdAt', ['status', 'createdAt'])

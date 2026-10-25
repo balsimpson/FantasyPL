@@ -193,12 +193,15 @@ onBeforeUnmount(() => {
 async function savePrompt() {
   const value = currentValue.value
   if (!value || savingId.value) return
-  if (!value.name.trim() || !value.description.trim() || !value.instructions.trim()) {
-    formError.value = 'Add a title, a one-line description and the prompt instructions.'
-    return
-  }
+  if (!value.name.trim()) formError.value = 'Add a title.'
+  else if (value.name.trim().length > 80) formError.value = 'The title must be 80 characters or fewer.'
+  else if (!value.description.trim()) formError.value = 'Add a one-line description.'
+  else if (value.description.trim().length > 160) formError.value = 'The description must be 160 characters or fewer.'
+  else if (!value.instructions.trim()) formError.value = 'Add the prompt instructions.'
+  else if (value.instructions.length > 30_000) formError.value = 'Prompt instructions must be 30,000 characters or fewer.'
+  else formError.value = ''
+  if (formError.value) return
   savingId.value = formMode.value === 'edit' ? selectedPromptId.value : 'new'
-  formError.value = ''
   try {
     if (formMode.value === 'edit' && selectedPrompt.value) {
       await $fetch(`/api/admin/prompts/${selectedPrompt.value._id}`, { method: 'PUT', body: value })
@@ -338,7 +341,7 @@ await load()
           <UFormField label="Prompt" class="w-full">
           <template #label><span>Prompt <span v-if="suggesting || suggestionScheduled" class="ml-2 text-xs font-normal text-muted" role="status">Updating title and description…</span></span></template>
             <template #description>Title and description fill automatically from the prompt. You can edit them any time.</template>
-            <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" class="w-full" @update:model-value="onPromptInstructionsChanged" />
+            <UTextarea v-model="currentValue.instructions" :rows="12" autoresize :maxrows="32" maxlength="30000" class="w-full" @update:model-value="onPromptInstructionsChanged" />
           </UFormField>
 
           <p v-if="suggestionError" role="alert" class="text-sm text-error">{{ suggestionError }}</p>

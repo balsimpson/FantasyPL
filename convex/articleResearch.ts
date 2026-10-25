@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
-import { internalAction, internalMutation, mutation, query } from './_generated/server'
+import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { articleCompletion, generationError } from './articleProvider'
 import { buildArticleEvidence } from '../shared/article-generation'
 import { researchSchema, researchSources, validateResearch } from '../shared/article-research'
@@ -16,6 +16,65 @@ const document = v.object({ ...researchFields, _id: v.id('articleResearch'), _cr
 export const list = query({
   args: { secret: v.string() }, returns: v.array(document),
   handler: async (ctx, { secret }) => { authorize(secret); return ctx.db.query('articleResearch').withIndex('by_createdAt').order('desc').take(10) },
+})
+
+const researchSource = v.object({ _id: v.id('articleResearchSources'), _creationTime: v.number(), name: v.string(), hostname: v.string(), url: v.string(), rank: v.number(), createdAt: v.number(), updatedAt: v.number() })
+
+export const listSources = query({
+  args: { secret: v.string() }, returns: v.array(researchSource),
+  handler: async (ctx, { secret }) => {
+    authorize(secret)
+    return ctx.db.query('articleResearchSources').withIndex('by_rank').order('asc').take(100)
+  },
+})
+
+export const addSource = mutation({
+  args: { secret: v.string(), name: v.string(), url: v.string() }, returns: v.id('articleResearchSources'),
+  handler: async (ctx, { secret, name, url }) => {
+    authorize(secret)
+    let parsed: URL
+    try { parsed = new URL(url) } catch { throw new ConvexError({ code: 'INVALID', message: 'Enter a valid HTTPS website.' }) }
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
+    if (parsed.protocol !== 'https:' || !hostname || parsed.username || parsed.password || name.trim().length < 1 || name.trim().length > 100) throw new ConvexError({ code: 'INVALID', message: 'Enter a source name and a valid HTTPS website.' })
+    const existing = await ctx.db.query('articleResearchSources').withIndex('by_hostname', q => q.eq('hostname', hostname)).unique()
+    if (existing) throw new ConvexError({ code: 'INVALID', message: 'That website is already in your source list.' })
+    const sources = await ctx.db.query('articleResearchSources').withIndex('by_rank').order('desc').take(100)
+    if (sources.length >= 100) throw new ConvexError({ code: 'INVALID', message: 'The source list is full.' })
+    const now = Date.now()
+    return ctx.db.insert('articleResearchSources', { name: name.trim(), hostname, url: `https://${hostname}/`, rank: sources.length + 1, createdAt: now, updatedAt: now })
+  },
+})
+
+export const moveSource = mutation({
+  args: { secret: v.string(), sourceId: v.id('articleResearchSources'), direction: v.union(v.literal('up'), v.literal('down')) }, returns: v.null(),
+  handler: async (ctx, { secret, sourceId, direction }) => {
+    authorize(secret)
+    const sources = await ctx.db.query('articleResearchSources').withIndex('by_rank').order('asc').take(100)
+    const index = sources.findIndex(source => source._id === sourceId)
+    if (index < 0) return null
+    const otherIndex = direction === 'up' ? index - 1 : index + 1
+    if (otherIndex < 0 || otherIndex >= sources.length) return null
+    const source = sources[index]!
+    const other = sources[otherIndex]!
+    const now = Date.now()
+    await ctx.db.patch(source._id, { rank: other.rank, updatedAt: now })
+    await ctx.db.patch(other._id, { rank: source.rank, updatedAt: now })
+    return null
+  },
+})
+
+export const removeSource = mutation({
+  args: { secret: v.string(), sourceId: v.id('articleResearchSources') }, returns: v.null(),
+  handler: async (ctx, { secret, sourceId }) => {
+    authorize(secret)
+    await ctx.db.delete(sourceId)
+    const sources = await ctx.db.query('articleResearchSources').withIndex('by_rank').order('asc').take(100)
+    for (let index = 0; index < sources.length; index++) {
+      const source = sources[index]!
+      if (source.rank !== index + 1) await ctx.db.patch(source._id, { rank: index + 1, updatedAt: Date.now() })
+    }
+    return null
+  },
 })
 
 export const latestPromptLearnings = query({
@@ -96,7 +155,11 @@ export const research = internalAction({
     let error: string | null = null
     try {
       const prompts = await ctx.runQuery(internal.articlePrompts.researchDefaults, {})
-      const searchPrompt = `${prompts.search}\n\nAlso find source articles for both the upcoming gameweek and evergreen FPL guides about stable concepts or recurring manager tasks. Return varied evidence for both kinds of topics.`
+      const preferredSources = await ctx.runQuery(internal.articleResearch.listPreferredSources, {})
+      const preferredSourceGuidance = preferredSources.length
+        ? `\n\nPreferred publisher domains, in priority order (highest first):\n${preferredSources.map((source, index) => `${index + 1}. ${source.url}`).join('\n')}\nUse these as a starting point, with higher-ranked entries preferred when relevant. They are not an exclusive allowlist: also find new, relevant publishers. Judge each result by the cited article and available excerpt; rank alone does not prove accuracy. Prefer primary sources for changing rules and official facts, and competitor articles for coverage benchmarks.`
+        : '\n\nNo preferred publisher list is configured. Search broadly for relevant sources.'
+      const searchPrompt = `${prompts.search}\n\nAlso find source articles for both the upcoming gameweek and evergreen FPL guides about stable concepts or recurring manager tasks. Return varied evidence for both kinds of topics.${preferredSourceGuidance}`
       const analysisPrompt = `${prompts.analysis}\n\nRequired mix: return 10 to 12 ideas, including 3 to 5 Evergreen guide ideas and at least 5 current gameweek ideas. Evergreen guides must not depend on current prices, live stats, or a specific gameweek. Mark their visual approach as none. Do not turn changing FPL rules or unverified facts into evergreen claims. Also return up to 5 promptLearnings. Each learning must be a short reusable instruction grounded in cited source patterns, name a target scope (research-search, research-analysis or article), include an article template when its scope is article, and cite sourceIds. Do not make performance claims without evidence. Return an empty array when there is no useful supported learning.`
       await ctx.runMutation(internal.articleResearch.capturePrompts, { researchId, searchPrompt, analysisPrompt })
       if (!process.env.OPENROUTER_API_KEY) throw new Error('Add OPENROUTER_API_KEY to the Convex environment before starting research.')
@@ -115,6 +178,11 @@ export const research = internalAction({
     else await ctx.scheduler.runAfter(30_000, internal.articleResearchIdeas.ensurePool, {})
     return null
   },
+})
+
+export const listPreferredSources = internalQuery({
+  args: {}, returns: v.array(v.object({ url: v.string() })),
+  handler: async (ctx) => (await ctx.db.query('articleResearchSources').withIndex('by_rank').order('asc').take(100)).map(({ hostname }) => ({ url: `https://${hostname}/` })),
 })
 
 export const writeSuggestion = mutation({
