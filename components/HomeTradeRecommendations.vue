@@ -12,7 +12,7 @@
     </div>
 
     <div v-if="loading" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-hidden sm:auto-cols-[calc((100%_-_1rem)/2)] xl:auto-cols-[calc((100%_-_2rem)/3)]" role="status" aria-label="Loading trade ideas">
-      <USkeleton v-for="index in 3" :key="index" class="h-[34rem] rounded-xl" />
+      <USkeleton v-for="index in 3" :key="index" class="h-[34rem] rounded-2xl" />
     </div>
 
     <div v-else-if="error" class="flex flex-wrap items-center justify-between gap-3 py-4" role="alert">
@@ -31,42 +31,42 @@
 
     <ul v-else ref="rail" :style="reservedRailHeight ? { minHeight: `${reservedRailHeight}px` } : undefined" class="grid min-w-0 grid-flow-col auto-cols-[92%] gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory focus-visible:outline-2 focus-visible:outline-primary sm:auto-cols-[calc((100%_-_1rem)/2)] xl:auto-cols-[calc((100%_-_2rem)/3)]" aria-label="Recommended trade ideas" tabindex="0" @scroll.passive="updateScrollControls" @keydown.left.self.prevent="scrollTradeIdeas(-1)" @keydown.right.self.prevent="scrollTradeIdeas(1)">
       <li v-for="(idea, index) in tradeIdeas" :key="idea.id" class="min-w-0 snap-start">
-        <article class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#101216]">
-          <header class="flex items-center justify-between gap-2 px-3 py-3 sm:px-4">
-            <p class="text-xs text-stone-400">{{ index + 1 }} / {{ tradeIdeas.length }}</p>
-            <p class="shrink-0 text-xs font-semibold tabular-nums text-primary">
+        <article class="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101216] text-white shadow-[0_18px_48px_-32px_rgba(0,0,0,0.9)]">
+          <header class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+            <p class="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-stone-400">{{ index + 1 }} / {{ tradeIdeas.length }}</p>
+            <p class="text-xs font-bold tabular-nums text-lime-200">
               {{ formatDelta(idea.expectedPointsGain, 1) }} expected · GW {{ gameweeks[0] ?? '—' }}
             </p>
           </header>
 
           <div class="relative grid h-[23rem] grid-cols-2 border-y border-white/10">
-            <NuxtLink :to="getPlayerRoute(idea.outgoing)" :aria-label="`View ${idea.outgoing.web_name}, sell option`" class="group relative flex h-full min-w-0 flex-col justify-end overflow-hidden bg-stone-900/50 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-primary">
+            <NuxtLink :to="getPlayerRoute(idea.outgoing)" :aria-label="`View ${idea.outgoing.web_name}, sell option`" class="group relative flex h-full min-w-0 flex-col justify-end overflow-hidden bg-[linear-gradient(145deg,var(--club-wash),#101216_72%)] focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-[var(--club-light)]" :style="getPlayerStyle(idea.outgoing)">
               <PlayerPortrait :player="idea.outgoing" :alt="idea.outgoing.web_name" fill-frame />
               <span class="absolute inset-0 z-20 bg-gradient-to-t from-black/90 via-black/55 via-25% to-transparent to-65%" aria-hidden="true" />
-              <span class="relative z-30 min-w-0 px-3 pb-3 pt-32 sm:px-4 sm:pb-4">
-                <span class="block text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-stone-300">Sell</span>
-                <span class="mt-1 block text-lg font-bold leading-tight text-white group-hover:text-primary [overflow-wrap:anywhere]">{{ idea.outgoing.web_name }}</span>
-                <span class="mt-1 flex min-h-4 flex-wrap items-center gap-x-1.5 text-xs leading-4 text-stone-300">
+              <span class="relative z-30 min-w-0 px-4 pb-4 pt-32">
+                <span class="block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-stone-300">Sell</span>
+                <span class="mt-1 block text-[1.75rem] font-black leading-none tracking-tight text-white group-hover:text-[var(--club-light)] [overflow-wrap:anywhere]">{{ idea.outgoing.web_name }}</span>
+                <span class="mt-2 flex min-h-4 flex-wrap items-center gap-x-1.5 text-xs font-semibold uppercase leading-4 tracking-[0.12em] text-white/75">
                   <img v-if="getTeamCode(idea.outgoing.team)" :src="`https://resources.premierleague.com/premierleague/badges/t${getTeamCode(idea.outgoing.team)}.png`" alt="" width="16" height="16" loading="lazy" decoding="async" class="size-4 shrink-0 object-contain" />
                   <span class="[overflow-wrap:anywhere]">{{ getTeamName(idea.outgoing.team) }} · {{ getPositionName(idea.outgoing) }}</span>
                 </span>
-                <span class="mt-1 block text-base font-semibold tabular-nums text-white">£{{ (Number(idea.outgoing.now_cost) / 10).toFixed(1) }}m</span>
+                <span class="mt-2 inline-block rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold tabular-nums text-white">£{{ (Number(idea.outgoing.now_cost) / 10).toFixed(1) }}m</span>
               </span>
             </NuxtLink>
 
-            <NuxtLink :to="getPlayerRoute(idea.incoming)" :aria-label="`View ${idea.incoming.web_name}, buy option`" class="group relative flex h-full min-w-0 flex-col justify-end overflow-hidden border-l border-white/10 bg-stone-900/50 focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-primary">
+            <NuxtLink :to="getPlayerRoute(idea.incoming)" :aria-label="`View ${idea.incoming.web_name}, buy option`" class="group relative flex h-full min-w-0 flex-col justify-end overflow-hidden border-l border-white/10 bg-[linear-gradient(145deg,var(--club-wash),#101216_72%)] focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-[var(--club-light)]" :style="getPlayerStyle(idea.incoming)">
               <PlayerPortrait :player="idea.incoming" :alt="idea.incoming.web_name" fill-frame />
               <span class="absolute inset-0 z-20 bg-gradient-to-t from-black/90 via-black/55 via-25% to-transparent to-65%" aria-hidden="true" />
-              <span class="relative z-30 w-full min-w-0 px-3 pb-3 pt-32 text-right sm:px-4 sm:pb-4">
-                <span class="block text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-primary">Buy</span>
-                <span class="mt-1 block text-lg font-bold leading-tight text-white group-hover:text-primary [overflow-wrap:anywhere]">{{ idea.incoming.web_name }}</span>
-                <span class="mt-1 flex min-h-4 flex-wrap items-center justify-end gap-x-1.5 text-xs leading-4 text-stone-300">
+              <span class="relative z-30 w-full min-w-0 px-4 pb-4 pt-32 text-right">
+                <span class="block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-lime-200">Buy</span>
+                <span class="mt-1 block text-[1.75rem] font-black leading-none tracking-tight text-white group-hover:text-[var(--club-light)] [overflow-wrap:anywhere]">{{ idea.incoming.web_name }}</span>
+                <span class="mt-2 flex min-h-4 flex-wrap items-center justify-end gap-x-1.5 text-xs font-semibold uppercase leading-4 tracking-[0.12em] text-white/75">
                   <img v-if="getTeamCode(idea.incoming.team)" :src="`https://resources.premierleague.com/premierleague/badges/t${getTeamCode(idea.incoming.team)}.png`" alt="" width="16" height="16" loading="lazy" decoding="async" class="size-4 shrink-0 object-contain" />
                   <span class="[overflow-wrap:anywhere]">{{ getTeamName(idea.incoming.team) }} · {{ getPositionName(idea.incoming) }}</span>
                 </span>
-                <span class="mt-1 flex flex-wrap items-baseline justify-end gap-x-1.5 text-base font-semibold tabular-nums text-white">
-                  <span>£{{ (Number(idea.incoming.now_cost) / 10).toFixed(1) }}m</span>
-                  <span v-if="idea.priceChange" class="text-xs" :class="idea.priceChange > 0 ? 'text-amber-100' : 'text-primary'">({{ formatPriceChange(idea.priceChange) }})</span>
+                <span class="mt-2 flex flex-wrap items-center justify-end gap-1.5 tabular-nums">
+                  <span class="rounded-lg border border-white/15 bg-black/50 px-2.5 py-2 font-serif text-lg font-bold text-white">£{{ (Number(idea.incoming.now_cost) / 10).toFixed(1) }}m</span>
+                  <span v-if="idea.priceChange" class="text-xs font-semibold" :class="idea.priceChange > 0 ? 'text-amber-200' : 'text-lime-200'">({{ formatPriceChange(idea.priceChange) }})</span>
                 </span>
               </span>
             </NuxtLink>
@@ -74,7 +74,7 @@
             <span class="pointer-events-none absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-[#101216] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-stone-200" aria-hidden="true">vs</span>
           </div>
 
-          <div class="px-3 py-3 sm:px-4">
+          <div class="px-4 py-3">
             <p class="text-sm leading-5 text-stone-200">{{ idea.reason }}</p>
             <p v-if="idea.sampleNote" class="mt-1 text-xs leading-5 text-amber-200">{{ idea.sampleNote }}</p>
             <table class="mt-3 w-full table-fixed text-xs tabular-nums">
@@ -84,11 +84,11 @@
               </thead>
               <tbody>
                 <tr v-for="row in getComparisonRows(idea)" :key="row.label" class="border-t border-white/10">
-                  <td class="w-[30%] py-2.5 text-left text-sm font-semibold text-white">{{ row.outgoing }}</td>
-                  <th scope="row" class="w-[40%] px-1 py-2.5 text-center font-normal leading-4 text-stone-400">{{ row.label }}</th>
+                  <td class="w-[30%] py-2.5 text-left font-serif text-lg font-bold text-white">{{ row.outgoing }}</td>
+                  <th scope="row" class="w-[40%] px-1 py-2.5 text-center text-[0.6rem] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-400">{{ row.label }}</th>
                   <td class="w-[30%] py-2.5 text-right">
-                    <span class="flex items-center justify-end gap-1.5 sm:gap-2">
-                      <span class="text-sm font-semibold text-white">{{ row.incoming }}</span>
+                    <span class="flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 sm:gap-x-2">
+                      <span class="font-serif text-lg font-bold text-white">{{ row.incoming }}</span>
                       <span class="inline-flex w-12 shrink-0 items-center justify-end gap-0.5 text-[0.65rem] font-semibold" :class="getChangeClass(row)">
                         <UIcon :name="getChangeIcon(row.delta)" class="size-3 shrink-0" aria-hidden="true" />
                         <span>{{ formatDelta(row.delta, row.precision) }}{{ row.suffix }}</span>
@@ -100,9 +100,9 @@
             </table>
           </div>
 
-          <div class="mt-auto px-3 py-2 sm:px-4">
+          <div class="mt-auto px-4 pb-4 pt-3">
           <UButton
-            class="mt-2 w-full justify-center text-stone-300 hover:bg-white/5 hover:text-white"
+            class="w-full justify-center text-stone-300 hover:bg-white/5 hover:text-white focus-visible:bg-white/5 focus-visible:text-white"
             color="neutral"
             variant="ghost"
             size="sm"
@@ -123,6 +123,7 @@
 <script setup lang="ts">
 import { type ShortlistPlayer } from "~/utils/homepage-shortlist";
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
+import { getInstagramClubTheme } from "~/utils/instagram-designs";
 
 const props = withDefaults(defineProps<{
   players: ShortlistPlayer[];
@@ -228,6 +229,10 @@ const updatedAtLabel = computed(() => typeof props.generatedAt === "number" && N
   : null);
 const getTeamName = (teamId: number) => props.teams.find((team) => Number(team.id) === Number(teamId))?.name || "Club unavailable";
 const getTeamCode = (teamId: number) => Number(props.teams.find((team) => Number(team.id) === Number(teamId))?.code) || null;
+const getPlayerStyle = (player: ShortlistPlayer) => {
+  const theme = getInstagramClubTheme(getTeamCode(Number(player.team)) || 0);
+  return { '--club-wash': `${theme.primary}55`, '--club-light': theme.light };
+};
 const formatStat = (value: unknown) => value === null || value === undefined || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(1);
 const formatNumber = (value: unknown) => value === null || value === undefined || !Number.isFinite(Number(value)) ? "—" : Number(value).toLocaleString("en-GB");
 const formatDelta = (delta: number | null, precision: number) => delta === null

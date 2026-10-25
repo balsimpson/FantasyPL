@@ -31,7 +31,7 @@
 			</div>
 		</header>
 
-		<div class="h-[28rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
+		<div class="h-[40rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
 			<p v-if="loading && !result" class="flex h-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#101216] px-4 text-sm text-stone-300" role="status" aria-live="polite">
 				<UIcon name="i-lucide-loader-circle" class="size-4 text-primary motion-safe:animate-spin" aria-hidden="true" />
 				<span>Comparing your squad with current FPL options…</span>
@@ -59,19 +59,19 @@
 					<li
 						v-for="(suggestion, slideIndex) in visibleSuggestions"
 						:key="suggestion.id"
-						class="h-full w-full min-w-0 shrink-0 snap-start p-3 sm:p-4"
+						class="h-full w-full min-w-0 shrink-0 snap-start"
 						aria-roledescription="slide"
 						:aria-label="`Recommendation ${slideIndex + 1} of ${result.suggestions.length}`"
 					>
-						<div class="grid h-full min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)] lg:grid-rows-1">
-							<div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3 lg:h-full">
+						<div class="grid h-full min-w-0 grid-rows-[18rem_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)] lg:grid-rows-1">
+							<div class="relative grid h-full min-w-0 grid-cols-2 border-b border-white/10 lg:border-b-0 lg:border-r">
 								<ManagerRecommendationPlayer label="Current player" align="left" :player="suggestion.outgoing" />
-								<UIcon name="i-lucide-arrow-right" class="size-4 shrink-0 text-stone-400 sm:size-5" aria-hidden="true" />
 								<ManagerRecommendationPlayer label="Recommended player" align="right" :player="suggestion.incoming" />
+								<span class="pointer-events-none absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-[#101216] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-stone-200" aria-hidden="true">vs</span>
 							</div>
 
-							<div class="flex h-full min-h-0 min-w-0 flex-col">
-								<div class="min-h-0 min-w-0 flex-1 overflow-x-auto border-t border-white/10 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+							<div class="flex h-full min-h-0 min-w-0 flex-col p-3 sm:p-4">
+								<div class="min-h-0 min-w-0 flex-1 overflow-x-auto">
 									<table class="h-full w-full min-w-[15.5rem] table-fixed text-left text-sm">
 										<caption class="sr-only">Current, recommended, and difference in player performance measures</caption>
 										<colgroup>

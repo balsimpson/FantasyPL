@@ -45,6 +45,19 @@ export function useSavedManagers() {
     }
   };
 
+  const remove = (id: string) => {
+    if (!import.meta.client) return;
+    savedManagers.value = savedManagers.value.filter((manager) => manager.id !== id);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedManagers.value));
+      if (window.localStorage.getItem("savedManagerId") === id) {
+        window.localStorage.removeItem("savedManagerId");
+      }
+    } catch {
+      // Keep removal effective for this session when storage is blocked.
+    }
+  };
+
   const sync = (event: StorageEvent) => {
     if (event.key === STORAGE_KEY || event.key === null) load();
   };
@@ -57,5 +70,5 @@ export function useSavedManagers() {
     if (import.meta.client) window.removeEventListener("storage", sync);
   });
 
-  return { savedManagers, remember };
+  return { savedManagers, remember, remove };
 }
