@@ -3,13 +3,17 @@ import { v } from 'convex/values'
 import { nullableNumber, nullableString, postFields, postStatus } from './schedulerValidators'
 import { articleFields, draftFields } from './articleValidators'
 import { generationFields } from './articleJobValidators'
-import { researchFields } from './articleResearchValidators'
+import { researchFields, researchIdeaFields } from './articleResearchValidators'
 
 export default defineSchema({
   managerShareStats: defineTable({ day: v.string(), clicks: v.number(), copies: v.number() })
     .index('by_day', ['day']),
-  articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']),
+  articleResearch: defineTable(researchFields).index('by_createdAt', ['createdAt']).index('by_requestId', ['requestId']).index('by_status_and_createdAt', ['status', 'createdAt']),
   articleResearchChoices: defineTable({ researchId: v.id('articleResearch'), suggestionIndex: v.number(), articleId: v.string() }).index('by_researchId_and_suggestionIndex', ['researchId', 'suggestionIndex']),
+  articleResearchIdeas: defineTable(researchIdeaFields)
+    .index('by_status_and_createdAt', ['status', 'createdAt'])
+    .index('by_researchId_and_suggestionIndex', ['researchId', 'suggestionIndex'])
+    .index('by_titleKey_and_status', ['titleKey', 'status']),
   articleJobs: defineTable(generationFields)
     .index('by_articleId_and_createdAt', ['articleId', 'createdAt'])
     .index('by_requestId', ['requestId'])

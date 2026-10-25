@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { internalMutation, mutation, query } from './_generated/server'
 import { articleDocument, articleSummary, draftFields } from './articleValidators'
 import { articleText, validateArticleDraft } from '../shared/articles'
+import { researchTitleKey } from '../shared/article-research'
 
 function authorize(secret: string) {
   if (!process.env.CONTENT_SERVICE_TOKEN || secret !== process.env.CONTENT_SERVICE_TOKEN) throw new ConvexError({ code: 'FORBIDDEN', message: 'Article access denied.' })
@@ -123,6 +124,9 @@ export const save = mutation({
     const id = existing?._id ?? await ctx.db.insert('articles', record)
     if (existing) await ctx.db.patch(id, record)
     await ctx.db.insert('articleRevisions', { ...draft, articleId: args.articleId, version, savedAt: now, savedBy: args.savedBy })
+    const matchingIdeas = await ctx.db.query('articleResearchIdeas').withIndex('by_titleKey_and_status', q => q.eq('titleKey', researchTitleKey(validated.title)).eq('status', 'ready')).take(10)
+    for (const idea of matchingIdeas) await ctx.db.patch(idea._id, { status: 'used', articleId: args.articleId, usedAt: now })
+    if (matchingIdeas.length || !existing) await ctx.scheduler.runAfter(0, internal.articleResearchIdeas.refreshAndEnsure, { retry: false })
     return (await ctx.db.get(id))!
   },
 })

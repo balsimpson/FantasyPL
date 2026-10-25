@@ -13,6 +13,7 @@ import type * as articleJobValidators from "../articleJobValidators.js";
 import type * as articleJobs from "../articleJobs.js";
 import type * as articleProvider from "../articleProvider.js";
 import type * as articleResearch from "../articleResearch.js";
+import type * as articleResearchIdeas from "../articleResearchIdeas.js";
 import type * as articleResearchValidators from "../articleResearchValidators.js";
 import type * as articleValidators from "../articleValidators.js";
 import type * as articles from "../articles.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   articleJobs: typeof articleJobs;
   articleProvider: typeof articleProvider;
   articleResearch: typeof articleResearch;
+  articleResearchIdeas: typeof articleResearchIdeas;
   articleResearchValidators: typeof articleResearchValidators;
   articleValidators: typeof articleValidators;
   articles: typeof articles;

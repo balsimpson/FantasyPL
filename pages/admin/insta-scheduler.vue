@@ -242,7 +242,6 @@ onScopeDispose(() => {
       <div class="flex h-full min-h-0 flex-col">
         <header class="site-content-rail flex shrink-0 items-center justify-between py-3">
           <div class="flex items-center gap-3">
-            <UDashboardSidebarCollapse />
             <UButton to="/admin/articles" icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to articles" />
             <h1 class="text-sm font-semibold text-highlighted sm:text-base">Post picks <span class="font-normal text-muted">· GW{{ draft.gameweek ?? '—' }}</span></h1>
           </div>

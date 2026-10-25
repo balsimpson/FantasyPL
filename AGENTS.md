@@ -10,7 +10,7 @@ Before editing, confirm the working directory, Git remote, branch, dirty state, 
 - Expected remote: `https://github.com/balsimpson/FantasyPL.git`.
 - Approved canonical public site: `https://sportsync.in` (owner decision, 24 October 2026). Hosting remains on Vercel; the previous address is `https://fantasyleague.vercel.app`. Domain attachment, redirects, deployed commit, and authenticated Vercel settings require separate verification. Keep `NUXT_PUBLIC_SITE_URL` aligned with the approved canonical origin.
 - The branch was `main` when this guide was created. Check it each session; do not switch branches automatically.
-- Use npm only. Keep `package-lock.json` aligned with intentional dependency changes. The README's alternative package-manager examples are not the project preference.
+- Use npm only; install dependencies with `npm i`. Do not use pnpm, Yarn, Bun, or another package manager. Keep `package-lock.json` aligned with intentional dependency changes.
 
 ## Documentation ownership
 
@@ -59,7 +59,7 @@ Defer a visual rebrand, paid acquisition, chatbot, native app, large CMS, mass-g
 
 ## Project map and runtime
 
-Verified locally on 6 September 2026: Node 22.23.1, npm 10.9.8, Nuxt 4.4.2, Nuxt UI 4.7.0, Vue 3.5.33, Tailwind 4.2.4, and Pinia. Recheck installed versions rather than treating this dated snapshot as a pin.
+Verified locally on 6 September 2026: Node 22.23.1, npm 10.9.8, Nuxt 4.4.2, Nuxt UI 4.7.0, Vue 3.5.33, Tailwind 4.2.4, and Pinia. `package.json` declares Node `24.x`; use Node 24.x for installs and builds, and check `node --version` because the dated snapshot is not a runtime pin.
 
 This project uses root-level Nuxt directories. Follow that structure instead of introducing an `app/` migration as part of unrelated work.
 
@@ -81,6 +81,8 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts` | Crawl discovery |
 | `server/api/bootstrap-static.ts`, `server/api/homepage-data.ts`, `server/api/players/`, `server/api/fixtures.ts`, `server/api/managers/` | Public data handlers; the homepage projection is separate so shared bootstrap consumers retain their full contract |
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection |
+| `pages/admin/articles/`, `components/admin/ArticleResearchPanel.vue` | Private article workspace and research/editor UI; read `BLOG_GROWTH_PLAN.md` before changing its workflow |
+| `server/api/admin/`, `convex/`, `shared/` | Authorized admin APIs, durable article/research storage and shared contracts; preserve server authorization and read the blog plan for subsystem requirements |
 | `nuxt.config.ts` | Modules, global metadata, and runtime configuration |
 
 Available scripts are `npm run dev`, `npm run build`, `npm run preview`, and `npm run generate`. `postinstall` runs Nuxt preparation. There are currently no dedicated test, lint, or typecheck scripts in `package.json`; do not claim they passed or treat the `/test` route as a test suite. Do not add a test framework for a documentation-only change.
@@ -113,15 +115,7 @@ No Search Console baseline was available at the audit. Analytics injection does 
 
 ## Blog requirements when implementation is requested
 
-The owner wants an AI-assisted content engine on the existing site. Unattended publishing is a first-class mode that the owner can turn on or off (24 October 2026). The first implementation stage is the private workspace, editor and durable draft saving. GitHub via Nuxt Auth Utils is the chosen admin login. See `BLOG_GROWTH_PLAN.md` for storage, editor, automation decisions and implementation evidence; do not assume that local code establishes configured accounts or a deployed backend.
-
-- Planned public routes are `/blog` and `/blog/[slug]`; private admin routes are under `pages/admin/articles/`. Check the owning plan and current source for local implementation and verification status; planned public routes are not established features merely because they appear in the plan.
-- Use durable storage for articles, evidence snapshots, and revisions behind server-authorized admin APIs. Function-local files and localStorage are not article storage. Preserve a draft independently of the published revision.
-- Calculate rankings, net transfers, and tables in code; use AI to explain validated evidence. Capture source timestamps, season, gameweek, units, periods, and player identity. A 24-hour transfer claim requires comparable timestamped snapshots. Fixture analysis must account for blank/double gameweeks and unknown kickoff times.
-- Start with transfer trends, fixture analysis, and budget shortlists, plus useful evergreen explanations. Connect articles to real player pages or tools. Do not generate unsupported news, arbitrary player pairs, or thin archives for search volume.
-- Failed generation must preserve existing content. Validate generated output, sanitize rendered content, prevent draft leaks, and make publish retries idempotent. All admin operations, including preview and generation, need server-side authorization. Noindex and hidden navigation are not access control.
-- Public articles must render in initial HTML and remain readable during FPL API outages. Include real authorship, sources, capture/publication/update times, relevant season/gameweek, canonical metadata, and accurate article structured data. Add only published articles to the sitemap and feed.
-- Do not repurpose `server/api/get-response.ts` blindly; it is an existing caption-generation endpoint with other consumers. Keep scheduler changes outside the workspace/editor stage. Later Instagram automation must obey its own configured mode and execution checks; saving an article must never publish or post.
+Read `BLOG_GROWTH_PLAN.md` before blog or article-workspace changes; it owns the detailed product, data, security, and verification requirements. Check the current source as well as the plan: planned public routes are not established features, and local code does not prove configured accounts or deployed services. Keep all admin operations server-authorized, protect drafts, and keep secrets server-only. Keep scheduler changes outside article work unless requested; article saving must not publish or post.
 
 ## Verification and handoff
 
@@ -135,4 +129,4 @@ Report separately what passed locally, in a browser, on the hosted site, in auth
 
 Look up implementation status in the owning document listed above and verify it against current source. Do not maintain a second dated feature-status snapshot in this guide.
 
-When completing related work, update the owning document with the date, concrete checks, and any remaining hosted verification. Other documents need only a brief cross-reference where their existing summary would otherwise mislead. Keep this guide current when a durable working rule or documentation ownership changes. Do not mark historical live findings resolved solely from local checks, and do not turn this guide into a transcript of temporary branch or dirty-file state.
+When completing related work, update the owning document with the date, concrete checks, and any remaining hosted verification. Other documents need only a brief cross-reference where their existing summary would otherwise mislead. Before a broad repository search, consult this project map and the relevant implementation reference, then search narrowly from those landmarks. When an important file is added, moved, renamed, deleted, or changes responsibility, update this map or the relevant reference. Keep this guide current when a durable working rule or documentation ownership changes. Do not mark historical live findings resolved solely from local checks, and do not turn this guide into a transcript of temporary branch or dirty-file state.

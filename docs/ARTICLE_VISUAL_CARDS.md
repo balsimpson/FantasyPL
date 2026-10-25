@@ -21,7 +21,7 @@ This guide owns the article visual catalog and the rules for choosing cards in g
 
 ## Selection rules for article generation
 
-- Add a card only when it supports the section beside it. Avoid repeating the same numbers in prose.
+- Add a card only when it supports the section beside it. Avoid repeating the same numbers in prose. Keep automatic source, capture-time, ranking, and selection notes out of body copy; the cards and article metadata carry those details, and source links stay in the article's source list.
 - Use a comparison card for a direct player choice. Use a shortlist for a filtered set. Use transfer watch for transfer movement. Use a team fixture table for club schedules. Use a fixture run for one player's schedule.
 - Keep rankings and calculations in code. The writing model can explain the result, but it cannot invent values, thresholds, periods, or sources.
 - Keep one source snapshot for every card. Store season, gameweek or period, capture time, identifiers, and the values used. A later live refresh must not silently rewrite the historical argument.

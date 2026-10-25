@@ -1,4 +1,4 @@
-import { articleText, emptyArticle, validateArticleDraft, type ArticleNode, type SavedArticle } from '~/shared/articles'
+import { emptyArticle, isAutomaticEvidenceNote, validateArticleDraft, type ArticleNode, type SavedArticle } from '~/shared/articles'
 
 export function useArticleEditor(id: string) {
   const draft = ref(emptyArticle())
@@ -34,7 +34,7 @@ export function useArticleEditor(id: string) {
       savedAt.value = article.updatedAt
       savedSnapshot.value = JSON.stringify(draft.value)
       if (body.type === 'doc' && Array.isArray(body.content)) {
-        const content = body.content.filter((node: ArticleNode) => !(node.type === 'paragraph' && articleText(node).trimStart().startsWith('Source: official FPL data, captured ')))
+        const content = body.content.filter((node: ArticleNode) => !isAutomaticEvidenceNote(node))
         if (content.length !== body.content.length) {
           draft.value.body = { ...body, content }
           cleanupSourceNoteOnMount.value = true

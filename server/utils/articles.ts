@@ -1,7 +1,7 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
 import type { api as generatedApi } from '../../convex/_generated/api'
-import type { PublishedArticle, SavedArticle } from '../../shared/articles'
+import { stripAutomaticEvidenceNote, type PublishedArticle, type SavedArticle } from '../../shared/articles'
 
 const api = anyApi as unknown as typeof generatedApi
 
@@ -17,7 +17,8 @@ export function articleResponse(record: { bodyJson: string; articleId: string; t
 }
 
 export function publishedArticleResponse(record: { publishedJson: string }): PublishedArticle {
-  return JSON.parse(record.publishedJson) as PublishedArticle
+  const article = JSON.parse(record.publishedJson) as PublishedArticle
+  return { ...article, body: stripAutomaticEvidenceNote(article.body) }
 }
 
 export function articleStorageError(error: unknown) {

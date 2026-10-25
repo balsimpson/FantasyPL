@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { articleSlug, articleTemplates, articleText, templateBody, type ArticleDraft } from '~/shared/articles'
+import type { AdminArticleToolbar } from '~/composables/adminArticleToolbar'
 definePageMeta({ layout: 'admin', middleware: 'admin', key: route => route.params.id as string })
 const route = useRoute()
 const { draft, articleId, version, status, publishedVersion, savedAt, saving, saveError, loadError, loading, conflict, dirty, wordCount, load, save } = useArticleEditor(String(route.params.id))
@@ -15,6 +16,12 @@ const nextRoute = ref('')
 const publishing = ref(false)
 const publishError = ref('')
 const publishedUrl = ref('')
+const detailsOpen = ref(false)
+const detailsSide = ref<'right' | 'bottom'>('bottom')
+const toast = useToast()
+const articleToolbar = inject<Ref<AdminArticleToolbar | null>>('admin-article-toolbar')
+let detailsMediaQuery: MediaQueryList | null = null
+let updateDetailsSide: (() => void) | null = null
 const previewDraft = computed(() => viewedRevision.value || draft.value)
 const previewWordCount = computed(() => articleText(previewDraft.value.body).trim().split(/\s+/).filter(Boolean).length)
 const revisionItems = computed(() => {
@@ -51,6 +58,25 @@ const saveLabel = computed(() => saveError.value ? 'Save failed' : saving.value 
 const articleStatusLabel = computed(() => status.value === 'published' && publishedVersion.value < version.value ? 'Draft changes not live' : status.value === 'published' ? 'Published' : 'Draft')
 const savedTime = computed(() => savedAt.value ? new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(savedAt.value) : '')
 const canApplyTemplate = computed(() => !articleText(draft.value.body).trim())
+const toolbarState = computed<AdminArticleToolbar>(() => ({
+  saveLabel: saveLabel.value,
+  saveDisabled: loading.value || !!loadError.value || saving.value || !dirty.value,
+  saving: saving.value,
+  generating: generation.starting.value,
+  generatingDisabled: loading.value || !!loadError.value || saving.value || generation.active.value || draft.value.title.trim().length < 8,
+  editLabel: viewedRevision.value ? 'Restore version' : preview.value ? 'Edit article' : 'Preview article',
+  editIcon: viewedRevision.value ? 'i-lucide-history' : preview.value ? 'i-lucide-pencil' : 'i-lucide-eye',
+  editDisabled: loading.value || !!loadError.value || dirty.value || saving.value,
+  publishing: publishing.value,
+  publishDisabled: loading.value || !!loadError.value || conflict.value || saving.value,
+  publishLabel: status.value === 'published' ? 'Publish update' : 'Publish',
+  onSave: () => { void saveDraft() },
+  onGenerate: () => { void generateDraft() },
+  onToggleEdit: toggleEdit,
+  onPublish: () => { void publishArticle() },
+  onDetails: () => { detailsOpen.value = true },
+}))
+watchEffect(() => { if (articleToolbar) articleToolbar.value = toolbarState.value })
 function applyTemplate() { if (canApplyTemplate.value) draft.value.body = templateBody(draft.value.template) }
 let leavingAfterSave = false
 let autoSaveTimer: ReturnType<typeof setTimeout> | undefined
@@ -166,7 +192,22 @@ function saveShortcut(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void saveDraft() }
 }
 onMounted(() => window.addEventListener('keydown', saveShortcut))
-onBeforeUnmount(() => window.removeEventListener('keydown', saveShortcut))
+onMounted(() => {
+  detailsMediaQuery = window.matchMedia('(min-width: 768px)')
+  updateDetailsSide = () => { detailsSide.value = detailsMediaQuery?.matches ? 'right' : 'bottom' }
+  updateDetailsSide()
+  detailsMediaQuery.addEventListener('change', updateDetailsSide)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', saveShortcut)
+  if (detailsMediaQuery && updateDetailsSide) detailsMediaQuery.removeEventListener('change', updateDetailsSide)
+  if (articleToolbar) articleToolbar.value = null
+})
+watch(saveError, message => { if (message) toast.add({ title: 'Draft not saved', description: message, color: 'error', icon: 'i-lucide-circle-alert', duration: 6000 }) })
+watch(publishError, message => { if (message) toast.add({ title: 'Article not published', description: message, color: 'error', icon: 'i-lucide-circle-alert', duration: 6000 }) })
+watch(() => generation.error.value, message => { if (message) toast.add({ title: 'Generation unavailable', description: message, color: 'error', icon: 'i-lucide-circle-alert', duration: 6000 }) })
+watch(() => generation.job.value?.status, status => { if (status === 'failed') toast.add({ title: 'Article generation failed', description: generation.job.value?.error || 'Your existing draft is unchanged. Please try again.', color: 'error', icon: 'i-lucide-circle-alert', duration: 7000 }) })
+watch(publishedUrl, url => { if (url) toast.add({ title: 'Article published', description: 'Your saved public version is live.', color: 'success', icon: 'i-lucide-check', duration: 6500, actions: [{ label: 'Open article', onClick: () => window.open(url, '_blank', 'noopener,noreferrer') }] }) })
 </script>
 
 <template>
@@ -174,27 +215,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', saveShortcut))
     <h1 class="sr-only">Article editor</h1>
     <div class="flex flex-wrap items-center justify-between gap-4">
       <UButton to="/admin/articles" label="Articles" icon="i-lucide-arrow-left" color="neutral" variant="ghost" class="-ml-2" />
-      <div class="flex flex-wrap items-center gap-3">
-        <span role="status" aria-live="polite" class="min-w-32 text-right text-sm text-muted">{{ saveLabel }}</span>
-        <UTooltip text="Generate draft">
-          <UButton icon="i-lucide-sparkles" color="neutral" variant="ghost" aria-label="Generate draft" :loading="generation.starting.value" :disabled="loading || !!loadError || saving || generation.active.value || draft.title.trim().length < 8" @click="generateDraft" />
-        </UTooltip>
-        <UButton :label="viewedRevision ? 'Restore this version' : preview ? 'Edit article' : 'Preview article'" :icon="viewedRevision ? 'i-lucide-history' : preview ? 'i-lucide-pencil' : 'i-lucide-eye'" color="neutral" variant="outline" class="min-w-44 justify-center" :disabled="loading || !!loadError || dirty || saving" @click="toggleEdit" />
-        <UButton :label="status === 'published' ? 'Update published article' : 'Publish article'" icon="i-lucide-globe-2" :loading="publishing" :disabled="loading || !!loadError || conflict || saving" @click="publishArticle" />
-      </div>
     </div>
     <div v-if="loading" class="py-20 text-muted" role="status">Loading article…</div>
     <UAlert v-else-if="loadError" title="Article could not be opened" :description="loadError" color="error" variant="soft" class="mt-8" :actions="[{ label: 'Try again', onClick: load }]" />
     <template v-else>
-      <UAlert v-if="saveError" title="Draft not saved" :description="saveError" color="error" variant="soft" class="mt-6" />
-      <UAlert v-if="publishError" title="Article not published" :description="publishError" color="error" variant="soft" class="mt-6" />
-      <UAlert v-if="publishedUrl" title="Article published" description="Your saved public version is live." color="success" variant="soft" class="mt-6" :actions="[{ label: 'Open article', to: publishedUrl, target: '_blank' }]" />
-      <UAlert v-if="generation.error.value" title="Generation unavailable" :description="generation.error.value" color="error" variant="soft" class="mt-6" />
-      <div v-if="generation.active.value" role="status" class="mt-5 flex items-center gap-2 text-sm text-muted"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin text-primary" /><span>{{ generation.job.value?.status === 'queued' ? 'Article queued. You can leave this page.' : 'Writing your article in the background…' }}</span></div>
-      <UAlert v-if="generation.job.value?.status === 'failed'" title="Article generation failed" :description="generation.job.value.error || 'Your existing draft is unchanged. Please try again.'" color="error" variant="soft" class="mt-6" />
+      <div class="mt-4 h-5" role="status" aria-live="polite"><span v-if="generation.active.value" class="flex items-center gap-2 text-sm text-muted"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin text-primary" /><span>{{ generation.job.value?.status === 'queued' ? 'Article queued. You can leave this page.' : 'Writing your article in the background…' }}</span></span></div>
       <UButton v-if="conflict" :to="`/admin/articles/${articleId}`" target="_blank" label="Open saved version in a new tab" color="neutral" variant="outline" class="mt-3" />
-      <div class="mt-8 grid min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_17rem] xl:gap-12">
-        <section class="min-w-0" :aria-label="preview ? 'Article preview' : 'Article editor'">
+      <div class="mt-6 min-w-0">
+        <section class="mx-auto min-w-0 max-w-4xl" :aria-label="preview ? 'Article preview' : 'Article editor'">
           <div class="h-6">
             <UBadge v-if="preview" :label="viewedRevision ? (selectedRevision === 'generated' ? 'Generated draft' : `Version ${selectedRevision}`) : 'Private preview'" color="neutral" variant="subtle" />
           </div>
@@ -217,7 +245,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', saveShortcut))
             <span v-if="savedAt">{{ viewedRevision ? `Version ${selectedRevision}` : `Saved at ${savedTime} IST · Revision ${version}` }}</span>
           </div>
         </section>
-        <aside class="min-w-0 border-t border-default pt-6 xl:border-t-0 xl:pt-0" aria-label="Article details">
+        <USlideover v-model:open="detailsOpen" :side="detailsSide" title="Article details" description="Article settings, sources and saved versions.">
+          <template #body>
+          <aside class="min-w-0" aria-label="Article details">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-semibold text-highlighted">Article details</h2>
             <UBadge :label="articleStatusLabel" :color="articleStatusLabel === 'Published' ? 'success' : 'neutral'" variant="subtle" />
@@ -250,7 +280,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', saveShortcut))
             </div>
           </div>
           <p class="mt-8 border-t border-default pt-5 text-sm leading-6 text-muted">Saving keeps your article private. Publishing creates a public version; later edits stay in the draft until you publish again.</p>
-        </aside>
+          </aside>
+          </template>
+        </USlideover>
       </div>
     </template>
     <UModal v-model:open="discardOpen" title="Leave this draft?" description="Your latest changes are not saved yet. Keep editing until the save completes, or leave and discard them.">

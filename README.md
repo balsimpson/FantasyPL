@@ -9,17 +9,7 @@ The approved canonical site is [sportsync.in](https://sportsync.in). Domain setu
 Make sure to install the dependencies:
 
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+npm i
 ```
 
 ## Homepage player trends
@@ -31,17 +21,7 @@ The homepage shows deterministic FPL-stat sections for differentials (lowest sel
 Start the development server on `http://localhost:3000`:
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
 ### API Endpoints

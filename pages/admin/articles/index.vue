@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ArticleResearchPanel from '~/components/admin/ArticleResearchPanel.vue'
 import { articleTemplates, type ArticleSummary } from '~/shared/articles'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'Articles' })

@@ -56,6 +56,16 @@ export function articleText(node: ArticleNode): string {
   return node.text ?? (node.content || []).map(articleText).join(' ')
 }
 
+export function isAutomaticEvidenceNote(node: ArticleNode): boolean {
+  return node.type === 'paragraph' && /^Source:\s*official FPL data,?\s*captured\b/i.test(articleText(node).trimStart())
+}
+
+export function stripAutomaticEvidenceNote(body: ArticleNode): ArticleNode {
+  if (body.type !== 'doc' || !Array.isArray(body.content)) return body
+  const content = body.content.filter(node => !isAutomaticEvidenceNote(node))
+  return content.length === body.content.length ? body : { ...body, content }
+}
+
 export function templateBody(template: ArticleTemplate): ArticleNode {
   const selected = articleTemplates.find(item => item.value === template)!
   return { type: 'doc', content: selected.sections.flatMap(text => [
@@ -133,7 +143,7 @@ export function validateArticleDraft(value: unknown): ArticleDraft {
     if (['doc', 'blockquote'].includes(item.type) && children.some(child => inline.has(child.type) || child.type === 'listItem')) throw new Error('The article contains an invalid block.')
     return clean
   }
-  const body = node(input.body, 0)
+  const body = stripAutomaticEvidenceNote(node(input.body, 0))
   if (!body.content?.length) body.content = [{ type: 'paragraph' }]
   const sources = input.sources === undefined ? [] : input.sources
   if (!Array.isArray(sources) || sources.length > 20) throw new Error('Add no more than 20 article sources.')
