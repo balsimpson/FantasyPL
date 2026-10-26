@@ -78,14 +78,14 @@ export function buildHomepageBuyIdeas(players: TradePlayer[], fixtures: TradePla
     const betterValue = peers.filter((peer) => (recentForm[String(peer.id)]?.pointsPerAppearance ?? 0) / (Number(peer.now_cost) / 10) > value).length
     const strongValue = points !== null && peers.length >= 4 && betterValue < Math.ceil(peers.length / 4) && output
     const label = goodRun ? 'Favourable fixtures' : strongValue ? 'Good value' : threat ? 'Attacking threat' : defence ? 'Defensive form' : 'Consistent points'
-    const reason = goodRun ? `${easyMatches} matches rated 1 or 2 for difficulty across the next ${gameweeks.length} gameweeks.`
-      : strongValue ? `${points!.toFixed(1)} points per appearance recently at £${(Number(player.now_cost) / 10).toFixed(1)}m.`
-      : threat ? `${attacking!.toFixed(2)} expected goals and assists per 90 over the recent match window.`
-      : defence ? `${Math.round(defensive! * 100)}% clean-sheet rate across ${recent.appearances} recent appearances.`
-      : `${points!.toFixed(1)} points per appearance across ${recent.appearances} recent appearances.`
-    const caution = recent.matches < 5 ? `Only ${recent.matches} recent matches to compare.`
-      : run.some((week) => !week.length) ? 'At least one upcoming gameweek has no confirmed fixture.'
-      : recent.minutesPerMatch < 75 ? `Averaged ${Math.round(recent.minutesPerMatch)} minutes per match recently.` : null
+    const reason = goodRun ? `${easyMatches} favourable fixtures in the next ${gameweeks.length} ${gameweeks.length === 1 ? 'gameweek' : 'gameweeks'}.`
+      : strongValue ? `Averaging ${points!.toFixed(1)} points a game at £${(Number(player.now_cost) / 10).toFixed(1)}m.`
+      : threat ? `Averaging ${attacking!.toFixed(2)} expected goals and assists per 90 minutes.`
+      : defence ? `Clean sheets in ${Math.round(defensive! * 100)}% of his last ${recent.appearances} appearances.`
+      : `Averaging ${points!.toFixed(1)} points a game over his last ${recent.appearances} appearances.`
+    const caution = recent.matches < 5 ? `Based on only ${recent.matches} recent matches.`
+      : run.some((week) => !week.length) ? 'No confirmed fixture in at least one of the upcoming gameweeks.'
+      : recent.minutesPerMatch < 75 ? `Averaging ${Math.round(recent.minutesPerMatch)} minutes a game recently.` : null
     return [{ id: Number(player.id), code: Number(player.code), player, recent, label, reason, caution,
       evidenceScore: Math.min(2, (points ?? 0) / 3) + Math.min(1, (attacking ?? 0)) +
         (defence ? 0.5 : 0) + (goodRun ? 0.6 : 0) + (strongValue ? 0.4 : 0) + Math.min(0.5, stat(player, 'ep_next') / 12) }]

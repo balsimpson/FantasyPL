@@ -118,18 +118,18 @@ export function buildHomepageTradeOptions(
         : attackingGain !== null && attackingGain >= 0.15
       const availabilityReasons: Record<string, string> = {
         i: 'is injured.',
-        d: 'is a doubt for the next game.',
+        d: 'is a doubt for the next match.',
         s: 'is suspended.',
         u: 'is unavailable.',
         n: 'is unavailable.',
       }
       const reasons: string[] = []
       if (availabilityIssue) reasons.push(`${outgoing.web_name} ${availabilityReasons[outgoing.status]}`)
-      if (minutesGain >= 15 && outgoingRecent.minutesPerMatch < 60) reasons.push(`${incoming.web_name} has played more minutes per match than ${outgoing.web_name}.`)
-      if (fixtureAdvantage !== null && fixtureAdvantage >= 0.6 && recentOutputGain >= -0.75) reasons.push(`${incoming.web_name} has easier fixtures over the next ${gameweeks.length} gameweeks.`)
-      if (recentOutputGain >= 1 && (expectedPointsGain >= 0 || positionSupport)) reasons.push(`${incoming.web_name} has scored more points per appearance recently.`)
-      if (expectedPointsGain >= 1 && recentOutputGain >= -0.75) reasons.push(`FPL expects ${incoming.web_name} to score ${expectedPointsGain.toFixed(1)} more points in GW ${gameweeks[0]}.`)
-      if (priceChange <= -0.3 && expectedPointsGain >= -0.3 && recentOutputGain >= -0.5 && minutesGain >= -5) reasons.push(`${incoming.web_name} costs £${Math.abs(priceChange).toFixed(1)}m less, with similar recent points and minutes.`)
+      if (minutesGain >= 15 && outgoingRecent.minutesPerMatch < 60) reasons.push(`${incoming.web_name} is averaging more minutes a game than ${outgoing.web_name}.`)
+      if (fixtureAdvantage !== null && fixtureAdvantage >= 0.6 && recentOutputGain >= -0.75) reasons.push(`${incoming.web_name} has an easier run of fixtures over the next ${gameweeks.length} ${gameweeks.length === 1 ? 'gameweek' : 'gameweeks'}.`)
+      if (recentOutputGain >= 1 && (expectedPointsGain >= 0 || positionSupport)) reasons.push(`${incoming.web_name} is averaging more points a game than ${outgoing.web_name} recently.`)
+      if (expectedPointsGain >= 1 && recentOutputGain >= -0.75) reasons.push(`FPL projects ${expectedPointsGain.toFixed(1)} more points for ${incoming.web_name} in Gameweek ${gameweeks[0]}.`)
+      if (priceChange <= -0.3 && expectedPointsGain >= -0.3 && recentOutputGain >= -0.5 && minutesGain >= -5) reasons.push(`${incoming.web_name} costs £${Math.abs(priceChange).toFixed(1)}m less, with similar recent points and game time.`)
       if (!reasons.length) continue
       // Buying activity is a small tie-break, never a substitute for performance evidence.
       const buyingSignal = Math.min(0.15, Math.log10(1 + Math.max(0, stat(incoming, 'transfers_in_event'))) / 40)
@@ -145,7 +145,7 @@ export function buildHomepageTradeOptions(
         pointsPerGameGain: stat(incoming, 'points_per_game') - stat(outgoing, 'points_per_game'),
         priceChange, outgoingDifficulty, incomingDifficulty, fixtureAdvantage, evidenceScore,
         reason: reasons[0], reasons,
-        sampleNote: Math.min(outgoingRecent.matches, incomingRecent.matches) < 4 ? `Only ${Math.min(outgoingRecent.matches, incomingRecent.matches)} recent matches to compare.` : null,
+        sampleNote: Math.min(outgoingRecent.matches, incomingRecent.matches) < 4 ? `Based on only ${Math.min(outgoingRecent.matches, incomingRecent.matches)} recent matches.` : null,
       })
     }
   }
