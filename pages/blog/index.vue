@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublishedArticle } from '~/shared/articles'
+import { getArticlePreviewPath } from '~/utils/article-preview'
 const canonicalUrl = useCanonicalUrl('/blog')
 const { data: articles, error } = await useFetch<PublishedArticle[]>('/api/articles')
 useHead({ link: [
@@ -29,10 +30,13 @@ useSeoMeta({
     <p v-else-if="!articles?.length" class="py-10 text-stone-300">New FPL analysis and guides will appear here.</p>
     <ul v-else class="divide-y divide-white/10">
       <li v-for="article in articles" :key="article.slug" class="py-7 sm:py-9">
-        <NuxtLink :to="`/blog/${article.slug}`" class="group block rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-          <p class="text-sm text-stone-400"><time :datetime="new Date(article.publishedAt).toISOString()">{{ new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(article.publishedAt) }}</time><span v-if="article.gameweek"> · Gameweek {{ article.gameweek }}</span><span v-if="article.season"> · {{ article.season }}</span></p>
-          <h2 class="mt-2 text-xl font-semibold leading-snug text-white group-hover:text-primary sm:text-2xl">{{ article.title }}</h2>
-          <p class="mt-2 max-w-3xl leading-7 text-stone-300">{{ article.excerpt }}</p>
+        <NuxtLink :to="`/blog/${article.slug}`" class="group grid gap-5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)] sm:items-center sm:gap-7">
+          <img :src="getArticlePreviewPath(article.slug)" alt="" width="1200" height="630" loading="lazy" decoding="async" class="aspect-[1200/630] w-full rounded-lg bg-[#10241c] object-cover" />
+          <div class="min-w-0">
+            <p class="text-sm text-stone-400"><time :datetime="new Date(article.publishedAt).toISOString()">{{ new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(article.publishedAt) }}</time><span v-if="article.gameweek"> · Gameweek {{ article.gameweek }}</span><span v-if="article.season"> · {{ article.season }}</span></p>
+            <h2 class="mt-2 text-xl font-semibold leading-snug text-white group-hover:text-primary sm:text-2xl">{{ article.title }}</h2>
+            <p class="mt-2 max-w-3xl leading-7 text-stone-300">{{ article.excerpt }}</p>
+          </div>
         </NuxtLink>
       </li>
     </ul>

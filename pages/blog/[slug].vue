@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import type { PublishedArticle } from '~/shared/articles'
+import { articleTemplates, type PublishedArticle } from '~/shared/articles'
 import { getPublicSiteOrigin } from '~/utils/site-url'
+import { getArticlePreviewPath } from '~/utils/article-preview'
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
 const { data: article, error } = await useFetch<PublishedArticle>(() => `/api/articles/${encodeURIComponent(slug.value)}`)
 const config = useRuntimeConfig()
 const siteOrigin = getPublicSiteOrigin(config.public.SITE_URL)
 const canonicalUrl = useCanonicalUrl(computed(() => `/blog/${slug.value}`))
+const previewUrl = computed(() => article.value ? `${siteOrigin}${getArticlePreviewPath(article.value.slug)}` : undefined)
 if (error.value) setResponseStatus(Number((error.value as any).statusCode) === 404 ? 404 : 503)
+if (article.value) defineOgImageComponent('ArticlePreview', {
+  title: computed(() => article.value?.title || ''),
+  category: computed(() => articleTemplates.find(template => template.value === article.value?.template)?.label || 'FPL articles'),
+  season: computed(() => article.value?.season || ''),
+  gameweek: computed(() => article.value?.gameweek),
+}, {
+  width: 1200,
+  height: 630,
+  extension: 'png',
+  alt: article.value.title,
+  cacheMaxAgeSeconds: 300,
+})
 const structuredData = computed(() => article.value ? JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
@@ -18,7 +32,7 @@ const structuredData = computed(() => article.value ? JSON.stringify({
   author: { '@type': 'Person', name: article.value.author },
   publisher: { '@type': 'Organization', name: 'FPL Insights', url: config.public.SITE_URL },
   mainEntityOfPage: canonicalUrl.value,
-  image: `${siteOrigin}/twitter_large_image.png`,
+  image: previewUrl.value,
   citation: article.value.sources.map(source => ({ '@type': 'CreativeWork', name: source.title, url: source.url })),
   inLanguage: 'en',
 }).replace(/</g, '\\u003c') : '')
@@ -32,9 +46,14 @@ useSeoMeta({
   ogTitle: () => article.value?.title,
   ogDescription: () => article.value?.excerpt,
   ogUrl: canonicalUrl,
-  ogImage: `${siteOrigin}/twitter_large_image.png`,
+  ogImage: previewUrl,
+  ogImageAlt: () => article.value?.title,
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
   ogType: 'article',
   twitterCard: 'summary_large_image',
+  twitterImage: previewUrl,
+  twitterImageAlt: () => article.value?.title,
   robots: () => article.value ? 'index, follow' : 'noindex, nofollow',
 })
 const formattedDate = computed(() => article.value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeZone: 'Asia/Kolkata' }).format(article.value.publishedAt) : '')
