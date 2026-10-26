@@ -3,7 +3,9 @@
 		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative isolate min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" :class="aligned ? 'row-span-5 grid grid-rows-subgrid' : compact ? 'transition-transform duration-200 motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1 motion-reduce:transition-none block' : 'block'">
 			<div v-if="compact" aria-hidden="true" class="pointer-events-none absolute inset-x-[15%] top-14 h-4 rounded-[50%] bg-black/35 blur-sm sm:top-20" />
 			<div class="relative" :class="aligned ? 'row-start-1 row-span-2 min-h-18 sm:min-h-24' : compact ? 'overflow-hidden h-18 sm:h-24' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'overflow-hidden bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
-				<PlayerPortrait :player="player" :alt="playerName" :hover="true" :class="aligned ? 'absolute inset-x-0 bottom-0 h-18 w-full sm:h-24' : 'h-full w-full'" />
+				<div :class="aligned ? 'absolute inset-x-0 bottom-0 h-18 sm:h-24' : 'h-full w-full'">
+					<PlayerPortrait :player="player" :alt="playerName" :hover="true" />
+				</div>
 				<PlayerDisciplineBadges v-if="aligned" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute bottom-0 left-1 z-30" />
 				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 z-20 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
 				<PlayerDisciplineBadges v-if="!compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-1 top-1 z-30" />

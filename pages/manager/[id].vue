@@ -19,7 +19,8 @@
 						<div><dt class="inline">GW rank </dt><dd class="ml-1 inline font-semibold tabular-nums text-white">{{ formatNumber(managerData.summary_event_rank) }}</dd></div>
 					</dl>
 				</div>
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center gap-3">
+					<ManagerTeamImageButton v-if="squadState?.startingXI?.length === 11" :key="`${id}-${managerData.current_event}`" :manager="managerData" :squad="squadState" />
 					<span class="inline-flex rounded-full border border-lime-300/40 px-2.5 py-1 text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-lime-300">GW {{ managerData.current_event }}</span>
 					<ManagerShareButton :title="managerData.name" :url="canonicalUrl" />
 					<ManagerLeaguesPanel :leagues="decoratedClassicLeagues" :manager-name="managerDisplayName" />

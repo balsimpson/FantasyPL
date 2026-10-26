@@ -25,10 +25,11 @@
 
 <script setup lang="ts">
 const turfId = `manager-pitch-turf-${useId()}`;
-const surfaces = [
+const props = defineProps<{ compact?: boolean }>();
+const surfaces = computed(() => props.compact ? [{ inset: 55, visibility: '' }] : [
   { inset: 55, visibility: 'sm:hidden' },
   { inset: 150, visibility: 'hidden sm:block' },
-];
+]);
 type Point = [number, number];
 // Project the field onto a trapezoid, with more space toward the near end.
 const points = (vertices: Point[], inset: number) => vertices.map(([x, y]) => {

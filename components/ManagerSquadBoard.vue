@@ -33,9 +33,9 @@
 			<section aria-labelledby="manager-bench-title" class="space-y-3">
 				<h3 id="manager-bench-title" class="text-sm font-semibold text-stone-300">Bench <span class="ml-1 font-normal text-stone-500">{{ squad.bench.length }}</span></h3>
 				<div class="grid">
-					<ul v-for="variant in variants" :key="variant.key" class="col-start-1 row-start-1 grid auto-rows-fr grid-cols-2 items-stretch gap-3 sm:grid-cols-4"
+					<ul v-for="variant in variants" :key="variant.key" class="col-start-1 row-start-1 grid grid-cols-2 grid-rows-[auto_auto_auto_auto_auto_auto] items-stretch gap-x-3 sm:grid-cols-4"
 						:class="variant.key === activeVariant.key ? '' : 'invisible pointer-events-none'" :inert="variant.key !== activeVariant.key" :aria-hidden="variant.key !== activeVariant.key ? true : undefined">
-						<li v-for="pick in variant.squad.bench" :key="pick.element.id" class="h-full min-w-0"><ManagerSquadPick :pick="pick" :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
+						<li v-for="pick in variant.squad.bench" :key="pick.element.id" class="row-span-6 mb-3 grid min-w-0 grid-rows-subgrid sm:mb-0"><ManagerBenchPick :pick="pick" :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
 					</ul>
 				</div>
 			</section>
@@ -70,6 +70,7 @@
 </template>
 
 <script setup>
+import ManagerBenchPick from '~/components/ManagerBenchPick.vue';
 import ManagerPitchSurface from '~/components/ManagerPitchSurface.vue';
 import ManagerSquadPerformance from '~/components/ManagerSquadPerformance.vue';
 const props = defineProps({

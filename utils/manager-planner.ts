@@ -1,3 +1,5 @@
+import { isManagerPlayerAvailable } from './manager-availability';
+
 type Row = Record<string, any>;
 
 export const plannerPlayerName = (player: Row) =>
@@ -54,18 +56,15 @@ export function buildManagerWeekPlan(squad: Row, fixtures: Row[], gameweek: numb
   const ranked = squad.picks.map((pick: Row) => {
     const player = pick.element;
     const week = getPlannerFixtureRun(Number(player.team), fixtures, squad.teams, [gameweek])[0]!;
-    const chance = number(player.chance_of_playing_next_round);
-    const flagged = Boolean(player.status && player.status !== 'a') || (chance !== null && chance < 100);
-    const unavailable = ['i', 's', 'u', 'n'].includes(player.status) || chance === 0;
+    const flagged = !isManagerPlayerAvailable(player);
     const ppg = number(player.points_per_game);
     const form = number(player.form);
     const complete = week.matches.every((match) => match.difficulty !== null) && (ppg !== null || form !== null);
     // A relative selection score, never a points forecast. Each scheduled match contributes.
-    const score = complete && week.matches.length && !unavailable
+    const score = complete && week.matches.length && !flagged
       ? Math.max(0, ((ppg ?? form!) + (form ?? ppg!)) / 2)
-        * week.matches.reduce((total, match) => total + 1 + (3 - match.difficulty!) * 0.15, 0)
-        * (flagged ? 0.5 : 1) : null;
-    return { pick, week, score, flagged, unavailable };
+        * week.matches.reduce((total, match) => total + 1 + (3 - match.difficulty!) * 0.15, 0) : null;
+    return { pick, week, score, flagged };
   });
   const byPosition = (position: number) => ranked.filter((row: Row) => Number(row.pick.element.element_type) === position && row.score !== null)
     .sort((a: Row, b: Row) => b.score - a.score || Number(a.pick.position) - Number(b.pick.position));
@@ -100,7 +99,7 @@ export function buildManagerWeekPlan(squad: Row, fixtures: Row[], gameweek: numb
   const reason = !best.length
     ? 'A full suggested XI is unavailable. Check players without fixtures, availability flags, and missing data before considering a transfer.'
     : rotations.length
-      ? `${rotations.map((row: Row) => plannerPlayerName(row.pick.element)).join(', ')} rank above ${dropped.map((pick: Row) => plannerPlayerName(pick.element)).join(', ')} on form, points per game, and this week’s fixtures.`
+      ? `${rotations.map((row: Row) => plannerPlayerName(row.pick.element)).join(', ')} rank above ${dropped.map((pick: Row) => plannerPlayerName(pick.element)).join(', ')} on current availability, form, points per game, and this week’s fixtures.`
       : hardFixtures >= 4
         ? `${hardFixtures} published starters face only opponents rated 4 or 5. Compare transfer options across the full run before making a move.`
         : 'The published XI ranks highest among your current players on form, points per game, and this week’s fixtures. Check availability before saving a transfer.';

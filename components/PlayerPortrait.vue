@@ -15,11 +15,11 @@
 			:alt="alt"
 			width="110"
 			height="140"
-			loading="lazy"
+			:loading="exportable ? 'eager' : 'lazy'"
 			decoding="async"
-			class="absolute inset-0 z-10 h-full w-full object-contain object-bottom transition duration-150"
+			class="absolute inset-0 z-10 h-full w-full object-contain object-bottom"
 			:style="fillFrame ? { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', objectPosition: framePosition } : undefined"
-			:class="[imageLoaded ? 'opacity-100' : 'opacity-0', hover ? 'motion-safe:group-hover:scale-[1.04]' : '']"
+			:class="[imageLoaded ? 'opacity-100' : 'opacity-0', exportable ? '' : 'transition duration-150', hover ? 'motion-safe:group-hover:scale-[1.04]' : '']"
 			@load="imageLoaded = true"
 			@error="handleImageError"
 		/>
@@ -33,13 +33,16 @@ const props = defineProps({
 	hover: { type: Boolean, default: false },
 	fillFrame: { type: Boolean, default: false },
 	framePosition: { type: String, default: 'center center' },
+	exportable: { type: Boolean, default: false },
 });
 
 const imageLoaded = ref(false);
 const imageElement = ref(null);
 const playerImageUrl = computed(() => {
 	const code = String(props.player?.code ?? "").trim();
-	return /^\d+$/.test(code) ? `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png` : null;
+	if (!/^\d+$/.test(code)) return null;
+	const url = `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`;
+	return props.exportable ? `/api/image-proxy/player-${code}?url=${encodeURIComponent(url)}` : url;
 });
 const imageState = ref(playerImageUrl.value ? "player" : "fallback");
 const imageSource = computed(() => imageState.value === "player" ? playerImageUrl.value : imageState.value === "fallback" ? "/fallback.png" : null);

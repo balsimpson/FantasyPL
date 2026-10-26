@@ -32,7 +32,7 @@ const compact = (value: number | null) => value === null ? '—' : new Intl.Numb
       <li v-for="(player, index) in players" :key="player.id" class="flex min-w-0 items-center gap-4 px-4 py-3 sm:px-5">
         <span class="w-6 shrink-0 text-sm tabular-nums text-white/60">{{ index + 1 }}</span>
         <div class="min-w-0 flex-1"><NuxtLink :to="getPlayerRoute(player)" target="_blank" class="font-semibold underline-offset-4 hover:underline">{{ player.web_name }}</NuxtLink><p class="text-xs text-white/65">{{ player.teamName }} · {{ player.position }} · £{{ player.price.toFixed(1) }}m</p></div>
-        <template v-if="type === 'transferWatch'"><div class="text-right"><p class="text-xs text-white/65">{{ transferLabel(player) }}</p><p class="font-semibold tabular-nums">{{ compact(transferValue(player)) }}</p></div></template>
+        <template v-if="type === 'transferWatch'"><div class="text-right"><p class="text-xs text-white/65">{{ transferLabel }}</p><p class="font-semibold tabular-nums">{{ compact(transferValue(player)) }}</p></div></template>
         <template v-else><div class="text-right"><p class="text-xs text-white/65">Form · points</p><p class="font-semibold tabular-nums">{{ player.form ?? '—' }} · {{ player.points ?? '—' }}</p></div></template>
       </li>
     </ol>

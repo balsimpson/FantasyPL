@@ -1,3 +1,5 @@
+import { isManagerPlayerAvailable } from "../../utils/manager-availability";
+
 type PlayerRecord = Record<string, any>;
 
 const positionLabels: Record<number, string> = {
@@ -172,7 +174,7 @@ export function buildManagerTransferOptions(
 				const minutes = toNumber(candidate.minutes);
 				if (!Number.isSafeInteger(candidateId) || candidateId < 1 || ownedIds.has(candidateId)) return false;
 				if (Number(candidate.element_type) !== Number(outgoing.element_type)) return false;
-				if (candidate.status !== "a" || candidate.can_select === false || candidate.can_transact === false || minutes === null || minutes < 90) return false;
+				if (!isManagerPlayerAvailable(candidate) || candidate.can_select === false || candidate.can_transact === false || minutes === null || minutes < 90) return false;
 				if (candidateTeam === null || cost === null || cost > budget) return false;
 				if (!isPerformanceUpgrade(outgoing, candidate, nextGameweek)) return false;
 				const countAfterSale = (teamCounts.get(candidateTeam) ?? 0) - (candidateTeam === Number(outgoing.team) ? 1 : 0);
