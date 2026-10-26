@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" title="Head to head" :description="`GW ${gameweek} lineup`" :ui="{ content: 'max-w-xl bg-[#101216] text-white', header: 'min-h-0 px-4 py-3', body: 'p-0 sm:p-0', title: 'text-sm text-white', description: 'text-xs text-stone-400', overlay: 'bg-black/70' }">
+  <UModal v-model:open="open" title="Head to head" :description="`GW ${gameweek} lineup`" :ui="{ content: 'max-w-xl bg-[#101216] text-white divide-white/10 ring-white/10', header: 'min-h-0 px-4 py-3', body: 'p-0 sm:p-0', title: 'text-sm text-white', description: 'text-xs text-stone-400', overlay: 'bg-black/70', close: 'bg-transparent text-stone-300 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-lime-300' }">
     <template #body>
       <div v-if="pair">
         <div class="relative grid h-44 grid-cols-2 border-b border-white/10 sm:h-52">

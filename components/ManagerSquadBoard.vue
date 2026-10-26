@@ -3,14 +3,13 @@
 		<header class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
 			<div class="flex flex-col gap-1">
 				<h2 id="manager-squad-title" class="text-xl font-bold tracking-tight text-white sm:text-2xl">{{ planningGameweek ? `Suggested XI · GW ${planningGameweek}` : 'Your squad' }}</h2>
-				<span class="text-xs text-stone-400">Formation <span class="ml-1 font-semibold tabular-nums text-lime-300">{{ formation }}</span></span>
-				<span v-if="fixtureGameweek && !planningGameweek" class="text-xs text-stone-400">GW {{ fixtureGameweek }} fixtures</span>
+				<span class="text-xs text-stone-400">Formation <span class="ml-1 font-semibold tabular-nums text-lime-300">{{ formation }}</span><span v-if="fixtureGameweek && !planningGameweek"> · GW {{ fixtureGameweek }} fixtures</span></span>
 			</div>
 			<div class="flex flex-wrap items-center gap-3 sm:justify-end">
-				<UButton v-if="planningGameweek" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-white/10 hover:text-white" @click="$emit('published')">Show published squad</UButton>
-				<UButton v-else-if="canPreview" color="primary" variant="soft" size="sm" icon="i-lucide-users" @click="$emit('preview')">Show suggested XI</UButton>
+				<UButton v-if="planningGameweek" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="h-8 w-44 shrink-0 justify-center rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('published')">Show published squad</UButton>
+				<UButton v-else-if="canPreview" color="primary" variant="soft" size="sm" icon="i-lucide-users" class="h-8 w-44 shrink-0 justify-center border border-lime-300/30 bg-lime-300/10 text-lime-300 hover:border-lime-300/50 hover:bg-lime-300/15 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('preview')">Show suggested XI</UButton>
 			<div class="flex shrink-0 items-center gap-1" role="group" aria-label="Squad view">
-				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-white'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
+				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-lime-200'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
 			</div>
 			</div>
 		</header>
@@ -21,15 +20,15 @@
 				<ManagerPitchSurface />
 				<div class="relative">
 					<div v-for="row in pitchRows" :key="row.key" class="mx-auto grid" :class="row.pitchClass">
-						<ul v-for="variant in variants" :key="variant.key" :aria-label="row.label" class="col-start-1 row-start-1 flex items-start justify-evenly gap-1 sm:gap-3"
+						<ul v-for="variant in variants" :key="variant.key" :aria-label="row.label" class="col-start-1 row-start-1 grid grid-rows-[auto_auto_auto_auto_auto] content-start justify-evenly gap-x-1 sm:gap-x-3" :style="{ gridTemplateColumns: `repeat(${(variant.squad.groupedByType[row.key] || []).length}, minmax(0, 8rem))` }"
 							:class="variant.key === activeVariant.key ? '' : 'invisible pointer-events-none'" :inert="variant.key !== activeVariant.key" :aria-hidden="variant.key !== activeVariant.key ? true : undefined">
-							<li v-for="pick in variant.squad.groupedByType[row.key] || []" :key="pick.element.id" class="min-w-0 max-w-32 flex-1 basis-0">
+							<li v-for="pick in variant.squad.groupedByType[row.key] || []" :key="pick.element.id" class="row-span-5 grid min-w-0 grid-rows-subgrid">
 								<ManagerSquadPick :pick="pick" compact :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" />
 							</li>
 						</ul>
 					</div>
 				</div>
-				<p class="relative mt-5 text-center text-[0.65rem] text-emerald-100/75">Current price · Season points{{ planningGameweek ? ' · Suggested captain and vice-captain' : '' }}</p>
+				<p class="relative mt-5 text-center text-[0.65rem] text-emerald-100/75">Current price · Season points</p>
 			</div>
 			<section aria-labelledby="manager-bench-title" class="space-y-3">
 				<h3 id="manager-bench-title" class="text-sm font-semibold text-stone-300">Bench <span class="ml-1 font-normal text-stone-500">{{ squad.bench.length }}</span></h3>
@@ -45,8 +44,8 @@
 		<template v-else>
 			<div class="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
 				<div class="flex gap-2" role="group" aria-label="Squad selection">
-					<UButton color="neutral" variant="ghost" size="sm" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="selection === 'starting' ? 'bg-lime-300 text-lime-950 hover:bg-lime-200' : 'text-white/75 hover:bg-white/5 hover:text-white'" :aria-pressed="selection === 'starting'" @click="selection = 'starting'">Starting XI</UButton>
-					<UButton color="neutral" variant="ghost" size="sm" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="selection === 'bench' ? 'bg-lime-300 text-lime-950 hover:bg-lime-200' : 'text-white/75 hover:bg-white/5 hover:text-white'" :aria-pressed="selection === 'bench'" @click="selection = 'bench'">Bench</UButton>
+					<UButton color="neutral" variant="ghost" size="sm" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="selection === 'starting' ? 'bg-lime-300 text-lime-950 hover:bg-lime-200' : 'text-stone-300 hover:bg-lime-300/10 hover:text-lime-200'" :aria-pressed="selection === 'starting'" @click="selection = 'starting'">Starting XI</UButton>
+					<UButton color="neutral" variant="ghost" size="sm" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="selection === 'bench' ? 'bg-lime-300 text-lime-950 hover:bg-lime-200' : 'text-stone-300 hover:bg-lime-300/10 hover:text-lime-200'" :aria-pressed="selection === 'bench'" @click="selection = 'bench'">Bench</UButton>
 				</div>
 				<span class="text-xs text-stone-400">{{ galleryPicks.length }} players</span>
 			</div>

@@ -14,23 +14,23 @@
       <div class="flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-1 xl:flex-col xl:overflow-visible" role="group" aria-label="Choose a gameweek to preview on the pitch">
         <div v-for="plan in plans" :key="plan.gameweek" class="relative min-w-36 flex-1 shrink-0 snap-start xl:w-full xl:min-w-0">
         <button type="button"
-          class="block w-full rounded-lg border px-3 py-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none"
+          class="block w-full rounded-lg border px-3 py-2 text-left transition-colors hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none"
           :class="selectedPlan.gameweek === plan.gameweek ? 'border-lime-300/60 bg-lime-300/10 text-lime-300' : 'border-white/10 text-stone-300'"
           :aria-pressed="selectedPlan.gameweek === plan.gameweek" :aria-label="`Preview GW ${plan.gameweek}. ${plan.hardFixtures} tough matchups. ${plan.rotations} lineup changes.`" @click="$emit('select', plan.gameweek)">
           <span class="block text-sm font-bold">GW {{ plan.gameweek }}</span>
           <span class="my-2 flex h-3 gap-0.5" :aria-label="`${plan.hardFixtures} published starters face tough opponents`"><span v-for="(tone, index) in weekBands[plan.gameweek] || []" :key="index" class="min-w-0 flex-1 rounded-sm" :class="bandColors[tone]" aria-hidden="true" /></span>
           <span class="mt-1 flex items-center gap-1 whitespace-nowrap pr-5 text-[0.65rem] leading-4 text-stone-400"><span>{{ plan.hardFixtures }} tough</span><span aria-hidden="true">·</span><span>{{ plan.canPreview ? `${plan.rotations} ${plan.rotations === 1 ? 'change' : 'changes'}` : 'Review squad' }}</span></span>
         </button>
-        <button type="button" class="absolute bottom-1 right-1 grid size-7 place-items-center rounded text-stone-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-lime-300"
+        <button type="button" class="absolute bottom-1 right-1 grid size-7 place-items-center rounded text-stone-400 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-lime-300"
           :aria-label="`${fixturesOpen && selectedPlan.gameweek === plan.gameweek ? 'Hide' : 'Show'} GW ${plan.gameweek} fixtures`" :aria-expanded="fixturesOpen && selectedPlan.gameweek === plan.gameweek" aria-controls="manager-upcoming-fixtures" @click="toggleFixtures(plan.gameweek)">
           <UIcon name="i-lucide-chevron-down" class="size-3.5 transition-transform motion-reduce:transition-none" :class="fixturesOpen && selectedPlan.gameweek === plan.gameweek ? 'rotate-180' : ''" aria-hidden="true" />
         </button>
         </div>
       </div>
       <ManagerUpcomingFixtures :gameweek="selectedPlan.gameweek" :rows="rows" :expanded="fixturesOpen">
-        <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-calendar-days" class="w-full justify-center" @click="tableOpen = true">Compare all 5 weeks</UButton>
+        <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-calendar-days" class="w-full justify-center text-stone-300 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-lime-300" @click="tableOpen = true">Compare all 5 weeks</UButton>
       </ManagerUpcomingFixtures>
-      <UModal v-model:open="tableOpen" title="Squad fixtures" :description="`GW ${gameweeks[0]}–${gameweeks.at(-1)}`" :ui="{ content: 'max-w-5xl bg-[#101216]', title: 'text-white', description: 'text-stone-400', overlay: 'bg-black/70' }">
+      <UModal v-model:open="tableOpen" title="Squad fixtures" :description="`GW ${gameweeks[0]}–${gameweeks.at(-1)}`" :ui="{ content: 'max-w-5xl bg-[#101216] divide-white/10 ring-white/10', title: 'text-white', description: 'text-stone-400', overlay: 'bg-black/70', close: 'bg-transparent text-stone-300 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-lime-300' }">
         <template #body>
       <div id="manager-fixture-table" class="min-w-0 space-y-3">
         <p class="text-xs leading-5 text-stone-400">Scroll across to compare all five gameweeks. Difficulty runs from 1, easiest, to 5, hardest.</p>
@@ -41,7 +41,7 @@
               <tr>
                 <th scope="col" class="sticky left-0 top-0 z-30 w-44 border-b border-white/10 bg-[#101216] p-3 font-semibold text-stone-300">Player</th>
                 <th v-for="week in gameweeks" :key="week" scope="col" class="sticky top-0 z-20 border-b border-white/10 bg-[#101216] p-3">
-                  <button type="button" class="rounded px-1 py-1 font-semibold hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-lime-300" :class="selectedPlan.gameweek === week ? 'text-lime-300' : 'text-stone-300'" :aria-label="`Preview GW ${week} on the pitch`" @click="$emit('select', week)">GW {{ week }}</button>
+                  <button type="button" class="rounded px-1 py-1 font-semibold hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-lime-300" :class="selectedPlan.gameweek === week ? 'text-lime-300' : 'text-stone-300'" :aria-label="`Preview GW ${week} on the pitch`" @click="$emit('select', week)">GW {{ week }}</button>
                 </th>
                 <th scope="col" class="sticky top-0 z-20 border-b border-white/10 bg-[#101216] p-3 font-semibold text-stone-300">Run average</th>
               </tr>
@@ -49,7 +49,7 @@
             <tbody>
               <tr v-for="row in rows" :key="row.pick.element.id">
                 <th scope="row" class="sticky left-0 z-10 border-b border-white/5 bg-[#101216] p-3 align-top font-normal">
-                  <NuxtLink :to="getPlayerRoute(row.pick.element)" class="block font-semibold leading-5 text-white hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-lime-300 [overflow-wrap:anywhere]">{{ plannerPlayerName(row.pick.element) }}</NuxtLink>
+                  <NuxtLink :to="getPlayerRoute(row.pick.element)" class="block font-semibold leading-5 text-white hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-lime-300 [overflow-wrap:anywhere]">{{ plannerPlayerName(row.pick.element) }}</NuxtLink>
                   <span class="mt-1 block text-[0.65rem] leading-4 text-stone-400">{{ row.pick.element_type }} · {{ row.pick.position > 11 ? 'Bench' : 'Starting XI' }}</span>
                 </th>
                 <td v-for="week in row.run" :key="week.gameweek" class="border-b border-white/5 p-2 align-top" :class="selectedPlan.gameweek === week.gameweek ? 'bg-white/[0.03]' : ''">

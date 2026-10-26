@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "components/ManagerSquadBoard.vue"
+        ],
+        "createdAt": "2026-10-26T15:17:12.376Z",
+        "reason": "Agent review: the finding combines mutually exclusive button states. Selected buttons use lime-950 text on lime-300; inactive stone-300 text has no coloured fill, and hover switches both fill and text to lime."
+      }
+    ]
+  }
+}

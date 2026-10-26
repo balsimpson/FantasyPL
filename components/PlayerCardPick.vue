@@ -1,18 +1,19 @@
 <template>
-	<article class="group relative flex h-full min-w-0 flex-col text-white" :class="compact ? 'text-center' : 'overflow-hidden rounded-xl border border-white/10 bg-[#101216]'" :style="cardStyle">
-		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative isolate block min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" :class="compact ? 'transition-transform duration-200 motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1 motion-reduce:transition-none' : ''">
+	<article class="group relative h-full min-w-0 text-white" :class="aligned ? 'row-span-5 grid grid-rows-subgrid text-center' : compact ? 'flex flex-col text-center' : 'flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#101216]'" :style="cardStyle">
+		<NuxtLink :to="getPlayerRoute(player)" :aria-label="`Open ${playerName} profile`" class="relative isolate min-w-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" :class="aligned ? 'row-span-5 grid grid-rows-subgrid' : compact ? 'transition-transform duration-200 motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1 motion-reduce:transition-none block' : 'block'">
 			<div v-if="compact" aria-hidden="true" class="pointer-events-none absolute inset-x-[15%] top-14 h-4 rounded-[50%] bg-black/35 blur-sm sm:top-20" />
-			<div class="relative overflow-hidden" :class="compact ? 'h-18 sm:h-24' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
-				<PlayerPortrait :player="player" :alt="playerName" :hover="true" class="h-full w-full" />
+			<div class="relative" :class="aligned ? 'row-start-1 row-span-2 min-h-18 sm:min-h-24' : compact ? 'overflow-hidden h-18 sm:h-24' : [detailed ? 'aspect-[16/10]' : 'aspect-[4/4.6]', 'overflow-hidden bg-[linear-gradient(150deg,var(--club-wash),#101216_85%)]']">
+				<PlayerPortrait :player="player" :alt="playerName" :hover="true" :class="aligned ? 'absolute inset-x-0 bottom-0 h-18 w-full sm:h-24' : 'h-full w-full'" />
+				<PlayerDisciplineBadges v-if="aligned" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute bottom-0 left-1 z-30" />
 				<div v-if="!compact" aria-hidden="true" class="absolute inset-0 z-20 bg-gradient-to-t from-[#101216] via-transparent to-transparent" />
 				<PlayerDisciplineBadges v-if="!compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" class="absolute left-1 top-1 z-30" />
-				<span v-if="pick.is_captain || pick.is_vice_captain" class="absolute top-1 z-30 grid size-6 place-items-center rounded-full text-[0.65rem] font-black sm:size-7 sm:text-xs" :class="[compact ? 'right-1' : 'right-12', pick.is_captain ? 'bg-primary text-inverted' : 'bg-amber-200 text-stone-950']" :aria-label="pick.is_captain ? 'Captain' : 'Vice captain'" :title="pick.is_captain ? 'Captain' : 'Vice captain'">{{ pick.is_captain ? 'C' : 'V' }}</span>
+				<span v-if="pick.is_captain || pick.is_vice_captain" class="absolute top-1 z-30 grid size-6 place-items-center rounded-full text-[0.65rem] font-black sm:size-7 sm:text-xs" :class="[compact ? 'right-1' : 'right-12', pick.is_captain ? (aligned ? 'bg-lime-300 text-lime-950' : 'bg-primary text-inverted') : 'bg-amber-200 text-stone-950']" :aria-label="pick.is_captain ? 'Captain' : 'Vice captain'" :title="pick.is_captain ? 'Captain' : 'Vice captain'">{{ pick.is_captain ? 'C' : 'V' }}</span>
 				<div v-if="!compact" class="absolute inset-x-3 bottom-2 z-30">
           <p class="text-[0.65rem] text-stone-300">{{ pick.team?.name || pick.element_type }}</p>
 					<h3 class="mt-1 text-base font-bold leading-tight text-white [overflow-wrap:anywhere]">{{ playerName }}</h3><PlayerAge :player="player" compact class="mt-1 text-white/80" />
 				</div>
 			</div>
-			<PlayerDisciplineBadges v-if="compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-18 z-10 -translate-y-[calc(50%_+_6px)] sm:top-24" />
+			<PlayerDisciplineBadges v-if="compact && !aligned" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-18 z-10 -translate-y-[calc(50%_+_6px)] sm:top-24" />
 			<template v-if="compact">
 				<slot name="nameplate">
 				<p class="relative z-20 rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white transition-colors group-hover:bg-[#173d2c] group-focus-within:bg-[#173d2c] [overflow-wrap:anywhere] motion-reduce:transition-none sm:px-1 sm:text-xs">
@@ -48,6 +49,7 @@ import { getInstagramClubTheme } from '~/utils/instagram-designs';
 const props = defineProps({
 	pick: { type: Object, required: true },
 	compact: { type: Boolean, default: false },
+	aligned: { type: Boolean, default: false },
 	detailed: { type: Boolean, default: false },
 	events: { type: Array, default: () => [] },
 	teams: { type: Array, default: () => [] },

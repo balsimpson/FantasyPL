@@ -14,11 +14,11 @@ function selectLink(event: FocusEvent) {
     :aria-label="copied ? 'Link copied' : 'Share team'"
     :title="copied ? 'Link copied' : 'Share team'"
     :loading="sharing" color="neutral" variant="ghost" size="sm"
-    class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 hover:border-primary/40 hover:bg-white/[0.08] hover:text-white"
-    :class="copied ? 'text-primary' : 'text-stone-300'" @click="share"
+    class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+    :class="copied ? 'text-lime-300' : 'text-stone-300'" @click="share"
   />
   <span class="sr-only" role="status">{{ copied ? 'Link copied' : '' }}</span>
-  <UModal v-model:open="showCopyDialog" title="Copy link">
+  <UModal v-model:open="showCopyDialog" title="Copy link" :ui="{ content: 'bg-[#101216] text-white divide-white/10 ring-white/10', title: 'text-white', overlay: 'bg-black/70', close: 'bg-transparent text-stone-300 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-lime-300' }">
     <template #body>
       <div class="grid gap-3">
         <UInput :model-value="url" aria-label="Manager page link" readonly class="w-full" :ui="{ base: 'w-full' }" @focus="selectLink" />

@@ -4,12 +4,12 @@
 			<h2 class="text-lg font-bold tracking-tight text-white">Classic leagues</h2>
 			<span class="text-xs tabular-nums text-stone-400">{{ leagues.length }}</span>
 		</header>
-		<ul v-if="leagues.length" class="divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#101216] px-4">
-			<li v-for="league in visibleLeagues" :key="league.id" class="py-3">
+		<ul v-if="leagues.length" class="divide-y divide-white/10 border-t border-white/10">
+			<li v-for="league in sortedLeagues" :key="league.id" class="py-1">
 				<details class="group">
-					<summary class="cursor-pointer list-none rounded-md focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+					<summary class="-mx-2 cursor-pointer list-none rounded-lg px-2 py-3 transition-colors hover:bg-lime-300/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
 						<span class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-							<span class="text-sm font-semibold leading-5 text-stone-200 [overflow-wrap:anywhere]">{{ league.name }}</span>
+							<span class="text-sm font-semibold leading-5 text-stone-200 group-hover:text-lime-200 [overflow-wrap:anywhere]">{{ league.name }}</span>
 							<span class="flex items-center gap-1.5"><span class="sr-only">Current rank </span><span class="font-sans text-lg font-bold leading-6 tabular-nums text-white">#{{ number(league.entry_rank) }}</span><UIcon name="i-lucide-chevron-down" class="size-3 shrink-0 text-stone-500 transition-transform group-open:rotate-180" aria-hidden="true" /></span>
 						</span>
 						<span class="mt-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
@@ -19,7 +19,7 @@
 						<span v-if="rankPosition(league.entry_rank, league.rank_count) !== null" class="mt-2 block" role="img" :aria-label="`Rank ${number(league.entry_rank)} of ${number(league.rank_count)}. Solid dot: current rank. Hollow dot: previous rank when available.`">
 							<span class="relative block h-0.5 rounded-full bg-white/10" aria-hidden="true">
 								<span v-if="rankPosition(league.entry_last_rank, league.rank_count) !== null" class="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-stone-400 bg-[#101216]" :style="{ left: `${rankPosition(league.entry_last_rank, league.rank_count)}%` }" />
-								<span class="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" :style="{ left: `${rankPosition(league.entry_rank, league.rank_count)}%` }" />
+								<span class="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime-300" :style="{ left: `${rankPosition(league.entry_rank, league.rank_count)}%` }" />
 							</span>
 							<span class="mt-1 flex justify-between text-[0.6rem] leading-3 text-stone-500" aria-hidden="true"><span>1st</span><span>Last</span></span>
 						</span>
@@ -31,14 +31,12 @@
 				</details>
 			</li>
 		</ul>
-		<UButton v-if="leagues.length > 3" color="neutral" variant="ghost" class="mt-2 w-full justify-center text-stone-300 hover:bg-white/5 hover:text-white" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? 'Show fewer leagues' : `Show all ${leagues.length} leagues` }}</UButton>
 		<p v-if="!leagues.length" class="py-3 text-sm text-stone-400">No classic leagues for this manager.</p>
 	</div>
 </template>
 
 <script setup>
 const props = defineProps({ leagues: { type: Array, default: () => [] } });
-const expanded = ref(false);
 const sortedLeagues = computed(() => [...props.leagues].sort((left, right) => {
 	const leftGain = relativeGain(left);
 	const rightGain = relativeGain(right);
@@ -46,7 +44,6 @@ const sortedLeagues = computed(() => [...props.leagues].sort((left, right) => {
 	if (rightGain === null) return -1;
 	return rightGain - leftGain;
 }));
-const visibleLeagues = computed(() => expanded.value ? sortedLeagues.value : sortedLeagues.value.slice(0, 3));
 const number = (value) => value == null || value === '' ? '—' : new Intl.NumberFormat('en-GB').format(value);
 const hasRank = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 const rankPosition = (rank, count) => {
@@ -59,5 +56,5 @@ const relativeGain = (league) => {
 };
 const movementClass = (league) => !hasRank(league.entry_rank) || !hasRank(league.entry_last_rank)
 	? 'text-stone-400'
-	: league.rankMovement.color === 'success' ? 'text-primary' : league.rankMovement.color === 'error' ? 'text-rose-300' : 'text-stone-400';
+	: league.rankMovement.color === 'success' ? 'text-lime-300' : league.rankMovement.color === 'error' ? 'text-rose-300' : 'text-stone-400';
 </script>

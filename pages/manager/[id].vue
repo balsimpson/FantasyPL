@@ -23,7 +23,7 @@
 					<span class="inline-flex rounded-full border border-lime-300/40 px-2.5 py-1 text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-lime-300">GW {{ managerData.current_event }}</span>
 					<ManagerShareButton :title="managerData.name" :url="canonicalUrl" />
 					<ManagerLeaguesPanel :leagues="decoratedClassicLeagues" :manager-name="managerDisplayName" />
-					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-primary/40 hover:bg-white/[0.08] hover:text-white" aria-label="Back to home" />
+					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" aria-label="Back to home" />
 				</div>
 			</header>
 			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">

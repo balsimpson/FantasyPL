@@ -5,7 +5,7 @@
         <ul class="divide-y divide-white/10">
           <li v-for="row in fixtures" :key="row.pick.element.id" class="grid min-w-0 grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-3 py-2">
             <div class="min-w-0">
-              <NuxtLink :to="getPlayerRoute(row.pick.element)" class="text-xs font-semibold leading-5 text-white hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-lime-300 [overflow-wrap:anywhere]">{{ plannerPlayerName(row.pick.element) }}</NuxtLink>
+              <NuxtLink :to="getPlayerRoute(row.pick.element)" class="text-xs font-semibold leading-5 text-white hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-lime-300 [overflow-wrap:anywhere]">{{ plannerPlayerName(row.pick.element) }}</NuxtLink>
               <p class="text-[0.6rem] leading-4 text-stone-400">{{ row.starter ? 'Published XI' : 'Bench' }}<span v-if="row.tough" class="ml-1 font-semibold text-rose-300">· Tough</span></p>
             </div>
             <ul v-if="row.matches.length" class="min-w-0 space-y-1">
