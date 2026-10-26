@@ -3,6 +3,9 @@ type Row = Record<string, any>;
 export const plannerPlayerName = (player: Row) =>
   [player.first_name, player.second_name].filter(Boolean).join(' ') || player.web_name || 'Unknown player';
 
+export const getManagerDifficultyLabel = (difficulty: number | null) =>
+  ({ 1: 'Very easy', 2: 'Easy', 3: 'Moderate', 4: 'Difficult', 5: 'Tough' } as Record<number, string>)[Number(difficulty)] ?? 'Unrated';
+
 const number = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
   return Number.isFinite(Number(value)) ? Number(value) : null;

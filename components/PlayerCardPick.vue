@@ -14,10 +14,12 @@
 			</div>
 			<PlayerDisciplineBadges v-if="compact" :yellow-cards="player.yellow_cards" :red-cards="player.red_cards" compact class="absolute left-1 top-18 z-10 -translate-y-[calc(50%_+_6px)] sm:top-24" />
 			<template v-if="compact">
+				<slot name="nameplate">
 				<p class="relative z-20 rounded-t-md bg-[#0a1c16]/95 px-0.5 py-1 text-[0.6rem] font-semibold leading-tight text-white transition-colors group-hover:bg-[#173d2c] group-focus-within:bg-[#173d2c] [overflow-wrap:anywhere] motion-reduce:transition-none sm:px-1 sm:text-xs">
 					{{ playerName }}
 				</p>
         <p class="flex flex-wrap items-center justify-center gap-x-1 rounded-b-md bg-[#07140f]/95 px-0.5 py-1 text-[0.6rem] tabular-nums text-emerald-100 sm:text-xs"><span>£{{ costLabel }}</span><span aria-hidden="true">·</span><span class="font-bold text-primary">{{ totalPoints }}<span class="sr-only"> season</span> pts</span></p>
+				</slot>
 			</template>
 		</NuxtLink>
 		<PlayerWatchlistButton v-if="!compact" :player="player" class="absolute right-1 top-1 z-10" />

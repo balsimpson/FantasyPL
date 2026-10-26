@@ -1,13 +1,17 @@
 <template>
 	<section aria-labelledby="manager-squad-title" class="min-w-0 space-y-4">
-		<header class="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+		<header class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
 			<div class="flex flex-col gap-1">
 				<h2 id="manager-squad-title" class="text-xl font-bold tracking-tight text-white sm:text-2xl">{{ planningGameweek ? `Suggested XI · GW ${planningGameweek}` : 'Your squad' }}</h2>
 				<span class="text-xs text-stone-400">Formation <span class="ml-1 font-semibold tabular-nums text-lime-300">{{ formation }}</span></span>
 				<span v-if="fixtureGameweek && !planningGameweek" class="text-xs text-stone-400">GW {{ fixtureGameweek }} fixtures</span>
 			</div>
+			<div class="flex flex-wrap items-center gap-3 sm:justify-end">
+				<UButton v-if="planningGameweek" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-white/10 hover:text-white" @click="$emit('published')">Show published squad</UButton>
+				<UButton v-else-if="canPreview" color="primary" variant="soft" size="sm" icon="i-lucide-users" @click="$emit('preview')">Show suggested XI</UButton>
 			<div class="flex shrink-0 items-center gap-1" role="group" aria-label="Squad view">
 				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-white'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
+			</div>
 			</div>
 		</header>
 		<ManagerSquadPerformance :squad="squad" :published-squad="publishedSquad ?? squad" :rows="fixtureRows" :gameweek="fixtureGameweek" :suggested="Boolean(planningGameweek)" />
@@ -74,6 +78,8 @@ const props = defineProps({
 	fixtureGameweek: { type: Number, default: null }, fixtureRows: { type: Array, default: () => [] },
 	publishedSquad: { type: Object, default: null }, plans: { type: Array, default: () => [] },
 });
+defineEmits(['published', 'preview']);
+const canPreview = computed(() => props.plans.some((plan) => plan.gameweek === props.fixtureGameweek && plan.canPreview));
 const { variants } = useManagerPlannerDisplay(() => props.publishedSquad ?? props.squad, () => props.plans);
 const activeVariant = computed(() => variants.value.find((variant) => variant.key === (props.planningGameweek ? String(props.planningGameweek) : `published-${props.fixtureGameweek ?? 'current'}`)) ?? variants.value[0]);
 const comparisonOpen = ref(false);

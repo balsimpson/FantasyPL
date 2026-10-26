@@ -77,6 +77,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `components/ManagerGameweekPlanner.vue`, `components/ManagerSquadBoard.vue` | Responsive week selector, fixture modal and stable published/suggested pitch, bench and gallery views |
 | `components/ManagerUpcomingFixtures.vue` | Full-width selected-gameweek fixture disclosure below the week controls, with tough published-XI matchups first and access to the five-week matrix |
 | `components/ManagerSquadPick.vue`, `components/ManagerPlayerFixture.vue`, `components/ManagerLineupComparison.vue` | Overlapping player pairs, per-player fixture strips and head-to-head comparisons |
+| `components/ManagerPlayerNameplate.vue` | Shared pitch/changed-player identity panel with a bold name, price/points row and integrated fixture footer; `PlayerCardPick.vue` supplies an optional nameplate slot |
 | `components/ManagerLeaguesPanel.vue` | Header trophy action and leagues slideover |
 | `components/ManagerSquadPerformance.vue`, `composables/useManagerSquadPerformance.ts` | Published-versus-suggested XI points, form and fixture totals, with gameweek-matched FPL estimates and historical points-per-game fallback |
 | `composables/useManagerPlanner.ts`, `composables/useManagerPlannerDisplay.ts`, `composables/useManagerComparisonMetrics.ts`, `utils/manager-planner.ts` | Planner loading/preview state, stable lineup variants, signed comparisons, fixture summaries and deterministic legal-XI selection; method and limitations are in `DESIGN.md` |

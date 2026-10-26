@@ -30,10 +30,6 @@
       <ManagerUpcomingFixtures :gameweek="selectedPlan.gameweek" :rows="rows" :expanded="fixturesOpen">
         <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-calendar-days" class="w-full justify-center" @click="tableOpen = true">Compare all 5 weeks</UButton>
       </ManagerUpcomingFixtures>
-      <div class="flex flex-wrap gap-2 xl:flex-col">
-        <UButton v-if="selectedPlan.canPreview && !previewActive" color="primary" variant="soft" size="sm" icon="i-lucide-users" class="xl:w-full xl:justify-center" @click="$emit('preview')">Show suggested XI</UButton>
-        <UButton v-if="previewActive" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-white/10 hover:text-white xl:w-full xl:justify-center" @click="$emit('published')">Show published squad</UButton>
-      </div>
       <UModal v-model:open="tableOpen" title="Squad fixtures" :description="`GW ${gameweeks[0]}–${gameweeks.at(-1)}`" :ui="{ content: 'max-w-5xl bg-[#101216]', title: 'text-white', description: 'text-stone-400', overlay: 'bg-black/70' }">
         <template #body>
       <div id="manager-fixture-table" class="min-w-0 space-y-3">
@@ -86,9 +82,9 @@ import { plannerPlayerName } from '~/utils/manager-planner';
 const props = defineProps({
   publishedGameweek: { type: Number, required: true }, gameweeks: { type: Array, default: () => [] },
   plans: { type: Array, default: () => [] }, rows: { type: Array, default: () => [] }, selectedPlan: { type: Object, default: null },
-  previewActive: { type: Boolean, default: false }, pending: { type: Boolean, default: false }, error: { type: [Boolean, Object], default: false },
+  pending: { type: Boolean, default: false }, error: { type: [Boolean, Object], default: false },
 });
-const emit = defineEmits(['select', 'preview', 'published', 'retry']);
+const emit = defineEmits(['select', 'retry']);
 const tableOpen = ref(false);
 const fixturesOpen = ref(false);
 const toggleFixtures = (gameweek) => {

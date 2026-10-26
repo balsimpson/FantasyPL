@@ -29,14 +29,14 @@
 			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<ManagerGameweekPlanner v-if="hasPicks" :published-gameweek="managerData.current_event"
 				:gameweeks="planner.gameweeks.value" :plans="planner.plans.value" :rows="planner.rows.value"
-				:selected-plan="planner.selectedPlan.value" :preview-active="planner.previewActive.value"
+				:selected-plan="planner.selectedPlan.value"
 				:pending="planner.pending.value" :error="planner.error.value"
-				@select="planner.selectGameweek" @preview="planner.showPreview" @published="planner.showPublished" @retry="planner.refresh" />
+				@select="planner.selectGameweek" @retry="planner.refresh" />
 
 				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="planner.displaySquad.value"
 					:planning-gameweek="planner.previewActive.value ? planner.selectedPlan.value?.gameweek : null"
 					:fixture-gameweek="planner.selectedPlan.value?.gameweek" :fixture-rows="planner.rows.value"
-					:published-squad="squadState" :plans="planner.plans.value" />
+					:published-squad="squadState" :plans="planner.plans.value" @preview="planner.showPreview" @published="planner.showPublished" />
 				<section v-else-if="isSquadLoading" class="space-y-4 lg:col-start-1 lg:row-start-1" role="status" aria-label="Loading squad">
 					<USkeleton class="h-10 w-48" /><USkeleton class="h-[36rem] w-full rounded-2xl" />
 				</section>
