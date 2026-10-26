@@ -4,6 +4,7 @@ const playerFields = [
 	"id", "code", "first_name", "second_name", "web_name", "birth_date", "team", "element_type",
 	"now_cost", "total_points", "ep_next", "news", "form", "points_per_game", "selected_by_percent",
 	"minutes", "goals_scored", "assists", "yellow_cards", "red_cards",
+	"status", "chance_of_playing_next_round",
 ];
 
 export function buildManagerSquad(rawPicks: Record<string, any>[], bootstrap: Record<string, any>) {
@@ -35,7 +36,7 @@ export function buildManagerSquad(rawPicks: Record<string, any>[], bootstrap: Re
 		picks, startingXI, bench, groupedByType,
 		teamCost: startingXI.reduce((total, pick) => total + Number(pick.element.now_cost ?? 0), 0),
 		teamPoints: startingXI.reduce((total, pick) => total + Number(pick.element.total_points ?? 0), 0),
-		events: bootstrap.events.map(({ id, finished, is_next }: Record<string, any>) => ({ id, finished, is_next })),
-		teams: bootstrap.teams.map(({ id, code, name }: Record<string, any>) => ({ id, code, name })),
+		events: bootstrap.events.map(({ id, finished, is_next, is_current }: Record<string, any>) => ({ id, finished, is_next, is_current })),
+		teams: bootstrap.teams.map(({ id, code, name, short_name }: Record<string, any>) => ({ id, code, name, short_name })),
 	};
 }

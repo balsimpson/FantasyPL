@@ -64,8 +64,9 @@
 							</div>
 
 							<div class="flex h-full min-h-0 min-w-0 flex-col p-3 sm:p-4">
-								<div class="min-h-0 min-w-0 flex-1 overflow-x-auto">
-									<table class="h-full w-full min-w-[15.5rem] table-fixed text-left font-sans text-sm font-semibold leading-5 tabular-nums">
+								<div class="min-h-0 min-w-0 flex-1 overflow-auto">
+									<p v-if="suggestion.fixtureReason" class="mb-3 text-xs leading-5 text-stone-300">{{ suggestion.fixtureReason }}</p>
+									<table class="w-full min-w-[15.5rem] table-fixed text-left font-sans text-sm font-semibold leading-5 tabular-nums">
 										<caption class="sr-only">Current, recommended, and difference in player performance measures</caption>
 										<colgroup>
 											<col class="w-[39%]" />

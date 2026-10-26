@@ -1,95 +1,75 @@
-<script setup>
-import { compactInstagramNumber, getInstagramClubTheme } from "~/utils/instagram-designs";
+<script setup lang="ts">
+import { createManagerOgArtwork, getManagerOgTheme, layoutManagerOgPlayers, type ManagerOgPlayer } from '~/utils/manager-og-image';
 
-const props = defineProps({
-	managerName: { type: String, default: "FPL Manager" },
-	teamName: { type: String, default: "Fantasy Premier League team" },
-	currentEvent: { type: [Number, String], default: null },
-	overallPoints: { type: [Number, String], default: null },
-	overallRank: { type: [Number, String], default: null },
-	formation: { type: String, default: "" },
-	players: { type: Array, default: () => [] },
+const props = withDefaults(defineProps<{
+	managerId?: string | number;
+	managerName?: string;
+	teamName?: string;
+	currentEvent?: string | number | null;
+	gameweekPoints?: string | number | null;
+	overallPoints?: string | number | null;
+	overallRank?: string | number | null;
+	formation?: string;
+	players?: ManagerOgPlayer[];
+	bench?: ManagerOgPlayer[];
+}>(), {
+	managerId: '', managerName: 'FPL Manager', teamName: 'Fantasy Premier League team',
+	currentEvent: null, gameweekPoints: null, overallPoints: null, overallRank: null,
+	formation: '', players: () => [], bench: () => [],
 });
 
-const playerWidth = 112;
-const rowPositions = {
-	Forward: 218,
-	Midfielder: 306,
-	Defender: 394,
-	Goalkeeper: 482,
+const theme = computed(() => getManagerOgTheme(props.managerId));
+const players = computed(() => layoutManagerOgPlayers(props.players));
+const artwork = computed(() => createManagerOgArtwork(props.players, props.bench, theme.value));
+const teamNameSize = computed(() => props.teamName.length > 30 ? 38 : props.teamName.length > 20 ? 44 : 60);
+const formatNumber = (value: string | number | null | undefined) => {
+	if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—';
+	return new Intl.NumberFormat('en-GB').format(Number(value));
 };
-
-const clubTheme = computed(() => {
-	const captain = props.players.find((player) => player.isCaptain) ?? props.players[0];
-	const clubCode = Number(captain?.clubCode) || 0;
-	return getInstagramClubTheme(clubCode);
-});
-
-const positionedPlayers = computed(() => {
-	const positions = ["Forward", "Midfielder", "Defender", "Goalkeeper"];
-	const left = 68;
-	const width = 694;
-
-	return positions.flatMap((position) => {
-		const players = props.players.filter((player) => player.position === position);
-		const step = width / (players.length + 1);
-
-		return players.map((player, index) => ({
-			...player,
-			left: Math.round(left + step * (index + 1) - playerWidth / 2),
-			top: rowPositions[position],
-		}));
-	});
-});
-
-const formatNumber = (value) => {
-	if (value === null || value === undefined || value === "") return "-";
-	const number = Number(value);
-	return Number.isFinite(number) ? new Intl.NumberFormat("en-GB").format(number) : "-";
-};
-
-const formatRank = (value) => {
-	if (value === null || value === undefined || value === "") return "-";
-	const number = Number(value);
-	return Number.isFinite(number) ? compactInstagramNumber(number) : "-";
-};
-
-const gameweekLabel = computed(() => props.currentEvent ? `GW ${props.currentEvent}` : "FPL");
-const teamNameSize = computed(() => {
-	if (props.teamName.length > 28) return "34px";
-	if (props.teamName.length > 20) return "38px";
-	return "44px";
-});
-
-// The isolated renderer expects both arrays on the component's head payload.
+// Both arrays are required by the isolated OG component renderer.
 useHead({ style: [], link: [] });
 </script>
 
 <template>
-	<div :style="{ position: 'relative', display: 'flex', width: '1200px', height: '630px', overflow: 'hidden', backgroundColor: clubTheme.dark, color: clubTheme.light, fontFamily: 'Inter' }">
-		<div :style="{ position: 'absolute', left: '0', top: '0', width: '1200px', height: '6px', backgroundColor: clubTheme.primary }" />
-
-		<div :style="{ position: 'absolute', left: '40px', top: '24px', color: clubTheme.light, fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px' }">FPL INSIGHTS</div>
-		<div :style="{ position: 'absolute', left: '40px', top: '48px', width: '780px', height: '54px', color: clubTheme.light, fontSize: teamNameSize, fontWeight: 700, lineHeight: '1.05' }">{{ teamName }}</div>
-		<div :style="{ position: 'absolute', left: '40px', top: '108px', color: clubTheme.light, fontSize: '17px' }">{{ managerName }}</div>
-		<div :style="{ position: 'absolute', left: '870px', top: '38px', width: '290px', color: clubTheme.light, fontSize: '20px', fontWeight: 700, textAlign: 'right' }">{{ gameweekLabel }}</div>
-
-		<div :style="{ position: 'absolute', left: '56px', top: '388px', width: '716px', height: '1px', backgroundColor: clubTheme.primary, opacity: 0.32 }" />
-		<div :style="{ position: 'absolute', left: '804px', top: '180px', width: '1px', height: '390px', backgroundColor: clubTheme.primary, opacity: 0.42 }" />
-		<div :style="{ position: 'absolute', left: '682px', top: '182px', width: '74px', color: clubTheme.light, fontSize: '17px', fontWeight: 700, textAlign: 'right' }">{{ formation }}</div>
-
-		<div v-for="player in positionedPlayers" :key="`${player.position}-${player.name}`" :style="{ position: 'absolute', left: `${player.left}px`, top: `${player.top}px`, display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${playerWidth}px`, height: '78px' }">
-			<div :style="{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', border: `2px solid ${clubTheme.primary}`, borderRadius: '50%', backgroundColor: clubTheme.light }">
-				<span v-if="player.isCaptain" :style="{ position: 'absolute', right: '-10px', top: '-5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', border: '1px solid #211a09', borderRadius: '50%', backgroundColor: '#f0bd4a', color: '#211a09', fontSize: '10px', fontWeight: 700 }">C</span>
-				<span v-else-if="player.isViceCaptain" :style="{ position: 'absolute', right: '-12px', top: '-5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '20px', border: `1px solid ${clubTheme.primary}`, borderRadius: '10px', backgroundColor: clubTheme.light, color: clubTheme.dark, fontSize: '9px', fontWeight: 700 }">VC</span>
-			</div>
-			<div :style="{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: `${playerWidth}px`, height: '30px', marginTop: '6px', color: clubTheme.light, fontSize: '14px', fontWeight: 700, lineHeight: '15px', textAlign: 'center' }">{{ player.name }}</div>
+	<div :style="{ position: 'relative', display: 'flex', width: '1200px', height: '630px', overflow: 'hidden', backgroundColor: theme.canvas, color: theme.ink, fontFamily: 'Inter' }">
+		<img :src="artwork" width="1200" height="630" alt="" :style="{ position: 'absolute', left: '0', top: '0' }" />
+		<div :style="{ position: 'absolute', left: '38px', top: '29px', fontSize: '22px', fontWeight: 700, letterSpacing: '-.7px' }">FPL Insights</div>
+		<div :style="{ position: 'absolute', left: '36px', top: '77px', width: '420px', height: '123px', fontSize: `${teamNameSize}px`, fontWeight: 700, letterSpacing: '-1.6px', lineHeight: '1.02', overflowWrap: 'anywhere' }">{{ teamName }}</div>
+		<div :style="{ position: 'absolute', left: '38px', top: '211px', width: '410px', fontSize: '19px', lineHeight: '1.2' }">Manager: {{ managerName }}</div>
+		<div class="flex-row" :style="{ position: 'absolute', left: '38px', top: '258px', display: 'flex', alignItems: 'center', gap: '17px', fontSize: '17px', fontWeight: 700 }">
+			<span>{{ currentEvent ? `GW ${currentEvent}` : 'FPL' }}</span>
+			<span v-if="formation" :style="{ borderLeft: `1px solid ${theme.ink}`, paddingLeft: '17px' }">{{ formation }}</span>
 		</div>
+		<div :style="{ position: 'absolute', left: '38px', top: '294px', width: '190px', height: '1px', backgroundColor: theme.ink, opacity: 0.65 }" />
+		<div :style="{ position: 'absolute', left: '30px', top: '304px', width: '390px', fontSize: String(gameweekPoints ?? '').length > 3 ? '96px' : '124px', fontWeight: 700, letterSpacing: '-5px', lineHeight: '1' }">{{ formatNumber(gameweekPoints) }}</div>
+		<div :style="{ position: 'absolute', left: '38px', top: '430px', fontSize: '20px' }">Gameweek points</div>
+		<div class="flex-row" :style="{ position: 'absolute', left: '38px', top: '473px', display: 'flex', gap: '28px' }">
+			<div class="flex-col" :style="{ display: 'flex', flexDirection: 'column', gap: '7px', paddingRight: '28px', borderRight: `1px solid ${theme.ink}` }">
+				<span :style="{ fontSize: '28px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallPoints) }}</span>
+				<span :style="{ fontSize: '13px' }">Overall points</span>
+			</div>
+			<div class="flex-col" :style="{ display: 'flex', flexDirection: 'column', gap: '7px' }">
+				<span :style="{ fontSize: '28px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallRank) }}</span>
+				<span :style="{ fontSize: '13px' }">Overall rank</span>
+			</div>
+		</div>
+		<div :style="{ position: 'absolute', left: '38px', top: '537px', fontSize: '12px' }">Season points shown under players</div>
 
-		<div v-if="!positionedPlayers.length" :style="{ position: 'absolute', left: '68px', top: '355px', width: '694px', color: clubTheme.light, fontSize: '20px', textAlign: 'center' }">Starting XI unavailable</div>
+		<div v-for="(player, index) in players" :key="`${player.position}-${index}`" class="flex-col" :style="{ position: 'absolute', left: `${player.x - player.labelWidth / 2}px`, top: `${player.y + 7}px`, width: `${player.labelWidth}px`, minHeight: '37px', padding: '5px 3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', backgroundColor: theme.paper, color: theme.ink, borderRadius: '5px' }">
+			<span :style="{ display: 'flex', justifyContent: 'center', width: '100%', fontSize: player.labelWidth < 90 || player.name.length > 13 ? '11px' : '13px', fontWeight: 700, lineHeight: '1.1', textAlign: 'center', overflowWrap: 'anywhere' }">{{ player.name }}</span>
+			<span :style="{ fontSize: '11px', lineHeight: '1' }">{{ formatNumber(player.seasonPoints) }} pts</span>
+		</div>
+		<template v-for="(player, index) in players" :key="`badge-${index}`">
+			<div v-if="player.isCaptain || player.isViceCaptain" :style="{ position: 'absolute', left: `${player.x + 13}px`, top: `${player.y - 39}px`, display: 'flex', alignItems: 'center', justifyContent: 'center', width: player.isCaptain ? '23px' : '27px', height: '23px', borderRadius: '12px', border: '1px solid #202221', backgroundColor: player.isCaptain ? '#ffdc54' : theme.paper, color: '#202221', fontSize: player.isCaptain ? '14px' : '10px', fontWeight: 700 }">{{ player.isCaptain ? 'C' : 'VC' }}</div>
+		</template>
+		<div v-if="!players.length" :style="{ position: 'absolute', left: '650px', top: '330px', width: '450px', padding: '15px', backgroundColor: theme.paper, color: theme.ink, fontSize: '20px', textAlign: 'center' }">Starting XI unavailable</div>
 
-		<div :style="{ position: 'absolute', left: '850px', top: '252px', color: clubTheme.light, fontSize: '78px', fontWeight: 700, lineHeight: '1' }">{{ formatNumber(overallPoints) }} <span :style="{ color: clubTheme.light, fontSize: '18px' }">PTS</span></div>
-		<div :style="{ position: 'absolute', left: '850px', top: '376px', color: clubTheme.light, fontSize: '42px', fontWeight: 700, lineHeight: '1' }">{{ formatRank(overallRank) }}</div>
-		<div :style="{ position: 'absolute', left: '850px', top: '430px', color: clubTheme.light, fontSize: '13px', fontWeight: 700, letterSpacing: '1.2px' }">OVERALL RANK</div>
+		<div :style="{ position: 'absolute', left: '38px', top: '590px', color: theme.paper, fontSize: '15px', fontWeight: 700 }">sportsync.in</div>
+		<div :style="{ position: 'absolute', left: '464px', top: '590px', color: theme.paper, fontSize: '14px', fontWeight: 700 }">Bench</div>
+		<div v-for="(player, index) in bench.slice(0, 4)" :key="`bench-${index}`" class="flex-col" :style="{ position: 'absolute', left: `${585 + index * 155}px`, top: '586px', width: '115px', display: 'flex', flexDirection: 'column', gap: '4px', color: theme.paper }">
+			<span :style="{ fontSize: '13px', fontWeight: 700, lineHeight: '1.1', overflowWrap: 'anywhere' }">{{ player.name }}</span>
+			<span :style="{ fontSize: '11px', opacity: 0.8 }">{{ formatNumber(player.seasonPoints) }} pts</span>
+		</div>
+		<div v-if="!bench.length" :style="{ position: 'absolute', left: '555px', top: '590px', color: theme.paper, fontSize: '13px' }">Unavailable</div>
 	</div>
 </template>

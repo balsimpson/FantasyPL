@@ -73,7 +73,15 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `server/utils/homepage-data.ts`, `server/api/homepage-data.ts` | Homepage-only FPL snapshot; the shared bootstrap contract remains unchanged |
 | `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts` | Shared validated bootstrap cache and bounded upstream JSON request recovery |
 | `pages/player/[id].vue` | Player profile, fixtures, history, and metadata |
-| `pages/manager/[id].vue` | Manager and team journey |
+| `pages/manager/[id].vue` | Manager summary, published squad, five-gameweek planning and transfer recommendations |
+| `components/ManagerGameweekPlanner.vue`, `components/ManagerSquadBoard.vue` | Responsive week selector, fixture modal and stable published/suggested pitch, bench and gallery views |
+| `components/ManagerUpcomingFixtures.vue` | Full-width selected-gameweek fixture disclosure below the week controls, with tough published-XI matchups first and access to the five-week matrix |
+| `components/ManagerSquadPick.vue`, `components/ManagerPlayerFixture.vue`, `components/ManagerLineupComparison.vue` | Overlapping player pairs, per-player fixture strips and head-to-head comparisons |
+| `components/ManagerLeaguesPanel.vue` | Header trophy action and leagues slideover |
+| `components/ManagerSquadPerformance.vue`, `composables/useManagerSquadPerformance.ts` | Published-versus-suggested XI points, form and fixture totals, with gameweek-matched FPL estimates and historical points-per-game fallback |
+| `composables/useManagerPlanner.ts`, `composables/useManagerPlannerDisplay.ts`, `composables/useManagerComparisonMetrics.ts`, `utils/manager-planner.ts` | Planner loading/preview state, stable lineup variants, signed comparisons, fixture summaries and deterministic legal-XI selection; method and limitations are in `DESIGN.md` |
+| `server/api/managers/fixtures.get.ts`, `server/utils/manager-fixtures.ts` | Separate cached five-gameweek fixture feed; shared by the manager planner and transfer ranking without changing existing fixture APIs |
+| `components/OgImage/ManagerTeam.vue`, `utils/manager-og-image.ts` | Fixed manager share-image layout, manager-specific palettes, and projected pitch/figures; design requirements and verification are in `DESIGN.md` |
 | `pages/watchlist.vue`, `components/PlayerWatchlistCard.vue` | Existing incomplete saved-player experience |
 | `layouts/default.vue`, `components/AppFooter.vue` | Shared public shell, sticky navigation, and footer; public pages inherit these by default, while admin uses its separate layout |
 | `components/PlayerSearchSurface.vue`, `composables/usePlayerSearchSurface.ts`, `composables/usePlayerSearchData.ts` | One layout-owned public player search, shared opening state and origin, and on-demand data that reuses loaded homepage/watchlist snapshots |

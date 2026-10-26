@@ -18,7 +18,7 @@
 			loading="lazy"
 			decoding="async"
 			class="absolute inset-0 z-10 h-full w-full object-contain object-bottom transition duration-150"
-			:style="fillFrame ? { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center center' } : undefined"
+			:style="fillFrame ? { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', objectPosition: framePosition } : undefined"
 			:class="[imageLoaded ? 'opacity-100' : 'opacity-0', hover ? 'motion-safe:group-hover:scale-[1.04]' : '']"
 			@load="imageLoaded = true"
 			@error="handleImageError"
@@ -32,6 +32,7 @@ const props = defineProps({
 	alt: { type: String, default: "" },
 	hover: { type: Boolean, default: false },
 	fillFrame: { type: Boolean, default: false },
+	framePosition: { type: String, default: 'center center' },
 });
 
 const imageLoaded = ref(false);

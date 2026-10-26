@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { getManagerHistory, getManagerPicks, getManagerTransfers } from "~~/composables/usePremiereLeague";
 import { buildManagerSellingPrices, buildManagerTransferOptions, rankManagerTransferSuggestions } from "../../../utils/manager-recommendations";
+import { getManagerFixtures } from "../../../utils/manager-fixtures";
+import { getPlannerFixtureRun, summarizePlannerRun } from "../../../../utils/manager-planner";
 
 const recommendationCache = new Map<number, { fingerprint: string; response: Record<string, any> }>();
 const inFlightRequests = new Map<string, Promise<Record<string, any>>>();
@@ -25,6 +27,8 @@ const modelPlayer = (player: Record<string, any>) => ({
 	availability: player.availability,
 	chanceOfPlaying: player.chanceOfPlaying,
 	expectedPoints: player.expectedPoints,
+	fixtureRun: player.fixtureRun ?? null,
+	fixtureSummary: player.fixtureSummary ?? null,
 });
 
 export default defineEventHandler(async (event) => {
@@ -40,9 +44,10 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 503, statusMessage: "Recommendations are not configured." });
 	}
 
-	const [manager, bootstrap] = await Promise.all([
+	const [manager, bootstrap, fixtureData] = await Promise.all([
 		$fetch<Record<string, any>>(`/api/managers/${managerId}`, { retry: 0 }),
 		$fetch<Record<string, any>>("/api/bootstrap-static", { retry: 0 }),
+		getManagerFixtures().catch(() => null),
 	]);
 	const currentGameweek = Number(manager.current_event);
 	if (!Number.isSafeInteger(currentGameweek) || currentGameweek < 1 || currentGameweek > 38) {
@@ -109,7 +114,7 @@ export default defineEventHandler(async (event) => {
 		};
 	}
 
-	const options = buildManagerTransferOptions(
+	const baseOptions = buildManagerTransferOptions(
 		selection.picks,
 		bootstrap.elements,
 		bootstrap.teams,
@@ -118,6 +123,24 @@ export default defineEventHandler(async (event) => {
 		currentGameweek,
 		nextGameweek,
 	);
+	const gameweeks = fixtureData?.gameweeks[0] === nextGameweek ? fixtureData.gameweeks : [];
+	const playerTeams = new Map<number, number>(bootstrap.elements.map((player: Record<string, any>) => [Number(player.id), Number(player.team)]));
+	const withFixtures = (player: Record<string, any>) => {
+		if (!fixtureData || !gameweeks.length) return player;
+		const fixtureRun = getPlannerFixtureRun(playerTeams.get(player.id)!, fixtureData.fixtures, bootstrap.teams, gameweeks);
+		return { ...player, fixtureRun, fixtureSummary: summarizePlannerRun(fixtureRun) };
+	};
+	const options = baseOptions.map((option) => {
+		const outgoing = withFixtures(option.outgoing);
+		const incoming = withFixtures(option.incoming);
+		const current = outgoing.fixtureSummary;
+		const replacement = incoming.fixtureSummary;
+		const range = gameweeks.length ? `GW ${gameweeks[0]}–${gameweeks.at(-1)}` : '';
+		const fixtureReason = current?.averageDifficulty != null && replacement?.averageDifficulty != null
+			? `${range}: average fixture difficulty ${current.averageDifficulty.toFixed(1)} → ${replacement.averageDifficulty.toFixed(1)} out of 5, lower is easier. ${current.matches} → ${replacement.matches} scheduled matches. ${current.blanks} → ${replacement.blanks} gameweeks without a fixture.`
+			: 'Five-gameweek fixture comparison is unavailable. This option uses current performance and the next-gameweek FPL estimate.';
+		return { ...option, outgoing, incoming, fixtureReason };
+	});
 	if (!options.length) {
 		return {
 			currentGameweek,
@@ -130,6 +153,7 @@ export default defineEventHandler(async (event) => {
 	const state = {
 		currentGameweek,
 		targetGameweek: nextGameweek,
+		planningGameweeks: gameweeks,
 		bank: roundToTenth(bank / 10),
 		priceUnit: "Prices are in £m. Points per game, form, minutes, and the next-gameweek FPL estimate use the current official feed.",
 		constraints: "Each option is a single same-position transfer. The server has checked budget, availability, a 90-minute minimum sample, and the three-player club limit. It is no worse on available form, points per game, and next-gameweek FPL estimate, and improves at least one. Budget is a feasibility constraint, not a ranking goal.",
@@ -143,7 +167,7 @@ export default defineEventHandler(async (event) => {
 	};
 	const questions = Object.fromEntries(options.map((option) => [option.questionId, {
 		type: "score",
-		instructions: `Compare the replacement with the current player for FPL Gameweek ${nextGameweek}. Every option already passed a server-side performance gate: it is no worse on available form, points per game, and FPL next-gameweek estimate, and improves at least one. Prioritize those performance signals, minutes, and availability over cost. The price is already feasible; do not reward saving money by itself. Treat the FPL estimate as uncertain, do not infer injuries or lineups, and do not describe this score as projected points.`,
+		instructions: `Compare the replacement with the current player for FPL Gameweek ${nextGameweek} and the supplied planning gameweeks. Every option already passed a server-side performance gate: it is no worse on available form, points per game, and FPL next-gameweek estimate, and improves at least one. Use the supplied opponent runs, home/away venues, fixture counts, blanks, and difficulty when present. Lower difficulty is easier, but does not by itself prove higher points. Prioritize performance, fixtures, minutes, and availability over cost. The price is already feasible; do not reward saving money by itself. Treat the FPL estimate as uncertain, do not infer injuries or lineups, and do not describe this score as projected points.`,
 		criteria: scoreCriteria,
 	}]));
 	const requestBody = { model: "jev-latest", state, questions };

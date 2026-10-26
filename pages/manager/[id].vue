@@ -13,43 +13,30 @@
 				<div class="min-w-0">
 					<h1 id="manager-title" class="text-3xl font-black tracking-[-0.03em] text-white [overflow-wrap:anywhere] sm:text-4xl">{{ managerData.name }}</h1>
 					<p class="mt-1 text-sm text-stone-400">{{ managerDisplayName }} · Manager ID {{ id }}</p>
+					<dl class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-stone-400">
+						<div><dt class="inline">Season points </dt><dd class="ml-1 inline font-semibold tabular-nums text-lime-300">{{ formatNumber(managerData.summary_overall_points) }}</dd></div>
+						<div><dt class="inline">Overall rank </dt><dd class="ml-1 inline font-semibold tabular-nums text-white">{{ formatNumber(managerData.summary_overall_rank) }}</dd></div>
+						<div><dt class="inline">GW rank </dt><dd class="ml-1 inline font-semibold tabular-nums text-white">{{ formatNumber(managerData.summary_event_rank) }}</dd></div>
+					</dl>
 				</div>
 				<div class="flex items-center gap-3">
 					<span class="inline-flex rounded-full border border-lime-300/40 px-2.5 py-1 text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-lime-300">GW {{ managerData.current_event }}</span>
 					<ManagerShareButton :title="managerData.name" :url="canonicalUrl" />
+					<ManagerLeaguesPanel :leagues="decoratedClassicLeagues" :manager-name="managerDisplayName" />
 					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-primary/40 hover:bg-white/[0.08] hover:text-white" aria-label="Back to home" />
 				</div>
 			</header>
-			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" />
+			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
+			<ManagerGameweekPlanner v-if="hasPicks" :published-gameweek="managerData.current_event"
+				:gameweeks="planner.gameweeks.value" :plans="planner.plans.value" :rows="planner.rows.value"
+				:selected-plan="planner.selectedPlan.value" :preview-active="planner.previewActive.value"
+				:pending="planner.pending.value" :error="planner.error.value"
+				@select="planner.selectGameweek" @preview="planner.showPreview" @published="planner.showPublished" @retry="planner.refresh" />
 
-			<div class="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-				<aside aria-label="Manager summary" class="min-w-0 space-y-6 lg:col-start-2 lg:row-start-1">
-					<section aria-label="Season summary" class="rounded-2xl border border-white/10 bg-[#101216] p-5">
-						<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 lg:grid-cols-1">
-							<div class="flex min-w-0 items-center gap-3">
-								<UAvatar :text="managerInitials" size="md" class="shrink-0 bg-primary/10 text-primary" />
-								<div class="min-w-0">
-									<p class="font-semibold text-white [overflow-wrap:anywhere]">{{ managerDisplayName }}</p>
-									<p class="text-xs text-stone-400">{{ managerData.years_active }} years in FPL</p>
-								</div>
-							</div>
-							<dl class="text-right lg:text-left">
-								<dt class="text-xs font-medium leading-4 text-stone-400">Season points</dt>
-								<dd class="mt-1 font-sans text-4xl font-bold leading-none tracking-tight tabular-nums text-primary">{{ formatNumber(managerData.summary_overall_points) }}</dd>
-							</dl>
-						</div>
-						<dl class="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
-							<div><dt class="text-xs font-medium leading-4 text-stone-400">Overall rank</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ formatNumber(managerData.summary_overall_rank) }}</dd></div>
-							<div><dt class="text-xs font-medium leading-4 text-stone-400">Gameweek rank</dt><dd class="mt-1 font-sans text-lg font-bold leading-6 tabular-nums text-white">{{ formatNumber(managerData.summary_event_rank) }}</dd></div>
-						</dl>
-					</section>
-
-					<section aria-label="Classic leagues" class="hidden lg:block">
-						<ManagerLeagueStandings :leagues="decoratedClassicLeagues" />
-					</section>
-				</aside>
-
-				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="squadState" class="lg:col-start-1 lg:row-start-1" />
+				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="planner.displaySquad.value"
+					:planning-gameweek="planner.previewActive.value ? planner.selectedPlan.value?.gameweek : null"
+					:fixture-gameweek="planner.selectedPlan.value?.gameweek" :fixture-rows="planner.rows.value"
+					:published-squad="squadState" :plans="planner.plans.value" />
 				<section v-else-if="isSquadLoading" class="space-y-4 lg:col-start-1 lg:row-start-1" role="status" aria-label="Loading squad">
 					<USkeleton class="h-10 w-48" /><USkeleton class="h-[36rem] w-full rounded-2xl" />
 				</section>
@@ -59,9 +46,7 @@
 					<UButton v-if="squadError" icon="i-lucide-refresh-cw" color="primary" variant="soft" @click="refreshSquad">Try again</UButton>
 				</section>
 			</div>
-			<section class="lg:hidden" aria-label="Classic leagues">
-				<ManagerLeagueStandings :leagues="decoratedClassicLeagues" />
-			</section>
+			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" />
 		</template>
 
 		<section v-else class="space-y-6 py-4" role="status" aria-label="Loading manager profile">
@@ -138,6 +123,7 @@ const getRankMovement = (league) => {
 };
 
 const { managerData, squadState, pending, error, isSquadLoading, squadError, refresh, refreshSquad } = useManagerPage(id);
+const planner = useManagerPlanner(squadState);
 const { remember } = useSavedManagers();
 
 onMounted(() => {
@@ -198,7 +184,7 @@ const managerOgPlayers = computed(() =>
 	(squadState.value?.startingXI ?? []).map((pick) => ({
 		name: pick.element?.web_name ?? "Unknown player",
 		position: pick.element_type ?? "Unknown",
-		clubCode: pick.team?.code ?? null,
+		seasonPoints: pick.element?.total_points ?? null,
 		isCaptain: Boolean(pick.is_captain),
 		isViceCaptain: Boolean(pick.is_vice_captain),
 	}))
@@ -223,28 +209,26 @@ useSeoMeta({
 });
 
 defineOgImageComponent("ManagerTeam", {
+	managerId: id,
 	managerName: managerDisplayName,
 	teamName: computed(() => managerData.value?.name ?? `Manager ${id.value}'s FPL team`),
 	currentEvent: computed(() => managerData.value?.current_event ?? null),
+	gameweekPoints: computed(() => managerData.value?.summary_event_points ?? null),
 	overallPoints: computed(() => managerData.value?.summary_overall_points ?? null),
 	overallRank: computed(() => managerData.value?.summary_overall_rank ?? null),
 	formation: managerOgFormation,
 	players: managerOgPlayers,
+	bench: computed(() => (squadState.value?.bench ?? []).map((pick) => ({
+		name: pick.element?.web_name ?? "Unknown player",
+		position: pick.element_type ?? "Unknown",
+		seasonPoints: pick.element?.total_points ?? null,
+	}))),
 }, {
 	width: 1200,
 	height: 630,
 	extension: "png",
 	alt: `Fantasy Premier League starting XI and season stats for manager ${id.value}`,
 	cacheMaxAgeSeconds: 60 * 60,
-});
-
-const managerInitials = computed(() => {
-	return managerDisplayName.value
-		.split(" ")
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part.charAt(0).toUpperCase())
-		.join("") || "M";
 });
 
 const decoratedClassicLeagues = computed(() => {
