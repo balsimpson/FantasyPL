@@ -30,7 +30,7 @@ const structuredData = computed(() => article.value ? JSON.stringify({
   datePublished: new Date(article.value.publishedAt).toISOString(),
   dateModified: new Date(article.value.updatedAt).toISOString(),
   author: { '@type': 'Person', name: article.value.author },
-  publisher: { '@type': 'Organization', name: 'FPL Insights', url: config.public.SITE_URL },
+  publisher: { '@type': 'Organization', name: 'FPL Insights', url: siteOrigin },
   mainEntityOfPage: canonicalUrl.value,
   image: previewUrl.value,
   citation: article.value.sources.map(source => ({ '@type': 'CreativeWork', name: source.title, url: source.url })),

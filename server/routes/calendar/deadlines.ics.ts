@@ -27,7 +27,7 @@ export default defineCachedEventHandler(async (event) => {
   setHeader(event, "content-type", "text/calendar; charset=utf-8");
   return calendar;
 }, {
-  name: "fpl-deadlines-calendar-v1",
+  name: "fpl-deadlines-calendar-v2",
   maxAge: 5 * 60,
   swr: true,
 });

@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { articleDocument, articleSummary, draftFields } from './articleValidators'
 import { articleText, validateArticleDraft } from '../shared/articles'
+import { validateArticlePublishEvidence } from '../shared/article-publish'
 import { researchTitleKey } from '../shared/article-research'
 
 function authorize(secret: string) {
@@ -177,11 +178,12 @@ export const publish = mutation({
     if (collision && collision.articleId !== article.articleId) throw new ConvexError({ code: 'INVALID', message: 'Another published article already uses this URL slug.' })
     const now = Date.now()
     const sources = draft.sources.filter(source => source.title.trim() && source.url.trim())
-    const capturedAt = (draft.body.content || []).flatMap(node => {
-      const players = [node.attrs?.player, ...(Array.isArray(node.attrs?.players) ? node.attrs.players : [])] as ({ capturedAt?: string } | null | undefined)[]
-      return players.flatMap(player => player?.capturedAt && Number.isFinite(Date.parse(player.capturedAt)) ? [player.capturedAt] : [])
-    }).sort()[0]
-    if (!['guide', 'evergreen'].includes(draft.template) && !capturedAt) throw new ConvexError({ code: 'INVALID', message: 'Add at least one saved FPL evidence visual so the article can show when its data was captured.' })
+    let capturedAt: string | undefined
+    try {
+      capturedAt = validateArticlePublishEvidence(draft, article.publishedJson, now)
+    } catch (error) {
+      throw new ConvexError({ code: 'INVALID', message: error instanceof Error ? error.message : 'The article evidence is invalid.' })
+    }
     const publishedJson = JSON.stringify({
       title: draft.title.trim(), slug: draft.slug, excerpt: draft.excerpt.trim(), template: draft.template,
       season: draft.season, gameweek: draft.gameweek, body: draft.body, sources, author: args.publishedBy,

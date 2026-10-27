@@ -1,6 +1,6 @@
 # FPL Insights design direction
 
-Updated: 26 October 2026.
+Updated: 27 October 2026.
 
 This document defines the shared FPL Insights visual direction and site content rail, with the homepage as its primary reference. It keeps the current identity and describes how the homepage should feel as one connected decision path. It does not replace [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md), which owns section order, behavior, affected files, and implementation status.
 
@@ -33,12 +33,12 @@ The header and footer follow the same rail on every route. Full-bleed page backg
 Use one heading per section and a consistent hierarchy of heading, short context, and action. Keep the page order in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md); visually connect those sections with spacing and alignment rather than adding a separate boxed panel around each one.
 
 1. **Orient and search.** Keep player search as the main action. A search icon in the shared header opens the full player search surface early on mobile.
-2. **Check the deadline and team.** Show the next deadline as compact, useful context. Keep team lookup in a Teams menu immediately before Watchlist in the shared header. The menu lists successfully resolved teams by name and ID for quick return visits. Detailed behavior and checks are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
-3. **Resume saved choices.** Show saved players only when there are saved choices to resume. Use the same player identity and visual language as discovery.
-4. **Compare players.** Make the discovery section the main browsing surface. Its filters, ranking context, cards, and “show more” action should read as one tool.
+2. **Check the deadline and team.** Show the next deadline as compact, useful context. Keep team lookup in the shared header's Teams menu. The menu lists successfully resolved teams by name and season points for quick return visits. Detailed behavior and checks are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
+3. **Resume saved choices.** Use the shared header Watchlist link to reach saved players. There is no separate saved-player section on the homepage.
+4. **Compare players.** Open the shared full-screen player search from the header. Its filters, ranking context, portrait grid, and automatic/manual loading should read as one tool.
 5. **Scan fixture runs.** Group fixtures by gameweek and make home/away, opponent, kickoff, and difficulty easy to scan. Use actual short club names, not abbreviations that look like internal codes.
-6. **Review the gameweek.** Put recap values and captain information after the actionable tools. Keep the recap compact and clearly tied to the relevant gameweek.
-7. **Show recent analysis only when it exists.** Do not leave an empty editorial section or filler content.
+6. **Show recent analysis when ready.** Place real published articles after fixtures when the homepage integration exists. Do not leave an empty editorial section or filler content.
+7. **Review the gameweek.** Put recap values and captain information after the actionable tools. Keep the recap compact and clearly tied to the relevant gameweek.
 
 ## Spacing and section rhythm
 
@@ -46,7 +46,7 @@ Use a small, repeatable spacing scale. Keep a clear gap between sections and a t
 
 Use dividers only when they help separate related data, such as values in a compact stat row. Avoid repeated full-width rules, thick accent borders, and nested rounded panels. Use a single surface for a data group instead of a card inside a card.
 
-The shared next-deadline panel follows the owner's selected option 1 (24 October 2026): flat charcoal, a fine border, an outlined lime gameweek badge, and white countdown digits with lime seconds. Fine vertical dividers separate the four time units. The date and timer sit side by side when space allows and stack on mobile. A calendar row uses a lime calendar icon and primary subscription action, with muted refresh/reminder notes and a copy-link fallback. The homepage and watchlist share this component; behavior and verification are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
+The shared next-deadline panel follows the owner's selected option 1 (24 October 2026): flat charcoal, a fine border, an outlined lime gameweek badge, and white countdown digits with lime seconds. Fine vertical dividers separate the four time units. The date and timer sit side by side when space allows and stack on mobile. A compact calendar row uses a lime icon, a subscription action, and a copy-link control without repeated refresh/reminder notes. The homepage and watchlist share this component; behavior and verification are recorded in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup).
 
 Section headings should share the same size, weight, and placement. Descriptions should stay short and use the same muted text treatment. Put section actions in a consistent position so visitors can find them quickly.
 
@@ -92,7 +92,7 @@ Use visible labels, semantic headings, keyboard focus styles, descriptive access
 
 - All homepage sections, their headings, content, and actions share one centered rail.
 - No section appears to have a different arbitrary maximum width.
-- A visitor can follow the page from search to deadline, saved choices, discovery, fixtures, and recap without losing the visual hierarchy.
+- A visitor can reach search and saved choices from the header, then scan the deadline, recommendations, fixtures, and recap without losing the visual hierarchy.
 - The primary search remains easy to find on a small mobile screen.
 - Cards use edge-to-edge player imagery and balanced, labelled stats.
 - Fixture names, dates, kickoff times, home/away labels, and difficulty are understandable without decoding abbreviations.

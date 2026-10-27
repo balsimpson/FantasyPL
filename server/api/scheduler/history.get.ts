@@ -1,7 +1,9 @@
 import { schedulerApi, schedulerHistoryError, schedulerScope } from '../../utils/scheduler-history'
+import { requireAdmin } from '../../utils/admin'
 import type { SchedulerPostStatus } from '../../../utils/scheduler-history'
 
 export default defineEventHandler(async event => {
+  await requireAdmin(event)
   setHeader(event, 'Cache-Control', 'no-store')
   const query = getQuery(event)
   const status = typeof query.status === 'string' && ['submitting', 'scheduled', 'published', 'failed', 'unknown', 'draft', 'cancelled'].includes(query.status) ? query.status as SchedulerPostStatus : undefined

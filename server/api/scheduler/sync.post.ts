@@ -1,6 +1,6 @@
 import { bufferRequest, getBufferInstagramChannel } from '../../utils/buffer'
 import { schedulerApi, schedulerHistoryError, schedulerDatabase, schedulerScope } from '../../utils/scheduler-history'
-import { requireAdmin } from '../../utils/admin'
+import { requireAdmin, requireAdminOrigin } from '../../utils/admin'
 import type { SchedulerPostStatus } from '../../../utils/scheduler-history'
 
 interface BufferHistoryPost {
@@ -16,6 +16,7 @@ function publicUrl(value: string | null | undefined) {
 
 export default defineEventHandler(async event => {
   await requireAdmin(event)
+  requireAdminOrigin(event)
   const body = await readBody(event)
   const after = typeof body?.cursor === 'string' && body.cursor ? body.cursor : null
   const postIds: string[] | undefined = body?.postIds

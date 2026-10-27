@@ -1,6 +1,8 @@
 import { schedulerApi, schedulerHistoryError, schedulerScope } from '../../utils/scheduler-history'
+import { requireAdmin } from '../../utils/admin'
 
 export default defineEventHandler(async event => {
+  await requireAdmin(event)
   setHeader(event, 'Cache-Control', 'no-store')
   const query = getQuery(event)
   const codes = typeof query.codes === 'string' && query.codes ? query.codes.split(',').map(Number) : []

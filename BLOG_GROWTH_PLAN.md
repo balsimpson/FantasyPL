@@ -1,18 +1,28 @@
 # FantasyPL blog growth and admin publishing plan
 
-6 September 2026. Companion to [the site audit](/Users/balsimpson/Documents/Projects/FantasyPL/SITE_GROWTH_AUDIT.md).
+6 September 2026. Companion to [the site audit](SITE_GROWTH_AUDIT.md).
 
 ## Decision
 
 Build a blog into the existing site, with an admin page for generating and publishing articles from verified FPL data. Launch it alongside the search-discovery fixes and homepage improvements. Do not wait for every proposed tool to be complete.
 
-The owner wants a content engine that researches gameweek-relevant search topics, checks competing coverage, recommends useful articles, generates from evidence, and supports Instagram distribution. On 24 October 2026 the owner confirmed that unattended publishing is a first-class mode that can be turned on or off. Manual review remains available when that mode is off. The requested local foundation now includes the private workspace, editor and saving, followed by research suggestions and concurrent background article generation. Public publishing and Instagram integration remain outside this implementation stage.
+The owner wants a content engine that researches gameweek-relevant search topics, checks competing coverage, recommends useful articles, generates from evidence, and supports Instagram distribution. On 24 October 2026 the owner confirmed that unattended publishing is a first-class mode that can be turned on or off. Manual review remains available when that mode is off. Local source includes the private workspace, research and writing jobs, manual publication, and public article pages. Unattended publishing and article-to-Instagram integration remain planned; see the current status below for hosted checks.
 
 Confirmed setup decisions (24 October 2026): use GitHub directly through Nuxt Auth Utils, restrict access to the configured numeric GitHub account ID, use the existing Convex infrastructure for storage and background tasks, and use Nuxt UI's rich text editor with structured JSON. No Auth0 setup is required. Use OpenRouter for writing and its web-search plugin for research. The engine must choose and place player cards and fixture visuals itself; the owner should not have to assemble them. Do not invent search volumes or ranking difficulty from web search results.
 
 The chosen flow is automatic web research → competitor coverage benchmarks → a persistent queue of suggested article ideas → owner selects an idea → an independent Convex writing job → an editable draft. The Articles page shows five ideas and keeps a reserve ready so using one does not leave the list short while new research runs. The queue refills in the background after ideas become drafts, including while the page is closed; the first page visit starts the initial fill. It does not run a timer when the queue is full. The research implementation uses cited search excerpts, not a verified full-page crawl or a keyword-volume service. Its benchmarks must say when coverage is not visible in an excerpt rather than claiming a competitor lacks it. Suggestions are hypotheses about useful topics, not measured demand.
 
 The first audit was stronger on technical defects than competitive acquisition strategy. This follow-up compares four relevant publishers/tools and revises the growth plan. These are justified experiments, not a claim that we have found the highest-traffic keywords. No competitor analytics, backlink database, search volumes, or ranking difficulty were available.
+
+## Current status and next checks, 27 October 2026
+
+- Source supports draft/revision storage, the research queue, background writing and manual publication. On 27 October the live blog and its one published article returned HTTP 200; the article appeared in the live sitemap and RSS feed, and its 1200 × 630 preview image returned successfully. An unauthenticated admin article request returned 401. These checks did not exercise the authenticated publishing workflow.
+- Vercel's production configuration points to the `focused-cuttlefish-350` Convex development deployment, which contains the published article and reviewed buy snapshot. The separate Convex production deployment had no functions when checked. Decide the intended backend and configure it before switching; do not import or deploy as part of a read-only check.
+- Local publish validation now requires every data-backed visual to match the article season and any selected gameweek. New or changed evidence must be at most 48 hours old; corrections may retain the same previously published evidence and dated context. Evergreen guides do not require FPL evidence. If a draft's evidence is stale, generate and review a fresh draft; the generated draft is available in version history and the existing saved version is preserved. Focused in-memory checks covered stale, future, mismatched, missing, fresh and unchanged published evidence. Verify the authenticated draft, edit, preview, publish, and republish journey, draft isolation and repeated publication on the intended deployment. Review real generated content for factual and editorial quality before publication.
+- Unattended publication controls and article-to-Instagram automation are not implemented in the local status recorded here. They need separate permissions, execution-time mode and revision checks, idempotency, and failure handling before use. Saving a draft must not publish or post.
+- Add recent published-article selections to the homepage and player profiles when the integrations and content are ready. The `gameweekRecap` visual remains unsupported until completed-gameweek evidence is captured; see [the visual-card guide](docs/ARTICLE_VISUAL_CARDS.md).
+
+Any deployment, publication, or posting requires a separate explicit request. Local builds and development checks do not establish hosted behavior.
 
 ## What similar sites do
 
@@ -109,7 +119,7 @@ Add published articles to the corrected sitemap with truthful modification times
 
 Current evidence (24 October 2026): this is Nuxt 4 on the declared Vercel target, with an existing Convex backend and Buffer scheduler. The local workspace implementation adds article tables/functions and private Nuxt admin APIs; this is separate from deploying those functions or configuring GitHub credentials. `server/api/get-response.ts` generates Instagram-style captions and is not a blog publishing workflow. Do not repurpose it blindly or disturb its consumers. Article publishing and scheduler posting remain separate workflows; the scheduler now sits inside the authenticated admin workspace without an article-to-Instagram integration.
 
-Use Convex article storage behind server-authorized Nuxt APIs and single-admin GitHub login through Nuxt Auth Utils. Store each saved draft revision independently. Public article delivery must later read only a published revision, without exposing the working draft. Use managed persistent storage rather than Vercel function-local files or localStorage.
+Use Convex article storage behind server-authorized Nuxt APIs and single-admin GitHub login through Nuxt Auth Utils. Store each saved draft revision independently. Public article delivery must read only a published revision, without exposing the working draft. Use managed persistent storage rather than Vercel function-local files or localStorage.
 
 Nuxt Content is a reasonable alternative for repository-authored Markdown, with collections and supported Vercel deployment. It is not the default recommendation for this requested admin workflow because generation/publishing would then need an additional repository-writing and build process. [Nuxt Content collections](https://content.nuxt.com/docs/collections/define), [Vercel support](https://content.nuxt.com/docs/deploy/vercel).
 
@@ -124,8 +134,8 @@ Proposed implementation boundaries:
 | `pages/admin/research.vue` | Forward the existing research URL to its section in the article workspace |
 | `composables/useArticleEditor.ts` | Focused draft/editor state and API calls |
 | `server/api/admin/articles/` | Authorized generate, save, preview, publish, and revision operations |
-| `server/utils/articleEvidence.ts` | Snapshot validation and deterministic calculations |
-| `server/utils/articleGeneration.ts` | Evidence-constrained generation and response validation |
+| `shared/article-generation.ts` | Snapshot validation, deterministic evidence, generation schemas, and response validation |
+| `convex/articleJobs.ts` | Background writing jobs using the saved prompt and validated evidence |
 | `server/utils/articles.ts` | Storage access and published-only queries |
 | Shared schema module | Article fields and validation used by client and server |
 | Existing sitemap plus RSS route | Discoverable published URLs and feed |
@@ -135,6 +145,8 @@ Store articles, source snapshots, and revisions. Article fields should include s
 All generation, editing, preview, and publication endpoints require server-side admin authorization. Hiding a page or adding noindex is insufficient. Keep model credentials server-only, limit generation request size and frequency, and prevent public reads of drafts. This is part of building a private paid-generation editor, not a separate security project.
 
 ## Revised implementation order and acceptance
+
+This is the original proposed sequence and estimates. Several stages now exist locally; use the current status above for remaining work and deployment checks.
 
 | Stage | Work | Estimate | Acceptance |
 | --- | --- | --- | --- |
@@ -160,7 +172,7 @@ After four weeks, inspect indexing and early query patterns rather than declarin
 
 For distribution, derive useful Instagram drafts from the same evidence as the article. The owner has requested automation of both articles and the Instagram scheduler; the mode controls and execution checks must be designed before enabling unattended external actions. Saving a draft must never post or schedule anything. Delay newsletter signup infrastructure until there is a sustainable publishing routine and a clear promise worth subscribing to.
 
-Open before the publishing-engine stage: research quality with real provider responses, search/writing budget, full-page research if required, additional evidence freshness rules, publishing cadence, and separate Instagram automation controls. GitHub OAuth credentials, the allowed numeric account ID, and backend deployment/configuration must be verified independently. An approved local implementation does not authorize deployment or publication.
+Open for production and unattended publishing: research quality with real provider responses, search/writing budget, full-page research if required, additional evidence freshness rules, publishing cadence, and separate Instagram automation controls. GitHub OAuth credentials, the allowed numeric account ID, and backend deployment/configuration must be verified independently. An approved local implementation does not authorize deployment or publication.
 
 ## Automatic research idea queue design, 24 October 2026
 
@@ -178,11 +190,11 @@ Keep the article editor a quiet writing surface. Put save state, Edit/Preview, G
 
 Implementation checks: verify initial ten-item fill, stable five-item display from the reserve, replacement after selecting an idea, immediate article-list visibility and generation status, automatic generated-result application to an untouched idea draft, refill after the browser closes, manual-draft filtering and history context, stale-idea expiry, idempotent concurrent refill, retry/backoff, provider failure visibility, and that no article-writing or publishing job starts until an idea is selected. Publishing must accept an empty source list and reject malformed source links when present. Convex schema/function changes remain local until separately authorized for deployment.
 
-Status: implemented locally on 24 October 2026. Build and diff checks are recorded below. Convex deployment and live queue behavior remain open.
+Status at this checkpoint: implemented locally on 24 October 2026. Build and diff checks are recorded below. A later development deployment is documented below; the current live queue behavior and exact deployment coverage remain unverified.
 
 ## Local implementation and verification, 24 October 2026
 
-Existing local implementation before the automatic-queue design: `/admin/articles` combines research suggestions with the saved-article list; new/edit/preview routes, GitHub OAuth and server account checks, draft/revision storage with optimistic concurrency and idempotent retries, five article formats, validated player-card/fixture blocks, background writing jobs, cited-excerpt research, and atomic article/job creation. The job result is stored separately until applied in the editor. Automatic queue replenishment is now implemented locally as detailed above. No public blog, publishing mode execution, Instagram integration, or external release was added.
+Existing local implementation before the automatic-queue design: `/admin/articles` combines research suggestions with the saved-article list; new/edit/preview routes, GitHub OAuth and server account checks, draft/revision storage with optimistic concurrency and idempotent retries, five article formats, validated player-card/fixture blocks, background writing jobs, cited-excerpt research, and atomic article/job creation. The job result is stored separately until applied in the editor. Automatic queue replenishment was then implemented locally as detailed above. At that checkpoint no public blog, publishing mode execution, Instagram integration, or external release was added; later manual publishing work is recorded below.
 
 Automatic research queue and editor surface (24 October 2026): Convex now stores idea lifecycle separately from research runs, keeps a ten-item ready pool, marks a selected idea used in the same mutation that creates its draft/job, and schedules server-side refill so it can continue after the browser closes. Initial page visits request a fill, the service expires ideas from older season/gameweek context, exact-title matches are removed when drafts save, and retries are bounded with a manual retry control. Research considers recent draft/published titles and ready ideas, requests 10–12 suggestions, validates their cited sources, and filters exact title duplicates. `/admin/articles` now shows five ideas with five held in reserve and no manual focus input. The editor puts actions and stable save state in the admin navbar, moves details/history into a right-side desktop or bottom mobile slideover, and reports save/generation/publish errors through temporary toasts. Local production build and `git diff --check` passed. Project-wide TypeScript still reports existing errors in unrelated homepage, scheduler, manager, session config, and missing visual-node files; no diagnostics remain in the changed editor, queue, or Convex files. The connected browser and live Convex queue were not verified. Convex changes remain local and were not deployed.
 
@@ -232,7 +244,7 @@ Article previews (26 October 2026): the blog list now shows a generated 1200 × 
 
 Preview image repair (26 October 2026): corrected `InsightCard.vue` to render the transfer label as text instead of calling it as a function. The error caused the published article to return HTTP 500, which also prevented its preview image from rendering. After the local fix, the published article returned HTTP 200 and its preview returned HTTP 200 with `image/png`; the generated image was visually checked. Browser and hosted verification remain open. No build, publication or deployment was performed.
 
-Local verification: `npm run build` and `git diff --check` passed. Project-wide `npx tsc --noEmit` still reports errors in unrelated homepage, manager, scheduler, and utility code; the changed article and publishing files had no matching diagnostics after the route-typing adjustments. The preview server could not bind to localhost in this environment, so HTTP/browser status, metadata, feed output, and responsive appearance were not confirmed. No article was published and no Vercel production release was performed. The Convex schema and functions must be applied to the intended deployment before its publish action can work; production OAuth and storage configuration also remain separate checks. Unattended publishing controls are still not implemented.
+Local verification at the 24 October manual-publishing checkpoint: `npm run build` and `git diff --check` passed. Project-wide `npx tsc --noEmit` reported errors in unrelated homepage, manager, scheduler, and utility code; the changed article and publishing files had no matching diagnostics after the route-typing adjustments. The preview server could not bind to localhost in that environment, so HTTP/browser status, metadata, feed output, and responsive appearance were not confirmed in that check. That task did not publish an article or release Vercel. The 26 October repair above later checked a published article locally, but does not identify where its published snapshot was stored. Verify the current target's Convex schema/functions, OAuth, storage, and publication state separately. Unattended publishing controls remain unimplemented.
 
 Article workflow follow-up (24 October 2026): research and writing progress now use compact status indicators, suggestion rows keep details collapsed, and article generation status appears beside each suggestion. Opening a generated suggestion automatically applies its result when the saved draft is empty; existing edited drafts still require a deliberate replacement action. The editor supports selecting text, entering an instruction, and applying a server-side OpenRouter edit to only that selection. `ArticleResearchPanel` is imported directly by the Articles page so persisted research runs and suggested titles render there. Nuxt production build and `git diff --check` passed locally. Full project TypeScript still reports errors in unrelated files. The connected browser was unavailable, so interaction and visual behavior were not browser-verified; the new Convex action was not deployed.
 

@@ -1,8 +1,8 @@
 import { type InstagramDesignId, type InstagramPalette } from '~/utils/instagram-designs'
-import { instagramTemplates, normalizeInstagramPlayer, type InstagramDraft, type InstagramFixture, type InstagramStatKey, type InstagramTemplateId } from '~/utils/instagram-templates'
+import { instagramTemplates, normalizeInstagramPlayer, type InstagramDraft, type InstagramFixture, type InstagramPlayer, type InstagramStatKey, type InstagramTemplateId } from '~/utils/instagram-templates'
 
 export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<number[]> = ref([])) {
-  const players = computed(() => (data.value?.players ?? []).map((player: any) => normalizeInstagramPlayer(player, data.value.teams)))
+  const players = computed<InstagramPlayer[]>(() => (data.value?.players ?? []).map((player: any) => normalizeInstagramPlayer(player, data.value.teams)))
   const designId = ref<InstagramDesignId>('club')
   const palette = ref<InstagramPalette>('club')
   const templateId = ref<InstagramTemplateId>('spotlight')
@@ -11,7 +11,7 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
   const selectedIds = ref<number[]>([])
   const statKeys = ref<InstagramStatKey[]>(['now_cost', 'form', 'total_points', 'selected_by_percent', 'goals_scored', 'minutes'])
   const shortlistMode = ref('form')
-  const selectedPlayers = computed(() => selectedIds.value.slice(0, template.value.count).map(id => players.value.find(player => player.id === id)).filter(Boolean))
+  const selectedPlayers = computed(() => selectedIds.value.slice(0, template.value.count).map(id => players.value.find(player => player.id === id)).filter((player): player is InstagramPlayer => Boolean(player)))
   const fixtures = ref<InstagramFixture[]>([])
   const fixturesLoading = ref(false)
   const fixturesError = ref('')

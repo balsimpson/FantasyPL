@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublishedArticle } from '~/shared/articles'
 import { getArticlePreviewPath } from '~/utils/article-preview'
+import { getPublicSiteOrigin } from '~/utils/site-url'
 const canonicalUrl = useCanonicalUrl('/blog')
 const { data: articles, error } = await useFetch<PublishedArticle[]>('/api/articles')
 useHead({ link: [
@@ -13,7 +14,7 @@ useSeoMeta({
   ogTitle: 'FPL Articles and Guides | FPL Insights',
   ogDescription: 'Fantasy Premier League analysis, player comparisons, fixture guides and practical answers for your next FPL decision.',
   ogUrl: canonicalUrl,
-  ogImage: useRuntimeConfig().public.SITE_URL + '/twitter_large_image.png',
+  ogImage: new URL('/twitter_large_image.png', getPublicSiteOrigin(useRuntimeConfig().public.SITE_URL)).href,
   twitterCard: 'summary_large_image',
   robots: () => articles.value?.length ? 'index, follow' : 'noindex, follow',
 })

@@ -3,6 +3,7 @@ import { getBootstrapStatic } from "~~/composables/usePremiereLeague";
 export default defineCachedEventHandler(async () => {
 	try {
 		const data = await getBootstrapStatic();
+		if (!data) throw new Error('Current player data is unavailable');
 
 		const gw = data.events.find((e: any) => e.is_current)
 		// console.log("gameweek", gw);

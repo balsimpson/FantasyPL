@@ -2,7 +2,7 @@ import type { H3Event } from "h3";
 import { fetchFplJson, isFplBootstrap } from "../../utils/fpl-fetch";
 
 // Both public bootstrap endpoints share valid data and in-flight requests.
-export const getCachedFplBootstrap = defineCachedFunction(async (_event?: H3Event) => {
+export const getCachedFplBootstrap = defineCachedFunction<{ data: Record<string, any>; fetchedAt: string }, [event?: H3Event]>(async (_event?: H3Event) => {
   try {
     const data = await fetchFplJson("https://fantasy.premierleague.com/api/bootstrap-static/", isFplBootstrap);
     return { data, fetchedAt: new Date().toISOString() };
@@ -11,7 +11,7 @@ export const getCachedFplBootstrap = defineCachedFunction(async (_event?: H3Even
   }
 }, {
   name: "fpl-bootstrap-v1",
-  getKey: () => "current-season",
+  getKey: (_event?: H3Event) => "current-season",
   maxAge: 600,
   swr: true,
   validate: (entry) => {

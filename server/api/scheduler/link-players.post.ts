@@ -1,7 +1,10 @@
 import type { Id } from '../../../convex/_generated/dataModel'
+import { requireAdmin, requireAdminOrigin } from '../../utils/admin'
 import { schedulerApi, schedulerHistoryError, schedulerScope } from '../../utils/scheduler-history'
 
 export default defineEventHandler(async event => {
+  await requireAdmin(event)
+  requireAdminOrigin(event)
   const body = await readBody(event)
   if (typeof body?.postId !== 'string' || !Array.isArray(body.players) || !body.players.length || body.players.length > 5 || body.players.some((item: { code?: unknown; name?: unknown }) => !Number.isSafeInteger(item?.code) || Number(item.code) <= 0 || typeof item.name !== 'string' || !item.name.trim() || item.name.length > 120)) throw createError({ statusCode: 400, statusMessage: 'Choose one to five players for this post.' })
   const season = typeof body.season === 'string' && /^\d{4}\/\d{2}$/.test(body.season) ? body.season : null

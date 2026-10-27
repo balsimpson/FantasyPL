@@ -1,6 +1,16 @@
 import { isManagerPlayerAvailable } from "../../utils/manager-availability";
 
 type PlayerRecord = Record<string, any>;
+type ManagerTransferOption = {
+	id: string;
+	questionId: string;
+	outgoing: PlayerRecord;
+	incoming: PlayerRecord;
+	netCost: number;
+	bankAfter: number;
+	currentGameweek: number;
+	nextGameweek: number | null;
+};
 
 const positionLabels: Record<number, string> = {
 	1: "Goalkeeper",
@@ -162,7 +172,7 @@ export function buildManagerTransferOptions(
 		teamCounts.set(teamId, (teamCounts.get(teamId) ?? 0) + 1);
 	}
 
-	const options: Array<Record<string, any>> = [];
+	const options: ManagerTransferOption[] = [];
 	for (const { pick, player: outgoing, sellingPrice } of roster) {
 		if (!outgoing || sellingPrice === null) continue;
 		const budget = bank + sellingPrice;
@@ -203,7 +213,7 @@ export function buildManagerTransferOptions(
 	return options;
 }
 
-export function rankManagerTransferSuggestions(options: Array<Record<string, any>>, answers: Record<string, any>) {
+export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(options: T[], answers: Record<string, any>) {
 	const ranked = options.flatMap((option) => {
 		const answer = answers?.[option.questionId];
 		const score = toNumber(answer?.score);

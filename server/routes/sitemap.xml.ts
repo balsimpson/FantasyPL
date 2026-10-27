@@ -56,5 +56,5 @@ ${urls
 </urlset>
 `;
 	},
-	{ name: "sitemap-sportsync-v2", maxAge: 5 * 60, swr: true }
+	{ name: "sitemap-sportsync-v3", maxAge: 5 * 60, swr: true }
 );

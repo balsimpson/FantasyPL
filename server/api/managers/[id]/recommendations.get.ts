@@ -217,13 +217,7 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 502, statusMessage: "The recommendation service returned an incomplete response." });
 	}
 
-	const suggestions = rankManagerTransferSuggestions(options, result.answers).map((suggestion) => {
-		const publicSuggestion = { ...suggestion };
-		delete publicSuggestion.questionId;
-		delete publicSuggestion.score;
-		delete publicSuggestion.confidence;
-		return publicSuggestion;
-	});
+	const suggestions = rankManagerTransferSuggestions(options, result.answers).map(({ questionId, score, confidence, ...suggestion }) => suggestion);
 	const response = {
 		fingerprint,
 		currentGameweek,

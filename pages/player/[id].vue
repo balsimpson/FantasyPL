@@ -98,9 +98,10 @@
 		refresh: refreshPlayer,
 	} = useLazyFetch(() => `/api/players/${playerId.value}`, { server: false, retry: 0 });
 	const { pending: bootstrapPending } = await bootstrapRequest;
-	const bootstrapRecovering = ref(!Array.isArray(bootstrap.value?.elements));
+	const bootstrapRecovering = ref(false);
 	onMounted(async () => {
-		if (!bootstrapRecovering.value) return;
+		if (Array.isArray(bootstrap.value?.elements)) return;
+		bootstrapRecovering.value = true;
 		try { await playersStore.fetchPlayers(true); }
 		finally { bootstrapRecovering.value = false; }
 	});

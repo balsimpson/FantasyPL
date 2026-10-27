@@ -18,7 +18,7 @@ export const usePlayersStore = defineStore("players", () => {
         error.value = null;
 
         try {
-            const data = await $fetch('/api/bootstrap-static');
+            const data = await $fetch<Record<string, any>>('/api/bootstrap-static');
 
             if (!data || !Array.isArray(data.elements)) {
                 throw new Error("Current player data is unavailable");

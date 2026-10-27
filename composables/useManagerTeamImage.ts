@@ -4,7 +4,7 @@ export function useManagerTeamImage(getElement: () => HTMLElement | null, getFil
   const error = ref('')
   const imageUrl = ref('')
   const file = shallowRef<File | null>(null)
-  const canShare = computed(() => Boolean(import.meta.client && file.value && navigator.share && navigator.canShare?.({ files: [file.value] })))
+  const canShare = computed(() => Boolean(import.meta.client && file.value && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file.value] })))
   let disposed = false
 
   async function create() {

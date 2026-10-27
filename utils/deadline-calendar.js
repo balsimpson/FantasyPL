@@ -49,7 +49,7 @@ function makeAlarm(gameweek, minutes) {
   ];
 }
 
-export function createDeadlineCalendarFeed(events, siteUrl = "https://sportsync.in", now = new Date()) {
+export function createDeadlineCalendarFeed(events, siteUrl = "https://www.sportsync.in", now = new Date()) {
   if (!Array.isArray(events)) return null;
 
   const publishedEvents = events

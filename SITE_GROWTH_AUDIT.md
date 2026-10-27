@@ -1,16 +1,37 @@
 # FantasyPL visitor growth audit and implementation plan
 
-Audit date: 6 September 2026. Public site: [fantasyleague.vercel.app](https://fantasyleague.vercel.app/).
+Audit date: 6 September 2026. Public site at that audit: [fantasyleague.vercel.app](https://fantasyleague.vercel.app/).
 
-Follow-up: the owner requested a blog with an AI-assisted admin publishing workflow. [BLOG_GROWTH_PLAN.md](/Users/balsimpson/Documents/Projects/FantasyPL/BLOG_GROWTH_PLAN.md) adds a four-site competitor comparison, article strategy, and implementation scope. Its blog schedule takes priority over the later editorial timing in the initial plan below.
+Follow-up: the owner requested a blog with an AI-assisted admin publishing workflow. [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) adds a four-site competitor comparison, article strategy, and implementation scope. Its blog schedule takes priority over the later editorial timing in the initial plan below.
+
+## Current priorities and open work, 27 October 2026
+
+This is the site-wide roadmap. The statuses below combine local source review with the read-only hosted and account checks on 27 October. Detailed requirements and evidence remain in the owning documents. Earlier observations below describe their dated checkpoints, not the current hosted state.
+
+| Priority | Current status | Next work or verification |
+| --- | --- | --- |
+| Search discovery | The live apex redirects to `www`, while the current deployed metadata and sitemap still use the apex. Local code now uses `https://www.sportsync.in`, including when an older apex environment override is set. A controlled outage now returns a player-page 502 with recovery; the live numeric alias and missing-player response were checked separately. | Release only when authorized, then verify canonical/social tags, robots, sitemap, calendar, redirects and cache revalidation on the hosted site. Decide whether the old Vercel host should redirect. |
+| Measurement | Vercel reports 102 visitors and 286 pageviews for 29 September–26 October UTC. Search Console access has not been verified. | Confirm a known visit, establish Search Console access, and use comparable periods before claiming visitor growth. |
+| First visit and return | Isolated Brave checks passed live search at mobile and desktop sizes and a mobile watchlist save, reload and remove journey. | Check physical devices and comparable homepage payload/image measurements. See [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md). |
+| Blog | The live blog, one published article, its image, sitemap entry and RSS feed returned successfully. Production uses the configured Convex development deployment. Local publishing checks now validate evidence age, season and gameweek. | Verify the authenticated draft-to-publish journey, production backend strategy and content quality. Unattended publishing and article-to-Instagram automation remain planned. See [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md). |
+| Daily recommendations | The 27 October buy snapshot was reviewed; the live trade review failed with JEV HTTP 400 and fallback results appeared. Local trade review now identifies each candidate and uses smaller batches. | After an authorized release, verify the next scheduled reviewed trade snapshot and provider response. The precise cause of the earlier 400 is not yet confirmed. See [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md). |
+| Later growth | Dedicated player/fixture browse pages, player interpretation, and clearer source/methodology information remain proposals. | Prioritize them using observed demand. Add recent article selections when published content and the relevant page integrations are ready. |
+
+On 27 October, Vercel showed the apex domain configured with a 308 redirect to `www.sportsync.in`; the previous Vercel host also served the site without redirecting. The inspected live deployment's Git revision matched the source revision before the local changes. Its sitemap listed 672 URLs, all using the apex host. Local code now aligns the canonical origin with the `www` redirect; no hosted settings were changed.
+
+The working audience, sustainable editorial time/cadence, and purpose of `/test`, `/instagram`, and `/fifa` still need owner decisions. The scheduler remains a separate workflow; its checks and integration rules are in [docs/instascheduler/AGENTS.md](docs/instascheduler/AGENTS.md).
+
+Verification, 27 October: the original check reported 51 project-wide TypeScript diagnostics; the direct TypeScript and Convex checks now pass locally on Node 24. The local build, focused synthetic security/evidence/trade checks, and isolated Brave player-outage recovery passed. Local HTTP checks found `www` canonical URLs in the player page, sitemap, robots and calendar. Live public routes, Vercel settings and read-only Convex logs were checked before these local changes. No model-provider request, article publication, posting, deployment or account change was made. Search Console, authenticated hosted workflows, native calendar clients and physical devices remain unverified.
 
 ## Recommendation
 
+The recommendation and findings below preserve the original 6 September audit. Use the current status above before treating an original finding as still open.
+
 Fix search discovery and the first useful visit before investing in promotion. Then build a repeatable reason to return before each gameweek deadline.
 
-The strongest direction is a fast, understandable FPL decision tool for casual managers. The README describes the site as a simplified view for newcomers. This remains a working audience assumption, not a confirmed audience choice. The owner confirmed that no Search Console figures are available, so this report does not claim current traffic, rankings, conversion rates, or projected visitor gains.
+The strongest direction is a fast, understandable FPL decision tool for casual managers. The README describes the site as a simplified view for newcomers. This remains a working audience assumption, not a confirmed audience choice. The original audit had no Search Console or traffic figures and did not claim rankings, conversion rates, or projected gains. A later Vercel baseline is recorded in the current status above.
 
-The site already delivers real player data in server-rendered HTML and has readable player URLs. Its main weaknesses are a broken live sitemap, duplicate player URLs, a heavy homepage, buried player search, and an unfinished watchlist. More traffic would currently arrive at those same obstacles.
+At the original audit, the site delivered player data in server-rendered HTML and had readable player URLs. The observed weaknesses were a broken live sitemap, duplicate player URLs, a heavy homepage, buried player search, and an unfinished watchlist. Later local corrections and outstanding hosted checks are recorded below and in the current status above.
 
 Recommended order:
 
@@ -78,7 +99,7 @@ Priority here means implementation order for visitor growth. P1 means address be
 
 **Local correction completed (6 September 2026).** `utils/site-url.ts` now validates and normalizes the configured public origin, and `nuxt.config.ts`, `useCanonicalUrl`, `robots.txt`, and the sitemap use that same origin boundary. The sitemap no longer reads its host from the request, uses a versioned `sitemap-v2` cache name so the old cached response is not reused, escapes XML locations, deduplicates URLs, and falls back to a valid root-only sitemap when bootstrap data is unavailable. The local build completed successfully. A local built-server check returned HTTP 200 with 654 locations; `xmllint` parsed the response successfully, every location used `https://fantasyleague.vercel.app`, the first location was `https://fantasyleague.vercel.app/`, no `localhost` occurred, and `robots.txt` advertised the same sitemap. A request with a `Host: localhost` header still returned the configured public origin. The origin helper also passed checks for the default, path-bearing, invalid-protocol, and credential-bearing inputs.
 
-**Hosted status:** The public Vercel response and cache-expiry/revalidation behavior remain unverified because deployment was not requested. The live finding should be marked resolved only after the corrected build is authorized for release and the deployed XML is checked against this acceptance list.
+**Earlier hosted status:** The public response and cache revalidation had not been verified at this checkpoint. See the current status above for the later sitemap check and remaining host mismatch.
 
 Google documents that it crawls sitemap URLs as listed and recommends canonical absolute URLs. [Sitemap guidance](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
 
@@ -88,7 +109,7 @@ Google documents that it crawls sitemap URLs as listed and recommends canonical 
 
 **Why it matters:** Shared links and discovery can accumulate against several addresses for one player. This creates avoidable ambiguity about the preferred URL.
 
-**Source:** `composables/useCanonicalUrl.ts:10` uses the incoming path. `composables/usePlayerRoute.ts` extracts the trailing ID and generates the preferred name slug, but the player page does not normalize aliases to it.
+**Original source, 6 September 2026:** `composables/useCanonicalUrl.ts:10` used the incoming path. `composables/usePlayerRoute.ts` extracted the trailing ID and generated the preferred name slug, but the player page did not normalize aliases to it.
 
 **Change:** Resolve the player, compute one preferred URL with `getPlayerRoute`, and permanently redirect numeric and incorrect-name aliases to it. Generate canonical and social URL metadata from that resolved identity. Decide how seasonal ID reuse and renamed players are handled before expanding the indexed catalog; do not silently make an old player's URL describe a different person.
 
@@ -98,7 +119,7 @@ Google describes redirects and canonical signals as ways to consolidate duplicat
 
 **Local correction completed (6 September 2026).** `pages/player/[id].vue` now resolves the route's trailing player ID against the current bootstrap catalog and permanently redirects numeric and wrong-name aliases to `getPlayerRoute(player)`. The redirect uses HTTP 301 semantics during server rendering and replaces the URL during client navigation. `useCanonicalUrl` accepts the resolved player path, and the player page uses it for both the canonical link and `og:url`. On the local built server, `/player/411`, `/player/wrong-name-411`, and `/player/411?utm_source=test` each returned HTTP 301 with `Location: /player/erling-haaland-411`; that preferred URL returned HTTP 200 with exactly one canonical and one `og:url`, both set to `https://fantasyleague.vercel.app/player/erling-haaland-411`. Unknown-player handling is recorded under P1 #3 below.
 
-**Hosted status:** Alias redirects and rendered metadata remain unverified on Vercel because deployment was not requested.
+**Earlier hosted status:** Alias redirects and metadata had not been checked at this checkpoint. See the current status above for the later live checks.
 
 ### 3. P1: Invalid players return successful loading pages
 
@@ -106,7 +127,7 @@ Google describes redirects and canonical signals as ways to consolidate duplicat
 
 **Why it matters:** Visitors cannot tell whether to wait or leave. Crawlers receive a success response for missing content, creating a soft-404 risk.
 
-**Source:** `pages/player/[id].vue:252` does not expose the detail request's error state; the computed player falls back to loading text. `server/api/players/[id].ts:3` and `composables/usePremiereLeague.ts` can return null or error-shaped data.
+**Original source, 6 September 2026:** `pages/player/[id].vue:252` did not expose the detail request's error state; the computed player fell back to loading text. `server/api/players/[id].ts:3` and `composables/usePremiereLeague.ts` could return null or error-shaped data.
 
 **Change:** Separate pending, missing player, and temporary upstream failure. Return a real 404 for a confirmed missing player, with a route back to search. Return an appropriate temporary failure state for upstream outages, with retry or a clearly dated last successful response. Do not classify every API outage as a missing player.
 
@@ -116,11 +137,11 @@ Google describes redirects and canonical signals as ways to consolidate duplicat
 
 On the local built server, `/api/players/99999999` returned HTTP 404 with `Player not found`, `/api/players/not-a-player` returned HTTP 404 with `Invalid player URL`, and the corresponding page routes returned HTTP 404. Their rendered titles were `Player not found | FPL Insights` and `Invalid player link | FPL Insights`; both included `Search players` and neither included a loading title. `/player/411` continued to return HTTP 301 to `/player/erling-haaland-411`, and the preferred route returned HTTP 200. A controlled local preview with an unreachable upstream proxy returned HTTP 502, rendered `Player data temporarily unavailable` and `Try again`, did not render `Player not found`, and did not retain a loading title. The local production build, diff check, and UI detector passed.
 
-**Hosted status:** The corrected player API responses, page statuses, and temporary-failure behavior remain unverified on Vercel because deployment was not requested.
+**Earlier hosted status:** Player responses and outage behavior had not been checked at this checkpoint. See the current status above for the later live and controlled-local checks.
 
 ### 4. P1: Search visibility and useful visits have no available baseline
 
-**Confirmed by owner and source.** No Search Console figures were supplied. `plugins/analytics.client.ts:1` injects Vercel Analytics, but the inspected visitor code has no custom event calls. Dashboard access and actual collection were not checked.
+**Original audit evidence.** No Search Console figures were supplied. `plugins/analytics.client.ts:1` injected Vercel Analytics, but the inspected visitor code had no custom event calls. Dashboard access and actual collection were not checked.
 
 **Why it matters:** Without measurement, a redesign can look successful while attracting the same number of visitors or reducing useful visits.
 
@@ -146,7 +167,7 @@ Local verification: nine isolated sharing checks passed, along with in-memory co
 
 **Acceptance:** Search is visible in the first 844-pixel mobile viewport with no keyboard open. New visitors can find a player without knowing a manager ID. Compare player-open rate with the baseline; do not equate moving a control with proven growth.
 
-**Local implementation status (6 September 2026).** The homepage now meets the local hierarchy and interaction checks in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md): search is first, manager/deadline are secondary, discovery is consolidated, and the recap is lower down. Hosted behavior and player-open measurement remain unverified.
+**Local implementation status (6 September 2026).** The initial homepage revision passed the local hierarchy and interaction checks in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md). A later revision moved search into the shared header. Check the current search surface separately; hosted behavior and player-open measurement remain unverified.
 
 ### 6. P1: The homepage sends far more content than its first screen needs
 
@@ -186,7 +207,7 @@ The local production build returned HTTP 200 for `/watchlist`, rendered `Watchli
 
 **Search access (25 October 2026).** The watchlist navbar now offers the homepage search icon. Removed the separate Find players button. Browse players and Search current players use the existing lime accent and dark border styling and open the shared search surface without leaving the watchlist. Shared component details are in `HOMEPAGE_UX_PLAN.md`. Source review and scoped diff checks only; no tests, build, browser, or hosted verification for this small change.
 
-**Hosted status:** Watchlist navigation, save/remove behavior, hosted cache behavior, and deployment remain unverified on Vercel because deployment was not requested.
+**Earlier hosted status:** The watchlist journey had not been checked at this checkpoint. See the current status above for the later live browser check; hosted cache behavior remains open.
 
 ### 8. P2: Player pages explain the data less than they help make a decision
 
@@ -228,9 +249,9 @@ For positioning context, [FPL Team](https://fpl.team/) already promotes transfer
 
 Verification for this small change is limited to source/diff review and checking the saved image's dimensions. No build or browser check was run. Deployment, Vercel domain attachment, the `NUXT_PUBLIC_SITE_URL` production setting, old-host redirects, and hosted metadata/cache checks remain pending. Historical live evidence elsewhere in this audit refers to the previous Vercel address.
 
-**Change:** Choose one public name and apply it consistently. Add concise About, contact, data-source, and methodology information, including the site's independent status if accurate. Show a last successful data update time, separate from a ticking deadline clock. Provide a share button and useful per-page preview images after core pages are stable.
+**Change:** Add concise About, contact, data-source, and methodology information, including the site's independent status if accurate. Show a last successful data update time, separate from a ticking deadline clock. Provide a share button and useful per-page preview images after core pages are stable. The header and footer use different existing names; retain them until the owner requests a change.
 
-**Manager estimate source check, 24 October 2026.** The older page and line references above are stale. Current manager cards use FPL's `ep_next` from the bootstrap snapshot for the next gameweek (`server/utils/manager-squad.ts`); `PlayerCardPick.vue` labels the gameweek and its title identifies FPL as the source or explains a missing value. The manager page no longer requests the third-party prediction endpoint described in the original observation. A visible data-update timestamp and hosted freshness verification remain open.
+**Manager estimate source check, 24 October 2026.** The older page and line references above are stale. Current manager cards use FPL's `ep_next` from the bootstrap snapshot for the next gameweek (`server/utils/manager-squad.ts`); `PlayerCardPick.vue` labels the gameweek and its title identifies FPL as the source or explains a missing value. The manager page no longer requests the third-party prediction endpoint described in the original observation. Local homepage and player-profile sources now display the FPL fetch time. Manager-page freshness and hosted verification remain open.
 
 **Acceptance:** A visitor can identify who maintains the site, where the numbers come from, and when they were updated. A shared player or fixture link opens the relevant destination with accurate preview text and image. Missing predictions are explained rather than blank.
 
@@ -262,11 +283,11 @@ Use a small weekly publishing routine connected to the tool. This is proposed wo
 
 Run each channel experiment across four gameweeks where practical. Continue channels that produce useful visits or returning users. If clicks arrive but visitors do not use the tool, improve the destination before increasing posting volume.
 
-A custom domain can help brand recall but is not a guaranteed ranking improvement. Decide on the name/domain before a major content push if possible. A later move requires redirects, canonical and sitemap updates, and verification in Search Console. No purchase or migration is part of this audit.
+The original audit proposed considering a custom domain before a major content push. The owner initially approved `https://sportsync.in`; see the current status above for the `www` redirect and local canonical changes. Search Console verification remains open. A custom domain is not a guaranteed ranking improvement.
 
 ## Implementation sequence
 
-Estimates are focused developer effort, not calendar guarantees. They assume existing data can support the proposed pages and exclude account verification, external approvals, editorial research, and deployment waiting time.
+This sequence and its estimates are the original proposal, not the current task list or a calendar commitment. Some local work has since been completed; use the status table above. Estimates exclude account verification, external approvals, editorial research, and deployment waiting time.
 
 | Phase | Work | Main files or boundaries | Estimate | Completion gate |
 | --- | --- | --- | --- | --- |
@@ -313,21 +334,21 @@ There is no defensible percentage traffic-growth target without a baseline. The 
 - [x] Local player-detail checks distinguish valid, missing, malformed, and controlled upstream-failure responses; hosted verification is still pending.
 - [ ] Valid players return 200; aliases redirect; missing players return 404; outages do not impersonate missing players.
 - [ ] Search Console ownership and analytics collection are verified separately from code installation.
-- [ ] Mobile search is visible immediately and supports keyboard operation.
+- [ ] Verify the current header search icon, panel, and keyboard operation on the hosted site.
 - [x] Local save/remove survives reload with exact player matching, one card per saved player, and no watchlist debug output; hosted behavior remains pending.
 - [x] Redundant browser-storage notices are removed from the profile, watchlist page, and saved-player cards; persistence behavior remains unchanged locally, and hosted verification remains pending.
-- [ ] Homepage payload and image behavior improve in repeatable measurements.
+- [ ] Measure current homepage payload and image behavior under comparable conditions, including the hosted release.
 - [ ] Player summaries, fixtures, and predictions show accurate context and freshness.
 - [ ] Utility indexing policy excludes the scheduler from all proposed changes.
 - [x] The local P1 sitemap and player-route checks plus `npm run build` pass; hosted verification and other implementation checks remain pending.
 - [ ] Local preview, hosted behavior, authenticated manager use, and physical-phone checks are recorded separately.
-- [ ] Commit, push, publishing, and deployment occur only if explicitly requested.
+- Commit, push, publishing, and deployment occur only if explicitly requested.
 
 ## What to defer
 
 Do not start with a visual rebrand, paid acquisition, an AI chatbot, native apps, a large CMS, paid keyword tooling, hundreds of generated articles, or accounts solely for watchlist sync. Do not spend time on meta keywords or sitemap priority values. A structured-data pass can follow the useful content, but should describe visible facts and should not promise rich-result eligibility.
 
-The owner has chosen an admin page using AI to publish data-led articles. Remaining decisions are the primary audience, available weekly review time, article storage/auth provider, desired public name/domain, current analytics plan, and the public purpose of the non-excluded utility routes. None blocks the initial sitemap, canonical, missing-player, or measurement work. A blog does not need to wait for every proposed tool page.
+The owner has chosen the public origin, the article storage/auth approach, and a Vercel Hobby plan was confirmed on 24 October; their current configuration still needs verification. Remaining product decisions include the primary audience, available weekly review time, and the public purpose of the non-excluded utility routes. The header and footer currently use different existing names; do not rebrand without an owner request. A blog does not need to wait for every proposed tool page.
 
 Homepage visual follow-up, 6 September 2026: the owner rejected the sparse rows. Rich player cards, a compact utility area, an expanded recap, and matching player-profile styling are implemented locally. See HOMEPAGE_UX_PLAN.md for the current direction and verification; earlier measurements remain historical.
 
@@ -339,7 +360,7 @@ Changes are confined to `pages/player/[id].vue` and its four dedicated presentat
 
 Verification: the production build and `git diff --check` pass. Connected Brave checks on the local built Haaland profile at 390 × 844 and 1280 × 900 found no document horizontal overflow, no decorated definition values, and no captured browser warnings/errors. Saving by keyboard persisted after reload; removal restored the Save control. Page Down scrolled the focused fixture region. A light-preference check confirmed the existing dark player surface remains readable. The 320-pixel check exposed cramped stat columns, corrected and confirmed with a two-column layout at 320 pixels and three columns at 390 pixels, both without document overflow. Hosted Vercel behavior and physical-device execution remain unverified; no release actions were performed.
 
-23 October 2026 local homepage follow-up: budget/position filtering, factual Differential/Most sold/Most bought sections, saved-player return links, six upcoming matchups, and three-gameweek player fixture runs are implemented. The owner requested no homepage AI calls, fewer initial inputs, full viewport use, and full player names. See `HOMEPAGE_UX_PLAN.md` for current ranking rules, checks, and remaining hosted verification.
+23 October 2026 local homepage follow-up: budget/position filtering, factual Differential/Most sold/Most bought sections, saved-player return links, six upcoming matchups, and three-gameweek player fixture runs were implemented. The owner requested no homepage AI calls, fewer initial inputs, full viewport use, and full player names. The later approved daily JEV job runs separately from homepage requests. See `HOMEPAGE_UX_PLAN.md` for current ranking rules, checks, and remaining hosted verification.
 
 ### Manager page loading, 24 October 2026
 
@@ -351,7 +372,9 @@ Connected Brave checks covered 390 × 844 with a light preference and a desktop 
 
 ### Manager recommendations and portraits, 24 October 2026
 
-Manager pages now show an automatically generated **Recommendations** section at the top once squad data is available. It makes one TypeSafe System One evaluation per page load, with no timer or response cache; a page reload makes a fresh evaluation. Candidate swaps are filtered in code for same position, current availability, a 90-minute sample, exact budget and FPL's three-player club limit. Sale value is reconstructed from manager transfer history or the player's starting price, applying FPL's current profit/loss rule and excluding historical Free Hit transactions. A candidate must be no worse on available form, points per game, and next-gameweek FPL estimate, and improve at least one; price is a feasibility check rather than a ranking goal. The interface labels current versus recommended players and uses a shared portrait component on recommendations, pitch, bench, and gallery; failed remote photos fall back to the local silhouette.
+At this 24 October checkpoint, manager pages showed an automatically generated **Recommendations** section once squad data was available. That version made a TypeSafe System One evaluation per page load without a response cache. Candidate swaps were filtered in code for same position, current availability, a 90-minute sample, exact budget and FPL's three-player club limit. Sale value was reconstructed from manager transfer history or the player's starting price, applying FPL's current profit/loss rule and excluding historical Free Hit transactions. A candidate had to be no worse on available form, points per game, and next-gameweek FPL estimate, and improve at least one; price was a feasibility check rather than a ranking goal. The interface used a shared portrait component on recommendations, pitch, bench, and gallery.
+
+Current source review, 27 October: the manager recommendation endpoint reuses matching responses by fingerprint in server memory, coalesces matching in-flight requests, and supports a browser-stored response. A page reload does not necessarily create a new provider evaluation. This source review did not verify the live provider or hosted deployment; current planner and presentation details are in [DESIGN.md](DESIGN.md).
 
 Local checks: `npm run build`, `git diff --check`, synthetic sale-price/Free Hit/affordability/performance-gate checks, and a live public FPL schema check reconstructing sale values for all 15 sample picks passed. The built manager route returned HTTP 200 with the recommendation loading section; an invalid recommendation ID returned HTTP 400 and `Cache-Control: no-store`. The UI detector reported no findings. No live model request was made. Connected-browser visual/keyboard verification and hosted Vercel verification remain open.
 

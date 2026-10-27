@@ -1,7 +1,10 @@
 import { schedulerApi, schedulerDatabase, schedulerHistoryError } from '../../utils/scheduler-history'
+import { requireAdmin, requireAdminOrigin } from '../../utils/admin'
 
 export default defineEventHandler(async event => {
   assertMethod(event, 'POST')
+  await requireAdmin(event)
+  requireAdminOrigin(event)
   setHeader(event, 'Cache-Control', 'no-store')
   const body = await readBody(event)
   if (typeof body?.channelId !== 'string' || body.channelId.length > 120 || !Array.isArray(body?.jobIds) || body.jobIds.length > 8 || body.jobIds.some((id: unknown) => typeof id !== 'string' || id.length > 100)) {

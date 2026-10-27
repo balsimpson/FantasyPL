@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { requireAdmin, requireAdminOrigin } from '../utils/admin';
 
 const instructions = `Role:
 You are an expert Fantasy Premier League social media copywriter.
@@ -36,6 +37,9 @@ Change sentence length and opening style. Do not force every caption to end with
 Return only the caption text.`;
 
 export default defineEventHandler(async (event) => {
+  assertMethod(event, 'POST');
+  await requireAdmin(event);
+  requireAdminOrigin(event);
   const { prompt } = await readBody(event);
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { success: false, error: "configuration" };

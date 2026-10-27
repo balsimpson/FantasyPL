@@ -1,12 +1,12 @@
-# Fantasy Premiere League Website
+# FantasyPL
 
 A simplified data view for Fantasy PL newbies.
 
-The approved canonical site is [sportsync.in](https://sportsync.in). Domain setup and hosted verification are pending.
+The canonical site is [www.sportsync.in](https://www.sportsync.in). The apex redirects there; local metadata changes still need a release and hosted verification. The [site growth audit](SITE_GROWTH_AUDIT.md) tracks the remaining priorities.
 
 ## Setup
 
-Make sure to install the dependencies:
+Use Node 24 and npm to install the dependencies:
 
 ```bash
 npm i
@@ -14,7 +14,7 @@ npm i
 
 ## Homepage player trends
 
-The homepage shows deterministic FPL-stat sections for differentials (lowest selected ownership), most sold, and most bought players. They use the existing current-data snapshot and make no AI/provider requests. See [the homepage plan](HOMEPAGE_UX_PLAN.md) for ranking and verification details.
+The homepage shows deterministic FPL-stat sections for differentials, most sold, and most bought players. Differentials are low-owned players ranked by form and season points; the transfer sections use current-gameweek counts. These sections use the current data snapshot and make no AI/provider requests. See [the homepage plan](HOMEPAGE_UX_PLAN.md) for ranking and verification details.
 
 ## Development Server
 

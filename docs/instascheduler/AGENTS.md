@@ -34,6 +34,8 @@ The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, 
 
 Read the current export composable and server handlers before changing external integrations. The browser uploads the PNG to Cloudinary, then `/api/send-buffer-post` reserves the post in Convex and schedules an internal Convex action. That action submits to Buffer and records the confirmed result; `/api/scheduler/status` reports task progress while the page is open. `/api/buffer-status` supplies connection status. The Buffer key must be set as `BUFFER_API_KEY` in the Convex deployment environment as well as the Nuxt server environment. Do not replace this with an older integration described in chat history. Never print credentials or put server secrets in public configuration.
 
+Scheduler history, status, caption generation and submissions require the existing admin session at the server. State-changing requests also require the same origin. The legacy Instagram builder submits through the protected Buffer handler; do not expose an automation webhook in browser configuration. Local protections require an authorized release and verification before they apply to the hosted site.
+
 ## Design direction
 
 Build reusable artwork in Vue, HTML, Tailwind and SVG. Generated concept sheets and supplied screenshots are design references. Do not bake them into the exported artwork. Text, stats, player photos, crests, backgrounds and transfer values must remain data driven.

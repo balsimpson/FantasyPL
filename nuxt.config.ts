@@ -119,7 +119,7 @@ export default defineNuxtConfig({
 		contentConvexUrl: "",
 		contentServiceToken: "",
 		oauth: { github: { clientId: "", clientSecret: "", redirectURL: "" } },
-		session: { maxAge: 60 * 60 * 12 },
+		session: { password: process.env.NUXT_SESSION_PASSWORD || "", maxAge: 60 * 60 * 12 },
 		OPENAI_KEY: process.env.OPENAI_API_KEY,
 		JEV_API_KEY: process.env.JEV_API_KEY || "",
 		BUFFER_API_KEY: process.env.BUFFER_API_KEY || "",
@@ -131,7 +131,6 @@ export default defineNuxtConfig({
 			CLOUDINARY_UPLOAD_URL: process.env.CLOUDINARY_UPLOAD_URL,
 			CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
 			CLOUDINARY_UPLOAD_PRESET: process.env.CLOUDINARY_UPLOAD_PRESET,
-			MAKE_WEBHOOK_URL: process.env.MAKE_WEBHOOK_URL,
 		},
 	},
 });

@@ -189,7 +189,13 @@ export function calculatePlayerScore(player) {
  *
  * Returns: players mapped with { score, explain }
  */
-export function computeScores(players: any[] = [], opts = {}) {
+export function computeScores(players: any[] = [], opts: {
+	minMinutesForTrust?: number;
+	minutesFloorForFullWeight?: number;
+	transfersCapPercentile?: number;
+	lambdaValue?: number;
+	weights?: Record<string, Record<string, number>> | null;
+} = {}) {
 	const cfg = {
 		minMinutesForTrust: 90,     // below this -> strong penalty
 		minutesFloorForFullWeight: 270, // >= this -> full minutes multiplier
@@ -200,16 +206,16 @@ export function computeScores(players: any[] = [], opts = {}) {
 	};
 
 	// Helpers
-	const num = v => {
-		const n = parseFloat(v);
+	const num = (v: unknown) => {
+		const n = parseFloat(String(v));
 		return Number.isFinite(n) ? n : 0;
 	};
-	const per90 = (stat, mins) => (mins > 0 ? stat * (90 / mins) : 0);
-	const log1p = v => Math.log1p(Math.max(0, v));
-	const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+	const per90 = (stat: number, mins: number) => (mins > 0 ? stat * (90 / mins) : 0);
+	const log1p = (v: number) => Math.log1p(Math.max(0, v));
+	const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 	// Default weights by position (sensible defaults)
-	const defaultWeights = {
+	const defaultWeights: Record<string, Record<string, number>> = {
 		GK: { total_points: 0.2, points_per_game: 0.15, form: 0.15, clean_sheets_per_90: 0.18, saves_per_90: 0.18, expected_goals_conceded_per_90: -0.12, bps: 0.02, influence: 0.02, value: 0.1, transfers: 0.0 },
 		DEF: { total_points: 0.18, points_per_game: 0.12, form: 0.14, clean_sheets_per_90: 0.20, tackles: 0.12, clearances_blocks_interceptions: 0.10, threat: 0.06, bps: 0.02, value: 0.06, transfers: 0.04 },
 		MID: { total_points: 0.16, points_per_game: 0.12, form: 0.14, goals_per90: 0.15, assists_per90: 0.12, expected_goal_involvements: 0.08, creativity: 0.06, threat: 0.04, value: 0.06, transfers: 0.07 },
@@ -219,7 +225,7 @@ export function computeScores(players: any[] = [], opts = {}) {
 	const weightsByPos = cfg.weights || defaultWeights;
 
 	// 1) Precompute derived stats we will normalize: per90 metrics & log transfers
-	const derived = players.map(p => {
+	const derived: { id: any; derived: Record<string, number>; raw: any }[] = players.map(p => {
 		const mins = Math.max(0, num(p.minutes));
 		return {
 			id: p.id,
@@ -249,10 +255,10 @@ export function computeScores(players: any[] = [], opts = {}) {
 		'transfers_in_event_log', 'transfers_out_event_log', 'value_raw'
 	];
 
-	const ranges = {};
+	const ranges: Record<string, { min: number; max: number; span: number }> = {};
 	for (const m of metricsToNorm) {
 		const values = derived.map(d => {
-			if (m in d.derived) return d.derived[m];
+			if (m in d.derived) return d.derived[m]!;
 			return num(d.raw[m]);
 		});
 		const min = Math.min(...values);
@@ -260,7 +266,7 @@ export function computeScores(players: any[] = [], opts = {}) {
 		ranges[m] = { min, max: max === min ? min + 1 : max, span: Math.max(1e-6, max - min) };
 	}
 
-	const normalize = (m, v) => {
+	const normalize = (m: string, v: number | null | undefined) => {
 		if (v == null) return 0;
 		const r = ranges[m] || { min: 0, span: 1 };
 		return clamp((v - r.min) / r.span, 0, 1);
@@ -274,8 +280,9 @@ export function computeScores(players: any[] = [], opts = {}) {
 	const scored = derived.map(d => {
 		const p = d.raw;
 		const mins = Math.max(0, num(p.minutes));
-		const pos = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' }[p.element_type] || 'MID';
-		const W = weightsByPos[pos] || weightsByPos.MID;
+		const positionNames: Record<number, string> = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+		const pos = positionNames[p.element_type] || 'MID';
+		const W = weightsByPos[pos] || weightsByPos.MID!;
 
 		// availability + minutes factor
 		const availability = clamp((num(p.chance_of_playing_next_round) || num(p.chance_of_playing_this_round) || 100) / 100, 0, 1);
@@ -283,7 +290,7 @@ export function computeScores(players: any[] = [], opts = {}) {
 		const lowMinutesPenalty = mins < cfg.minMinutesForTrust ? 0.4 : 1; // heavy penalty for almost no minutes
 
 		// normalized inputs
-		const vals = {
+		const vals: Record<string, number> = {
 			total_points: normalize('total_points', num(p.total_points)),
 			points_per_game: normalize('points_per_game', num(p.points_per_game)),
 			form: normalize('form', num(p.form)),
@@ -315,16 +322,15 @@ export function computeScores(players: any[] = [], opts = {}) {
 		score += (W.transfers || 0) * transfersScore;
 
 		// value boost (small)
-		score += cfg.lambdaValue * vals.value_raw * (weightsByPos[pos]?.value || 0);
+		score += cfg.lambdaValue * vals.value_raw! * (weightsByPos[pos]?.value || 0);
 
 		// apply availability & minutes multipliers and low-minutes penalty
 		score = score * availability * minutesFactor * lowMinutesPenalty;
 
 		// Attach explanation bits (top contributors)
-		const explain = {};
 		const contributors = Object.entries(W).map(([k, w]) => ({ k, w, v: vals[k] || 0, contrib: (vals[k] || 0) * (w || 0) }));
 		contributors.sort((a, b) => Math.abs(b.contrib) - Math.abs(a.contrib));
-		explain.top = contributors.slice(0, 4).map(c => ({ stat: c.k, weight: c.w, norm: +c.v.toFixed(3), contrib: +c.contrib.toFixed(3) }));
+		const explain = { top: contributors.slice(0, 4).map(c => ({ stat: c.k, weight: c.w, norm: +c.v.toFixed(3), contrib: +c.contrib.toFixed(3) })) };
 
 		return {
 			...p,
@@ -435,7 +441,7 @@ export async function getUpcomingFixtures(count: number = 12) {
 
 export async function getManagerDetails(id: number) {
 	const url = `https://fantasy.premierleague.com/api/entry/${id}/`;
-	return await $fetch(url, { timeout: 10_000, retry: 0 });
+	return await $fetch<Record<string, any>>(url, { timeout: 10_000, retry: 0 });
 }
 
 export async function getManagerPicks(id: number, gw: number) {

@@ -534,25 +534,7 @@ const uploadToCloudinary = async (blobData, fileName) => {
   return data.secure_url;
 };
 
-const sendImageToWebhook = async (captionText, imageUrl) => {
-  const webhookUrl = useRuntimeConfig().public.MAKE_WEBHOOK_URL;
-  const params = new URLSearchParams({
-    caption: captionText || '',
-    image_url: imageUrl || '',
-  }).toString();
-
-  if (webhookUrl && process.client) {
-    fetch(`${webhookUrl}?${params}`, {
-      method: 'GET',
-      mode: 'no-cors',
-      keepalive: true,
-    }).catch((error) => {
-      console.error('Failed to trigger Buffer webhook', error);
-    });
-
-    return { success: true, queued: true };
-  }
-
+const sendImageToBuffer = async (captionText, imageUrl) => {
   try {
     return await $fetch('/api/send-buffer-post', {
       method: 'POST',
@@ -566,13 +548,6 @@ const sendImageToWebhook = async (captionText, imageUrl) => {
     throw new Error('Failed to send post to Buffer');
   }
 };
-
-// const buildCaption = (active) => {
-//   const movement = formatCompact(active.totalMovement);
-//   const net = formatSigned(active.netMovement);
-
-//   return `${active.player.web_name} is trending right now.\n\nTotal movement: ${movement}\nNet movement: ${net}\n\n#FPL #FantasyPremierLeague`;
-// };
 
 const getInstaCaption = async (playerData) => {
   try {
@@ -595,13 +570,12 @@ const getInstaCaption = async (playerData) => {
     });
 
     const output = res?.output?.trim();
-    captionText.value = output || buildCaption(prompt);
-    // console.log("caption", res);
+    if (!output) throw new Error('The caption could not be generated. Please try again.');
+    captionText.value = output;
     return captionText.value;
   } catch (error) {
-    console.log("getInstaCaption: Error - ", error);
-    captionText.value = buildCaption(playerData);
-    return captionText.value;
+    console.error('Caption generation failed', error);
+    throw error;
   }
 };
 
@@ -615,7 +589,10 @@ const generateInstaCaption = async () => {
 
   try {
     isGeneratingCaption.value = true;
+    await $fetch('/api/admin/session');
     await getInstaCaption(active);
+  } catch (error) {
+    showMessage(error.statusCode === 401 || error.statusCode === 403 ? 'Sign in to the admin workspace before generating a caption.' : error.message || 'The caption could not be generated.', 'error');
   } finally {
     isGeneratingCaption.value = false;
   }
@@ -636,6 +613,8 @@ const postToInsta = async () => {
 
   try {
     isPosting.value = true;
+    await $fetch('/api/admin/session');
+    const caption = captionText.value || await getInstaCaption(active);
     postButtonText.value = 'Preparing image...';
 
     const blob = await fetch(img.src).then((res) => res.blob());
@@ -652,13 +631,12 @@ const postToInsta = async () => {
     }
 
     postButtonText.value = 'Posting to Buffer...';
-    const caption = captionText.value || await getInstaCaption(active);
-    await sendImageToWebhook(caption, publicUrl);
-
-    showMessage('Post sent to Buffer.');
+    const result = await sendImageToBuffer(caption, publicUrl);
+    if (!result?.success) throw new Error('Buffer did not accept the post.');
+    showMessage(result.alreadyScheduled ? 'This post is already in Buffer.' : 'Post queued for submission to Buffer.');
   } catch (error) {
     console.error('Failed to post Instagram image', error);
-    showMessage(error.message || 'Post failed. Check image CORS or webhook settings.', 'error');
+    showMessage(error.statusCode === 401 || error.statusCode === 403 ? 'Sign in to the admin workspace before posting.' : error.message || 'Post failed. Check the image and Buffer connection.', 'error');
   } finally {
     isPosting.value = false;
     postButtonText.value = 'Post to Insta';

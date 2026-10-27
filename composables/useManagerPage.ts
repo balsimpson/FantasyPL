@@ -9,7 +9,7 @@ export function useManagerPage(id: Ref<string>) {
 	const managerData = computed(() => String(managerRequest.data.value?.id ?? "") === id.value ? managerRequest.data.value : null);
 	const squadState = computed(() => {
 		const data = squadRequest.data.value;
-		return managerData.value && String(data?.managerId ?? "") === id.value && data?.gameweek === managerData.value.current_event
+		return managerData.value && data && String(data.managerId ?? "") === id.value && data.gameweek === managerData.value.current_event
 			? data.squad : null;
 	});
 	return {

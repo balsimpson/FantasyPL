@@ -1,9 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { requireAdmin, requireAdminOrigin } from '../utils/admin'
 import { getBufferInstagramChannel } from '../utils/buffer'
 import { schedulerApi, schedulerDatabase, schedulerHistoryError } from '../utils/scheduler-history'
 
 export default defineEventHandler(async event => {
   assertMethod(event, 'POST')
+  await requireAdmin(event)
+  requireAdminOrigin(event)
   const body = await readBody(event)
   if (typeof body?.caption !== 'string' || !body.caption.trim() || body.caption.length > 10000) throw createError({ statusCode: 400, statusMessage: 'Write a caption before scheduling.' })
   let imageUrl: URL

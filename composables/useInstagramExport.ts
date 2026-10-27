@@ -107,7 +107,7 @@ export function useInstagramExport(getElement: () => HTMLElement | null | undefi
         const detail = error as { data?: { data?: { message?: string }; statusMessage?: string } }
         throw new Error(detail?.data?.data?.message || detail?.data?.statusMessage || 'Buffer did not confirm the post. Check your Buffer queue before trying again.')
       }
-      if (!scheduled?.success || (!scheduled.queued && !scheduled.alreadyScheduled)) throw new Error('The post could not be added to Buffer.')
+      if (!scheduled?.success || !(('queued' in scheduled && scheduled.queued) || ('alreadyScheduled' in scheduled && scheduled.alreadyScheduled))) throw new Error('The post could not be added to Buffer.')
       useState('scheduler-history-revision', () => 0).value++
       return scheduled
     })

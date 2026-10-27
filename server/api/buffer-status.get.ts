@@ -1,6 +1,8 @@
 import { getBufferInstagramChannel } from '../utils/buffer'
+import { requireAdmin } from '../utils/admin'
 
 export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
   setHeader(event, 'Cache-Control', 'no-store')
   try {
     const channel = await getBufferInstagramChannel()

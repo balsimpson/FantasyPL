@@ -3,19 +3,12 @@ import { internalAction, internalMutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { buildHomepageTradeCandidates } from './homepageTradeLogic'
 import { fetchHomepageTradeForm } from '../shared/homepage-trade-form'
-import { getHomepageTradeResearchPlayers, HOMEPAGE_TRADE_VERSION, selectHomepageTradeIdeas } from '../shared/homepage-trades'
+import { getHomepageTradeResearchPlayers, HOMEPAGE_TRADE_VERSION } from '../shared/homepage-trades'
 import { buildHomepageBuyIdeas, getHomepageBuyResearchPlayers, HOMEPAGE_BUY_VERSION } from '../shared/homepage-buys'
 import { reviewHomepageBuys } from './homepageBuyLogic'
+import { reviewHomepageTrades } from './homepageTradeReview'
 
 const snapshotKey = 'recommended-trades'
-const scoreCriteria = [
-  'Poor replacement: the supplied FPL data does not support this move.',
-  'Weak or marginal case; meaningful downsides outweigh the available gains.',
-  'Mixed or roughly balanced case.',
-  'Credible improvement across the supplied performance and fixture evidence.',
-  'Strong improvement across the supplied performance and fixture evidence.',
-]
-
 const snapshotReturns = v.union(v.null(), v.object({
   snapshotJson: v.string(), generatedAt: v.number(), gameweek: v.number(), model: v.string(), sourceFetchedAt: v.number(),
 }))
@@ -125,50 +118,7 @@ export const refresh = internalAction({
     )
     if (gameweek === null) throw new Error('The FPL feed has no next gameweek.')
 
-    let ideas: Record<string, any>[] = []
-    let model = 'jev-latest'
-    if (candidates.length) {
-      const questions = Object.fromEntries(candidates.map((candidate, index) => {
-        const questionId = `option_${index + 1}`
-        return [questionId, {
-          type: 'score',
-          instructions: `Score this same-position FPL swap for Gameweek ${gameweek}. Assess whether the replacement fills a comparable squad role using the supplied recent starts, minutes per match, points per appearance, position-specific expected goal involvement or clean-sheet evidence, next-gameweek estimate, and fixture runs. Outgoing players with 10%+ ownership have priority; the 5-10% group is a reserve. Ownership measures relevance, not a reason to sell. Buying activity is a minor supporting signal only. Each candidate has a deterministic reason and supporting evidence: reject marginal moves or material downsides even if that leaves fewer results. A flagged outgoing can be replaced by an available regular starter. Weigh trade-offs rather than requiring every statistic to improve. State is generic: no verified manager squad, selling price, bank, or club limit is supplied. Fixture runs retain blanks and doubles. Expected points cover the next gameweek only; do not invent multi-gameweek totals, injuries, roles, or lineups. Small samples lower confidence.`,
-          criteria: scoreCriteria,
-        }]
-      }))
-      const response = await fetch('https://api.typesafe.ai/v1/systemone', {
-        method: 'POST',
-        signal: AbortSignal.timeout(30_000),
-        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          state: {
-            targetGameweek: gameweek,
-            comparisonGameweeks: gameweeks,
-            dataNote: 'FPL expected points are for the next gameweek only. No multi-gameweek points projection is supplied.',
-            candidates: candidates.map((candidate, index) => ({ ...candidate, id: `option_${index + 1}` })),
-          },
-          questions,
-        }),
-      })
-      if (!response.ok) throw new Error(`JEV could not rank the trade ideas (${response.status}).`)
-      const result = await response.json() as Record<string, any>
-      if (!result.answers || typeof result.answers !== 'object') throw new Error('JEV returned no trade rankings.')
-
-      ideas = candidates.flatMap((candidate, index) => {
-        const answer = result.answers[`option_${index + 1}`]
-        const score = Number(answer?.score)
-        const confidence = Number(answer?.confidence)
-        if (answer?.type !== 'score' || answer.score === null || answer.score === undefined || !Number.isFinite(score) || score < 3 || score > 4) return []
-        return [{
-          ...candidate,
-          score: Math.round(score * 10) / 10,
-          confidence: Number.isFinite(confidence) && confidence >= 0 && confidence <= 1 ? Math.round(confidence * 100) : null,
-        }]
-      })
-      ideas = selectHomepageTradeIdeas(ideas)
-      model = typeof result.model === 'string' ? result.model : model
-    }
+    const { ideas, model } = await reviewHomepageTrades(candidates, gameweek, gameweeks, key)
 
     const generatedAt = Date.now()
     const snapshotJson = JSON.stringify({ version: HOMEPAGE_TRADE_VERSION, gameweeks, ideas, recentForm, completedGameweeks: bootstrap.events.filter((event: Record<string, any>) => event.finished).map((event: Record<string, any>) => Number(event.id)) })
