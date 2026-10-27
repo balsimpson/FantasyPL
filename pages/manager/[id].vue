@@ -37,6 +37,7 @@
 				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="planner.displaySquad.value"
 					:planning-gameweek="planner.previewActive.value ? planner.selectedPlan.value?.gameweek : null"
 					:fixture-gameweek="planner.selectedPlan.value?.gameweek" :fixture-rows="planner.rows.value"
+					:published-gameweek="managerData.current_event" :gameweek-points="managerData.summary_event_points" :season-points="managerData.summary_overall_points"
 					:published-squad="squadState" :plans="planner.plans.value" @preview="planner.showPreview" @published="planner.showPublished" />
 				<section v-else-if="isSquadLoading" class="space-y-4 lg:col-start-1 lg:row-start-1" role="status" aria-label="Loading squad">
 					<USkeleton class="h-10 w-48" /><USkeleton class="h-[36rem] w-full rounded-2xl" />

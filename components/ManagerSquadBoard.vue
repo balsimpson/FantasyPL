@@ -1,19 +1,23 @@
 <template>
 	<section aria-labelledby="manager-squad-title" class="min-w-0 space-y-4">
-		<header class="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-			<div class="flex flex-col gap-1">
-				<h2 id="manager-squad-title" class="text-xl font-bold tracking-tight text-white sm:text-2xl">{{ planningGameweek ? `Suggested XI · GW ${planningGameweek}` : 'Your squad' }}</h2>
-				<span class="text-xs text-stone-400">Formation <span class="ml-1 font-semibold tabular-nums text-lime-300">{{ formation }}</span><span v-if="fixtureGameweek && !planningGameweek"> · GW {{ fixtureGameweek }} fixtures</span></span>
-			</div>
-			<div class="flex flex-wrap items-center gap-3 sm:justify-end">
-				<UButton v-if="planningGameweek" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="h-8 w-44 shrink-0 justify-center rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('published')">Show published squad</UButton>
-				<UButton v-else-if="canPreview" color="primary" variant="soft" size="sm" icon="i-lucide-users" class="h-8 w-44 shrink-0 justify-center border border-lime-300/30 bg-lime-300/10 text-lime-300 hover:border-lime-300/50 hover:bg-lime-300/15 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('preview')">Show suggested XI</UButton>
-			<div class="flex shrink-0 items-center gap-1" role="group" aria-label="Squad view">
-				<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-lime-200'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
-			</div>
-			</div>
-		</header>
-		<ManagerSquadPerformance :squad="squad" :published-squad="publishedSquad ?? squad" :rows="fixtureRows" :gameweek="fixtureGameweek" :suggested="Boolean(planningGameweek)" />
+		<div class="space-y-3 border-b border-white/10 pb-4">
+			<header class="grid items-center gap-x-3 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto]">
+				<div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+					<h2 id="manager-squad-title" class="text-xl font-bold leading-7 tracking-tight text-white">{{ planningGameweek ? 'Suggested XI' : 'Starting XI' }}</h2>
+					<span v-if="planningGameweek || fixtureGameweek" class="text-xs text-stone-400">{{ planningGameweek ? `GW ${planningGameweek}` : `GW ${fixtureGameweek} fixtures` }}</span>
+					<span aria-hidden="true" class="text-xs text-stone-500">·</span>
+					<span class="text-xs tabular-nums text-stone-400"><span class="sr-only">Formation </span>{{ formation }}</span>
+				</div>
+				<div class="flex flex-wrap items-center gap-3 md:justify-end">
+					<UButton v-if="planningGameweek" color="neutral" variant="ghost" size="sm" icon="i-lucide-undo-2" class="h-8 w-44 shrink-0 justify-center rounded-lg border border-white/10 bg-white/5 text-stone-300 hover:border-lime-300/40 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('published')">Show published squad</UButton>
+					<UButton v-else-if="canPreview" color="primary" variant="soft" size="sm" icon="i-lucide-users" class="h-8 w-44 shrink-0 justify-center border border-lime-300/30 bg-lime-300/10 text-lime-300 hover:border-lime-300/50 hover:bg-lime-300/15 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" @click="$emit('preview')">Show suggested XI</UButton>
+					<div class="flex shrink-0 items-center gap-1" role="group" aria-label="Squad view">
+						<UButton v-for="option in views" :key="option.value" :icon="option.icon" color="neutral" variant="ghost" size="sm" class="min-h-10 rounded-none border-b-2 bg-transparent px-2.5 text-xs font-semibold transition-colors hover:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 motion-reduce:transition-none sm:px-3 sm:text-sm" :class="view === option.value ? 'border-lime-300 text-lime-300 hover:text-lime-200' : 'border-transparent text-stone-400 hover:text-lime-200'" :aria-pressed="view === option.value" @click="view = option.value">{{ option.label }}</UButton>
+					</div>
+				</div>
+			</header>
+			<ManagerSquadPerformance :squad="squad" :published-squad="publishedSquad ?? squad" :rows="fixtureRows" :gameweek="fixtureGameweek" :suggested="Boolean(planningGameweek)" :published-gameweek="publishedGameweek" :gameweek-points="gameweekPoints" :season-points="seasonPoints" />
+		</div>
 
 		<template v-if="view === 'pitch'">
 			<div class="relative isolate px-1 pb-4 sm:px-3">
@@ -61,10 +65,6 @@
 				</section>
 			</div>
 		</template>
-		<dl class="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-white/10 pt-4 text-sm">
-			<div class="flex items-baseline gap-2"><dt class="text-stone-400">Starting XI current cost</dt><dd class="font-bold tabular-nums text-white">£{{ (squad.teamCost / 10).toFixed(1) }}m</dd></div>
-			<div class="flex items-baseline gap-2"><dt class="text-stone-400">Starting XI season points</dt><dd class="font-bold tabular-nums text-white">{{ squad.teamPoints.toLocaleString('en-GB') }}</dd></div>
-		</dl>
 		<ManagerLineupComparison v-model:open="comparisonOpen" :pair="comparisonPair" :gameweek="fixtureGameweek" :rows="fixtureRows" />
 	</section>
 </template>
@@ -76,6 +76,7 @@ import ManagerSquadPerformance from '~/components/ManagerSquadPerformance.vue';
 const props = defineProps({
 	squad: { type: Object, required: true }, planningGameweek: { type: Number, default: null },
 	fixtureGameweek: { type: Number, default: null }, fixtureRows: { type: Array, default: () => [] },
+	publishedGameweek: { type: Number, default: null }, gameweekPoints: { type: Number, default: null }, seasonPoints: { type: Number, default: null },
 	publishedSquad: { type: Object, default: null }, plans: { type: Array, default: () => [] },
 });
 defineEmits(['published', 'preview']);
