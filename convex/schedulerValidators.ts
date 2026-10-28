@@ -5,7 +5,7 @@ export const nullableString = v.union(v.string(), v.null())
 export const nullableNumber = v.union(v.number(), v.null())
 export const player = v.object({ code: v.number(), name: v.string() })
 export const postFields = {
-  channelId: v.string(), bufferPostId: nullableString, requestId: nullableString,
+  channelId: v.string(), platform: v.optional(v.union(v.literal('instagram'), v.literal('x'))), bufferPostId: nullableString, requestId: nullableString,
   fingerprint: nullableString, imageUrl: nullableString, caption: v.string(), searchText: v.string(),
   players: v.array(player), gameweek: nullableNumber, season: nullableString, template: nullableString,
   design: nullableString, draftJson: nullableString, status: postStatus,

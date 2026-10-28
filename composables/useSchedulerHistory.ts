@@ -4,7 +4,7 @@ import { formatSchedulerDate, type SchedulerPlayerActivity } from '~/utils/sched
 
 export function useSchedulerHistory(players: ComputedRef<InstagramPlayer[]>, gameweek: ComputedRef<number | null>, season: ComputedRef<string | null>) {
   const revision = useState('scheduler-history-revision', () => 0)
-  const query = computed(() => ({ codes: players.value.map(player => player.code).join(','), gameweek: gameweek.value ?? '', season: season.value ?? '' }))
+  const query = computed(() => ({ platform: 'both', codes: players.value.map(player => player.code).join(','), gameweek: gameweek.value ?? '', season: season.value ?? '' }))
   const { data, status, error, refresh } = useFetch('/api/scheduler/activity', { query, watch: [revision] })
   const excludedCodes = computed(() => data.value?.excludedCodes ?? [])
   const activity = computed(() => (data.value?.players ?? []) as SchedulerPlayerActivity[])

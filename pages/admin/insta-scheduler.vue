@@ -18,21 +18,22 @@ const { data, status, error, refresh } = await useAsyncData('instagram-editor-pl
   return response
 })
 
-type BufferJob = { jobId: string; playerName: string; channelId: string; channel: string; state: 'sending' | 'unknown' }
+type BufferJob = { jobId: string; playerId: number; playerName: string; platform: 'instagram' | 'x'; channelId: string; channel: string; state: 'sending' | 'unknown' }
 
 const excludedPlayerCodes = ref<number[]>([])
 const view = ref<'create' | 'history'>('create')
+const historyPlatform = ref<'instagram' | 'x'>('instagram')
 const historySearch = ref('')
 const allowRepeat = ref(false)
 const picksReady = ref(false)
 const picksMounted = ref(false)
-const bufferJobs = ref<Record<number, BufferJob>>({})
+const bufferJobs = ref<Record<string, BufferJob>>({})
 const schedulingError = ref('')
 const queueNotice = ref('')
 const activePickId = ref<number | null>(null)
 const toast = useToast()
-const { players, designId, templateId, selectedPlayers, togglePlayer, draft, draftKey, validationMessage, caption, captionLoading, captionError, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
-const { postPicks, hasMorePicks, showMorePicks: loadMorePicks } = useSchedulerPicks(players, picksReady, computed(() => Object.keys(bufferJobs.value).map(Number)), excludedPlayerCodes, computed(() => data.value?.currentGameweek ?? null))
+const { players, designId, templateId, selectedPlayers, togglePlayer, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
+const { postPicks, hasMorePicks, showMorePicks: loadMorePicks } = useSchedulerPicks(players, picksReady, computed(() => Object.values(bufferJobs.value).map(job => job.playerId)), excludedPlayerCodes, computed(() => data.value?.currentGameweek ?? null))
 const pickList = useTemplateRef<HTMLElement>('pickList')
 const activePick = computed(() => postPicks.value.find(pick => pick.id === activePickId.value))
 const layoutKey = computed(() => `${activePick.value?.designId ?? designId.value}:spotlight`)
@@ -49,7 +50,9 @@ const { repeatMessage, ready: historyReady, error: historyError } = history
 const activeDesign = computed(() => instagramDesigns.find(item => item.id === activePick.value?.designId) ?? instagramDesigns[0]!)
 const filename = computed(() => activeDraft.value.design + '-' + activeDraft.value.template + '-' + activeDraft.value.players.map(player => player.name).join('-').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-gw' + (activeDraft.value.gameweek ?? 'unknown') + '.png')
 const canExport = computed(() => !validationMessage.value && assetsReady.value && !busy.value)
-const canScheduleActive = computed(() => Boolean(activePick.value?.caption.trim()) && !bufferJobs.value[activePick.value?.id ?? -1] && schedulingConfigured.value && historyReady.value && assetsReady.value && !busy.value && !captionLoading.value && (!repeatMessage.value || allowRepeat.value))
+const hasPlayerJob = (playerId: number | undefined) => Object.values(bufferJobs.value).some(job => job.playerId === playerId)
+const playerJobState = (playerId: number) => Object.values(bufferJobs.value).find(job => job.playerId === playerId)?.state
+const canScheduleActive = computed(() => Boolean(activePick.value?.caption.trim() && activePick.value?.xCaption.trim()) && !hasPlayerJob(activePick.value?.id) && schedulingConfigured.value && historyReady.value && assetsReady.value && !busy.value && !captionLoading.value && (!repeatMessage.value || allowRepeat.value))
 
 watch(history.excludedCodes, codes => { excludedPlayerCodes.value = codes }, { immediate: true })
 watch([history.ready, history.error, picksMounted], ([ready, error, mounted]) => {
@@ -59,6 +62,9 @@ watch([history.ready, history.error, picksMounted], ([ready, error, mounted]) =>
 watch(draftKey, () => { allowRepeat.value = false })
 watch(caption, value => {
   if (activePick.value) activePick.value.caption = value
+}, { flush: 'sync' })
+watch(xCaption, value => {
+  if (activePick.value) activePick.value.xCaption = value
 }, { flush: 'sync' })
 
 watch(postPicks, () => {
@@ -71,6 +77,7 @@ watch(postPicks, () => {
     activePickId.value = null
     if (selectedId) togglePlayer(selectedId)
     caption.value = ''
+    xCaption.value = ''
   }
 }, { deep: false, immediate: true })
 
@@ -101,22 +108,31 @@ async function activatePick(pick: PostPick) {
   schedulingError.value = ''
   queueNotice.value = ''
   captionError.value = ''
+  xCaptionError.value = ''
   const restoreCaption = pick.caption
-  if (activePick.value) activePick.value.caption = caption.value
+  const restoreXCaption = pick.xCaption
+  if (activePick.value) {
+    activePick.value.caption = caption.value
+    activePick.value.xCaption = xCaption.value
+  }
   activePickId.value = pick.id
   if (selectedPlayers.value[0]?.id !== pick.id) togglePlayer(pick.id)
   designId.value = pick.designId
   await nextTick()
   caption.value = restoreCaption
+  xCaption.value = restoreXCaption
 }
 
 function changeTemplate(id: InstagramDesignId) {
   if (!activePick.value) return
   activePick.value.designId = id
   activePick.value.caption = ''
+  activePick.value.xCaption = ''
   designId.value = id
   caption.value = ''
+  xCaption.value = ''
   captionError.value = ''
+  xCaptionError.value = ''
 }
 
 function cycleTemplate(direction: -1 | 1) {
@@ -127,29 +143,31 @@ function cycleTemplate(direction: -1 | 1) {
 
 async function scheduleActive() {
   const scheduledPick = activePick.value
-  if (!scheduledPick || !caption.value.trim()) return
+  if (!scheduledPick || !caption.value.trim() || !xCaption.value.trim()) return
   if (!schedulingConfigured.value) {
     return
   }
   if (!historyReady.value || !assetsReady.value) return
   if (repeatMessage.value && !allowRepeat.value) return
   schedulingError.value = ''
-  const result = await schedule(filename.value, caption.value, allowRepeat.value)
+  const result = await schedule(filename.value, caption.value, xCaption.value, allowRepeat.value)
   if (failed.value || !result) return
-  if (result.alreadyScheduled) {
-    excludedPlayerCodes.value = [...new Set([...excludedPlayerCodes.value, scheduledPick.player.code])]
-    history.revision.value++
-    const confirmation = bufferConfirmation(scheduledPick.player.name, result.post.channel, result.post.dueAt, result.post.status)
-    toast.add({ title: result.post.status === 'published' ? 'Already published' : 'Already in Buffer', description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6000 })
-    removeScheduledPick(scheduledPick.id)
-    showQueueNotice(`${result.post.status === 'published' ? 'Already published' : 'Already in Buffer'} · ${confirmation}`)
-    return
+  let sending = false
+  for (const post of result.posts) {
+    const platform = post.platform === 'x' ? 'X' : 'Instagram'
+    if (post.status === 'submitting' || post.status === 'unknown') {
+      bufferJobs.value[post.postId] = { jobId: post.postId, playerId: scheduledPick.id, playerName: scheduledPick.player.name, platform: post.platform, channelId: post.channelId, channel: post.channel, state: post.status === 'unknown' ? 'unknown' : 'sending' }
+      if (post.status === 'submitting') sending = true
+      if (post.status === 'unknown') toast.add({ title: `Check ${platform} in Buffer`, description: `${scheduledPick.player.name}: Buffer did not confirm the post.`, color: 'warning', icon: 'i-lucide-circle-alert', duration: 8000 })
+    } else if (post.status === 'scheduled' || post.status === 'published') {
+      const confirmation = bufferConfirmation(scheduledPick.player.name, post.channel, post.dueAt, post.status)
+      toast.add({ title: `${platform} already in Buffer`, description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6000 })
+    } else {
+      schedulingError.value = `${platform} could not be scheduled. Check its history before trying again.`
+    }
   }
-  if (result.queued && result.jobId) {
-    bufferJobs.value[scheduledPick.id] = { jobId: result.jobId, playerName: scheduledPick.player.name, channelId: result.post.channelId, channel: result.post.channel, state: 'sending' }
-    removeScheduledPick(scheduledPick.id)
-    toast.add({ title: 'Sending to Buffer', description: `${scheduledPick.player.name} · @${result.post.channel.replace(/^@/, '')}`, color: 'primary', icon: 'i-lucide-send', duration: 4000 })
-  }
+  removeScheduledPick(scheduledPick.id)
+  if (sending) toast.add({ title: 'Sending to Buffer', description: `${scheduledPick.player.name} · Instagram and X`, color: 'primary', icon: 'i-lucide-send', duration: 4000 })
 }
 
 function bufferConfirmation(playerName: string, channel: string, dueAt: number | string | null, status: string) {
@@ -179,6 +197,7 @@ function removeScheduledPick(playerId: number) {
     activePickId.value = null
     if (selectedPlayers.value[0]?.id === playerId) togglePlayer(playerId)
     caption.value = ''
+    xCaption.value = ''
   }
 }
 
@@ -193,31 +212,36 @@ async function pollBufferJobs() {
   if (!jobs.length || pollInFlight) return
   pollInFlight = true
   try {
-    const statuses = await $fetch<{ postId: string; status: string; dueAt: number | null; error: string | null }[]>('/api/scheduler/status', {
-      method: 'POST', body: { channelId: jobs[0]!.channelId, jobIds: jobs.map(job => job.jobId) },
+    const groups = [...new Set(jobs.map(job => job.channelId))].flatMap(channelId => {
+      const channelJobs = jobs.filter(job => job.channelId === channelId)
+      return Array.from({ length: Math.ceil(channelJobs.length / 8) }, (_, index) => ({ channelId, jobIds: channelJobs.slice(index * 8, index * 8 + 8).map(job => job.jobId) }))
     })
+    const results = await Promise.allSettled(groups.map(body => $fetch<{ postId: string; status: string; dueAt: number | null; error: string | null }[]>('/api/scheduler/status', { method: 'POST', body })))
+    const statuses = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
     for (const status of statuses) {
-      const entry = Object.entries(bufferJobs.value).find(([, job]) => job.jobId === status.postId)
-      if (!entry) continue
-      const playerId = Number(entry[0])
-      const job = entry[1]
+      const job = bufferJobs.value[status.postId]
+      if (!job) continue
+      const playerId = job.playerId
+      const platform = job.platform === 'x' ? 'X' : 'Instagram'
       if (status.status === 'scheduled' || status.status === 'published') {
         const player = players.value.find(item => item.id === playerId)
-        if (player) excludedPlayerCodes.value = [...new Set([...excludedPlayerCodes.value, player.code])]
-        delete bufferJobs.value[playerId]
+        if (player && job.platform === 'instagram') excludedPlayerCodes.value = [...new Set([...excludedPlayerCodes.value, player.code])]
+        delete bufferJobs.value[status.postId]
         const confirmation = bufferConfirmation(job.playerName, job.channel, status.dueAt, status.status)
-        toast.add({ title: status.status === 'published' ? 'Post published' : 'Added to Buffer', description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6500 })
+        toast.add({ title: status.status === 'published' ? `${platform} post published` : `${platform} added to Buffer`, description: confirmation, color: 'success', icon: 'i-lucide-check', duration: 6500 })
         removeScheduledPick(playerId)
-        showQueueNotice(`${status.status === 'published' ? 'Published' : 'Added to Buffer'} · ${confirmation}`)
+        showQueueNotice(`${platform} ${status.status === 'published' ? 'published' : 'added to Buffer'} · ${confirmation}`)
         useState('scheduler-history-revision', () => 0).value++
       } else if (status.status === 'failed') {
-        delete bufferJobs.value[playerId]
-        schedulingError.value = status.error || `${job.playerName} could not be added to Buffer.`
-        toast.add({ title: 'Could not add to Buffer', description: schedulingError.value, color: 'error', icon: 'i-lucide-circle-alert', duration: 8000 })
+        delete bufferJobs.value[status.postId]
+        schedulingError.value = `${platform}: ${status.error || `${job.playerName} could not be added to Buffer.`} Check ${platform} history.`
+        toast.add({ title: `${platform} could not be added to Buffer`, description: schedulingError.value, color: 'error', icon: 'i-lucide-circle-alert', duration: 8000 })
+        useState('scheduler-history-revision', () => 0).value++
       } else if (status.status === 'unknown') {
-        bufferJobs.value[playerId] = { ...job, state: 'unknown' }
-        schedulingError.value = `Buffer could not confirm ${job.playerName}. Check History before trying again.`
-        toast.add({ title: 'Check Buffer', description: schedulingError.value, color: 'warning', icon: 'i-lucide-circle-alert', duration: 8000 })
+        bufferJobs.value[status.postId] = { ...job, state: 'unknown' }
+        schedulingError.value = `Buffer could not confirm ${job.playerName} on ${platform}. Check its Buffer queue before trying again.`
+        toast.add({ title: `Check ${platform} in Buffer`, description: schedulingError.value, color: 'warning', icon: 'i-lucide-circle-alert', duration: 8000 })
+        useState('scheduler-history-revision', () => 0).value++
       }
     }
   } catch {
@@ -255,7 +279,7 @@ onScopeDispose(() => {
         <UAlert v-if="error" color="error" title="Player data could not load" description="Load the player list again to start creating a post." class="mx-auto mt-8 w-full max-w-lg" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
         <div v-else-if="status === 'pending'" role="status" class="flex flex-1 items-center justify-center text-muted">Loading players…</div>
 
-        <SchedulerPostHistory v-else-if="view === 'history'" class="site-content-rail min-h-0 flex-1 overflow-auto pb-4" :players="players" :initial-search="historySearch" />
+        <SchedulerPostHistory v-else-if="view === 'history'" :key="historyPlatform" v-model:platform="historyPlatform" class="site-content-rail min-h-0 flex-1 overflow-auto pb-4" :players="players" :initial-search="historySearch" />
 
         <section v-else class="flex min-h-0 flex-1 flex-col">
           <div class="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto px-3 pt-2 pb-24">
@@ -266,14 +290,14 @@ onScopeDispose(() => {
               <template #header-actions>
                 <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" size="xs" aria-label="Post options" />
               </template>
-              <SchedulerTemplateEditor :key="activePreviewKey" ref="preview" v-model:editing="editingLayout" :draft="activeDraft" :editor="layoutEditor" :disabled="busy || Boolean(bufferJobs[activePick.id])" toolbar-target="#scheduler-post-toolbar">
+              <SchedulerTemplateEditor :key="activePreviewKey" ref="preview" v-model:editing="editingLayout" :draft="activeDraft" :editor="layoutEditor" :disabled="busy || hasPlayerJob(activePick.id)" toolbar-target="#scheduler-post-toolbar">
                 <template #actions>
                   <span class="mx-0.5 h-4 w-px shrink-0 bg-white/15" aria-hidden="true" />
-                  <UTooltip :text="captionLoading ? 'Generating caption…' : 'Generate caption'">
-                    <UButton icon="i-lucide-sparkles" color="neutral" variant="ghost" class="size-9 justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white" :aria-label="captionLoading ? 'Generating caption' : 'Generate caption'" :loading="captionLoading" :disabled="!activePick || captionLoading || busy || Boolean(bufferJobs[activePick?.id ?? -1])" @click="generateCaption(activeDraft)" />
+                  <UTooltip :text="captionLoading ? 'Generating captions…' : 'Generate Instagram and X captions'">
+                    <UButton icon="i-lucide-sparkles" color="neutral" variant="ghost" class="size-9 justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white" :aria-label="captionLoading ? 'Generating captions' : 'Generate Instagram and X captions'" :loading="captionLoading" :disabled="!activePick || captionLoading || busy || hasPlayerJob(activePick?.id)" @click="generateCaption(activeDraft)" />
                   </UTooltip>
-                  <UTooltip text="Schedule to Buffer">
-                    <UButton icon="i-lucide-send" color="primary" class="ml-1 size-11 justify-center rounded-full ring-2 ring-zinc-900" aria-label="Schedule to Buffer" :loading="busy && phase !== 'Creating PNG…'" :disabled="!canScheduleActive" @click="scheduleActive" />
+                  <UTooltip :text="schedulingConfigured ? 'Schedule to Instagram and X' : schedulingMessage">
+                    <UButton icon="i-lucide-send" color="primary" class="ml-1 size-11 justify-center rounded-full ring-2 ring-zinc-900" aria-label="Schedule to Instagram and X" :loading="busy && phase !== 'Creating PNG…'" :disabled="!canScheduleActive" @click="scheduleActive" />
                   </UTooltip>
                 </template>
               </SchedulerTemplateEditor>
@@ -285,31 +309,38 @@ onScopeDispose(() => {
                     role="textbox"
                     aria-label="Post caption, edit inline"
                     aria-multiline="true"
-                    :contenteditable="!captionLoading && !busy && !bufferJobs[activePick?.id ?? -1]"
+                    :contenteditable="!captionLoading && !busy && !hasPlayerJob(activePick?.id)"
                     spellcheck="true"
                     class="outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     @input="updateCaption"
                   >{{ caption }}</span>
                 </p>
                 <p v-if="captionError && !captionLoading" class="text-xs leading-5 text-error" role="alert">{{ captionError }}</p>
-                <p v-else-if="captionLoading" class="text-xs text-muted" role="status">Generating caption…</p>
+                <p v-else-if="captionLoading" class="text-xs text-muted" role="status">Generating captions…</p>
                 <p v-else-if="!caption" class="text-xs text-muted">Your generated caption will appear here.</p>
               </template>
             </SchedulerInstagramPost>
+            <div v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px]">
+              <UFormField label="X caption" class="w-full">
+                <UTextarea v-model="xCaption" aria-label="X caption" :rows="3" autoresize class="w-full" :ui="{ base: 'w-full' }" :disabled="captionLoading || busy || hasPlayerJob(activePick.id)" />
+              </UFormField>
+              <p v-if="xCaptionError && !captionLoading" class="mt-1 text-xs text-error" role="alert">{{ xCaptionError }}</p>
+              <p v-else class="mt-1 text-xs text-muted">X and Instagram use their own Buffer queue times.</p>
+            </div>
             <div v-else class="flex aspect-square w-[min(45vh,78vw)] max-w-[660px] flex-col items-center justify-center gap-3 text-center text-sm text-muted" role="status">
               <template v-if="historyError"><p>Post history could not load. Retry to find players you can post.</p><UButton label="Retry history" color="neutral" variant="soft" @click="history.refresh()" /></template>
               <span v-else>{{ picksReady ? 'No unposted players match the current picks.' : 'Checking queued and posted players…' }}</span>
             </div>
 
             <div class="flex w-[min(45vh,78vw)] max-w-[660px] items-center justify-center gap-3">
-              <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Previous template" :disabled="busy || !activePick || Boolean(bufferJobs[activePick?.id ?? -1])" @click="cycleTemplate(-1)" />
+              <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Previous template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(-1)" />
               <span class="min-w-36 text-center text-sm font-medium text-muted">{{ activeDesign.letter }} <span class="text-dimmed">·</span> {{ activeDesign.name }}</span>
-              <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Next template" :disabled="busy || !activePick || Boolean(bufferJobs[activePick?.id ?? -1])" @click="cycleTemplate(1)" />
+              <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Next template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(1)" />
             </div>
 
             <UAlert v-if="repeatMessage" color="warning" :title="repeatMessage" class="w-full max-w-[660px]" />
             <UCheckbox v-if="repeatMessage" v-model="allowRepeat" label="Allow this repeat post" :disabled="busy" />
-            <p class="h-5 w-[min(45vh,78vw)] max-w-[660px] truncate text-xs" :class="failed || schedulingError ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError) }}</p>
+            <p class="min-h-5 w-[min(45vh,78vw)] max-w-[660px] text-xs" :class="failed || schedulingError || !schedulingConfigured ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError || (!schedulingConfigured ? schedulingMessage : '')) }}</p>
           </div>
 
           <footer class="relative z-40 shrink-0 border-t border-default bg-default/95 pb-2 pt-2">
@@ -324,8 +355,8 @@ onScopeDispose(() => {
                   <SchedulerPostPreview :key="`${pick.id}:${pick.player.code}:${pick.player.photoUrl}:${pick.designId}`" :draft="pickDraft(pick)" />
                   <SchedulerPickReason :story="pick.story" />
                 </button>
-                <span v-if="bufferJobs[pick.id]?.state === 'sending'" class="absolute inset-x-1 top-1 rounded bg-black/70 px-1.5 py-1 text-center text-[10px] font-medium text-white" role="status">Sending to Buffer…</span>
-                <span v-else-if="bufferJobs[pick.id]?.state === 'unknown'" class="absolute inset-x-1 top-1 rounded bg-amber-600 px-1.5 py-1 text-center text-[10px] font-medium text-white">Check Buffer</span>
+                <span v-if="playerJobState(pick.id) === 'sending'" class="absolute inset-x-1 top-1 rounded bg-black/70 px-1.5 py-1 text-center text-[10px] font-medium text-white" role="status">Sending to Buffer…</span>
+                <span v-else-if="playerJobState(pick.id) === 'unknown'" class="absolute inset-x-1 top-1 rounded bg-amber-600 px-1.5 py-1 text-center text-[10px] font-medium text-white">Check Buffer</span>
                 <span v-else-if="pick.caption" class="absolute right-1 top-1 size-2.5 rounded-full bg-primary ring-2 ring-white" :aria-label="'Caption ready for ' + pick.player.name" />
                 <p class="truncate px-1 pt-1 text-[10px] text-muted">{{ pick.player.name }} · {{ instagramDesigns.find(item => item.id === pick.designId)?.name }}</p>
               </article>

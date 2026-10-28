@@ -16,8 +16,10 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
   const fixturesLoading = ref(false)
   const fixturesError = ref('')
   const caption = ref('')
+  const xCaption = ref('')
   const captionLoading = ref(false)
   const captionError = ref('')
+  const xCaptionError = ref('')
   let captionRequest = 0
   let captionController: AbortController | undefined
 
@@ -98,7 +100,9 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     captionController?.abort()
     captionLoading.value = false
     caption.value = ''
+    xCaption.value = ''
     captionError.value = ''
+    xCaptionError.value = ''
   }, { flush: 'sync' })
   const validationMessage = computed(() => {
     if (selectedPlayers.value.length !== template.value.count) return `Select ${template.value.count} ${template.value.count === 1 ? 'player' : 'players'} for this template.`
@@ -121,35 +125,39 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     captionController = new AbortController()
     captionLoading.value = true
     captionError.value = ''
-    let failureMessage = 'Caption generation failed. Try again shortly.'
-    try {
-      const response = await $fetch<any>('/api/get-response', {
-        method: 'POST', signal: captionController.signal,
-        body: { prompt: { task: 'Write one Instagram caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.', ...postDraft } },
-      })
-      if (request !== captionRequest) return
-      if (!response?.success) {
-        const messages: Record<string, string> = {
-          configuration: 'Caption generation is not configured on this server.',
-          authorization: 'The caption service rejected its API key. Check the server configuration.',
-          model_unavailable: 'The caption model is unavailable. Check the server model setting.',
-          rate_limited: 'The caption service is rate limited or out of quota. Try again later.',
-          provider_error: 'The caption service could not be reached. Try again shortly.',
+    xCaptionError.value = ''
+    const controller = captionController
+    const generate = async (platform: 'instagram' | 'x') => {
+      const errorRef = platform === 'x' ? xCaptionError : captionError
+      const captionRef = platform === 'x' ? xCaption : caption
+      try {
+        const response = await $fetch<any>('/api/get-response', {
+          method: 'POST', signal: controller.signal,
+          body: { platform, prompt: { task: `Write one ${platform === 'x' ? 'X' : 'Instagram'} caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.`, ...postDraft } },
+        })
+        if (request !== captionRequest) return
+        if (!response?.success || typeof response.output !== 'string' || !response.output.trim()) {
+          const messages: Record<string, string> = {
+            configuration: 'Caption generation is not configured on this server.',
+            authorization: 'The caption service rejected its API key. Check the server configuration.',
+            model_unavailable: 'The caption model is unavailable. Check the server model setting.',
+            rate_limited: 'The caption service is rate limited or out of quota. Try again later.',
+            provider_error: 'The caption service could not be reached. Try again shortly.',
+          }
+          errorRef.value = messages[response?.error] || 'The caption service returned no caption. Try again.'
+          return
         }
-        captionError.value = messages[response?.error] || 'The caption service returned no caption. Try again.'
-        return
+        captionRef.value = response.output.trim()
+      } catch {
+        if (request === captionRequest) errorRef.value = 'Caption generation failed. Try again shortly.'
       }
-      if (typeof response.output !== 'string' || !response.output.trim()) {
-        captionError.value = 'The caption service returned no caption. Try again.'
-        return
-      }
-      caption.value = response.output.trim()
-    } catch {
-      if (request === captionRequest) captionError.value = failureMessage
+    }
+    try {
+      await Promise.all([generate('instagram'), generate('x')])
     } finally {
       if (request === captionRequest) captionLoading.value = false
     }
   }
   onScopeDispose(() => captionController?.abort())
-  return { players, designId, palette, templateId, template, headline, statKeys, selectedPlayers, shortlistMode, candidates, togglePlayer, movePlayer, suggestPlayers, fixturesLoading, fixturesError, draft, draftKey, validationMessage, caption, captionLoading, captionError, generateCaption }
+  return { players, designId, palette, templateId, template, headline, statKeys, selectedPlayers, shortlistMode, candidates, togglePlayer, movePlayer, suggestPlayers, fixturesLoading, fixturesError, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, generateCaption }
 }

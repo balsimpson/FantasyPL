@@ -124,6 +124,7 @@ export default defineNuxtConfig({
 		JEV_API_KEY: process.env.JEV_API_KEY || "",
 		BUFFER_API_KEY: process.env.BUFFER_API_KEY || "",
 		BUFFER_CHANNEL_ID: process.env.BUFFER_CHANNEL_ID || "",
+		BUFFER_X_CHANNEL_ID: process.env.BUFFER_X_CHANNEL_ID || "",
 		CONVEX_URL: process.env.CONVEX_URL || "",
 		SCHEDULER_SERVICE_TOKEN: process.env.SCHEDULER_SERVICE_TOKEN || "",
 		public: {

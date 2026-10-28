@@ -3,11 +3,12 @@ import type { InstagramPlayer } from '~/utils/instagram-templates'
 import { formatSchedulerPostTiming } from '~/utils/scheduler-history'
 import SchedulerHistoryPostCard from '~/components/SchedulerHistoryPostCard.vue'
 import { useSchedulerHistoryRefresh } from '~/composables/useSchedulerHistoryRefresh'
-const props = defineProps<{ players: InstagramPlayer[]; initialSearch?: string }>()
-const search = useState('scheduler-history-search', () => props.initialSearch || '')
-const status = useState('scheduler-history-status', () => 'all')
-const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, refreshPending, revision, deleting, deleteError, deleteEntry, dismissSyncError } = useSchedulerPostList(search, status)
-const { overview, loading: overviewLoading, error: overviewError, load: loadOverview } = useSchedulerHistoryOverview()
+const props = defineProps<{ players: InstagramPlayer[]; platform: 'instagram' | 'x'; initialSearch?: string }>()
+const emit = defineEmits<{ 'update:platform': [value: 'instagram' | 'x'] }>()
+const search = useState(`scheduler-history-search-${props.platform}`, () => props.initialSearch || '')
+const status = useState(`scheduler-history-status-${props.platform}`, () => 'all')
+const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, refreshPending, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError } = useSchedulerPostList(search, status, props.platform)
+const { overview, loading: overviewLoading, error: overviewError, load: loadOverview } = useSchedulerHistoryOverview(props.platform)
 const now = useSchedulerHistoryRefresh(refreshPending)
 const postTimings = computed(() => Object.fromEntries(posts.value.map(post => [post._id, formatSchedulerPostTiming(post, now.value)])))
 const metrics = computed(() => [
@@ -17,6 +18,7 @@ const metrics = computed(() => [
   { label: 'Failed', value: overview.value?.failed },
 ])
 const statuses = [{ label: 'All posts', value: 'all' }, { label: 'Scheduled', value: 'scheduled' }, { label: 'Published', value: 'published' }, { label: 'Failed', value: 'failed' }, { label: 'Check Buffer', value: 'unknown' }, { label: 'Drafts', value: 'draft' }]
+const platforms = [{ label: 'Instagram', value: 'instagram' }, { label: 'X', value: 'x' }]
 function linked() { revision.value++ }
 onMounted(() => { void initialize(); void loadOverview() })
 </script>
@@ -24,8 +26,11 @@ onMounted(() => { void initialize(); void loadOverview() })
 <template>
   <section aria-labelledby="post-history-heading" class="@container" :aria-busy="loading || syncing">
     <div class="w-full">
-      <div class="mb-4 grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_10rem] sm:gap-3">
-        <h2 id="post-history-heading" class="col-span-2 text-base font-semibold text-highlighted sm:col-span-1 sm:mr-3">History</h2>
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <h2 id="post-history-heading" class="text-base font-semibold text-highlighted">History</h2>
+        <USelect :model-value="platform" aria-label="History channel" :items="platforms" class="w-36" :ui="{ base: 'w-full' }" @update:model-value="emit('update:platform', $event as 'instagram' | 'x')" />
+      </div>
+      <div class="mb-4 grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-3">
         <UInput v-model="search" aria-label="Search posts" placeholder="Search posts" icon="i-lucide-search" class="w-full" :ui="{ base: 'w-full' }" />
         <USelect v-model="status" aria-label="Post status" :items="statuses" class="w-full" :ui="{ base: 'w-full' }" />
       </div>
@@ -50,13 +55,14 @@ onMounted(() => { void initialize(); void loadOverview() })
       </div>
       <UAlert v-if="error" color="error" title="History could not load" :description="error" class="mb-3" :actions="[{ label: 'Retry', onClick: () => load() }]" />
       <UAlert v-if="deleteError" color="error" title="Post could not be deleted" :description="deleteError" class="mb-3" />
+      <UAlert v-if="retryError" color="error" title="X post could not be retried" :description="retryError" class="mb-3" />
       <div v-if="(loading || syncing) && !posts.length" role="status" class="flex justify-center py-12">
         <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-muted motion-reduce:animate-none" aria-hidden="true" />
         <span class="sr-only">Loading history</span>
       </div>
       <p v-else-if="!posts.length && !error" class="py-10 text-center text-sm text-muted">{{ search || status !== 'all' ? 'No matching posts.' : 'No posts yet.' }}</p>
-      <div v-else role="list" aria-label="Instagram post history" class="columns-1 gap-4 @[32rem]:columns-2 @[52rem]:columns-3 @[72rem]:columns-4">
-        <SchedulerHistoryPostCard v-for="post in posts" :key="post._id" :post="post" :players="players" :timing="postTimings[post._id]" :deleting="deleting === post._id" :disabled="Boolean(deleting) || loading || syncing" @linked="linked" @delete="deleteEntry" />
+      <div v-else role="list" :aria-label="`${platform === 'x' ? 'X' : 'Instagram'} post history`" class="columns-1 gap-4 @[32rem]:columns-2 @[52rem]:columns-3 @[72rem]:columns-4">
+        <SchedulerHistoryPostCard v-for="post in posts" :key="post._id" :post="post" :platform="platform" :players="players" :timing="postTimings[post._id]" :deleting="deleting === post._id" :retrying="retrying === post._id" :disabled="Boolean(deleting) || Boolean(retrying) || loading || syncing" @linked="linked" @delete="deleteEntry" @retry="retryX" />
       </div>
       <div v-if="hasMore || hasOlder" class="mt-3 flex flex-wrap justify-center gap-2">
         <UButton v-if="hasMore" label="Load more" size="sm" color="neutral" variant="outline" :loading="loading" :disabled="syncing" @click="load(true)" />

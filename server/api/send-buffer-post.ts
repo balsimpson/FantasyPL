@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { requireAdmin, requireAdminOrigin } from '../utils/admin'
-import { getBufferInstagramChannel } from '../utils/buffer'
+import { getBufferInstagramChannel, getBufferXChannel } from '../utils/buffer'
 import { schedulerApi, schedulerDatabase, schedulerHistoryError } from '../utils/scheduler-history'
 
 export default defineEventHandler(async event => {
@@ -9,6 +9,8 @@ export default defineEventHandler(async event => {
   requireAdminOrigin(event)
   const body = await readBody(event)
   if (typeof body?.caption !== 'string' || !body.caption.trim() || body.caption.length > 10000) throw createError({ statusCode: 400, statusMessage: 'Write a caption before scheduling.' })
+  const paired = body?.xCaption !== undefined
+  if (paired && (typeof body.xCaption !== 'string' || !body.xCaption.trim() || body.xCaption.length > 10000)) throw createError({ statusCode: 400, statusMessage: 'Write an X caption before scheduling.' })
   let imageUrl: URL
   try {
     imageUrl = new URL(body.image_url)
@@ -39,14 +41,30 @@ export default defineEventHandler(async event => {
     draftJson = JSON.stringify(draft)
     if (draftJson.length > 50000) throw createError({ statusCode: 400, statusMessage: 'The post is too large to save.' })
   }
-  const channel = await getBufferInstagramChannel()
+  const [channel, xChannel] = await Promise.all([getBufferInstagramChannel(), paired ? getBufferXChannel() : Promise.resolve(null)])
   const { client, secret } = schedulerDatabase()
+  const requestId = typeof body.requestId === 'string' && body.requestId.length <= 100 ? body.requestId : randomUUID()
+  const fingerprint = (caption: string) => createHash('sha256').update(JSON.stringify({ caption, draft: draftJson, image: draftJson ? null : imageUrl.href })).digest('hex')
+  if (paired && xChannel) {
+    try {
+      const reservations = await client.mutation(schedulerApi.schedulerHistory.reservePair, {
+        secret, instagramChannelId: channel.id, xChannelId: xChannel.id, requestId,
+        instagramFingerprint: fingerprint(body.caption), xFingerprint: fingerprint(body.xCaption),
+        caption: body.caption, xCaption: body.xCaption, imageUrl: imageUrl.href, players, gameweek, season, template, design, draftJson,
+        allowRepeat: body.allowRepeat === true,
+      })
+      return { success: true, posts: [
+        { ...reservations.instagram, platform: 'instagram' as const, channelId: channel.id, channel: channel.name },
+        { ...reservations.x, platform: 'x' as const, channelId: xChannel.id, channel: xChannel.name },
+      ] }
+    } catch (error) { throw schedulerHistoryError(error) }
+  }
   let reservation
   try {
     reservation = await client.mutation(schedulerApi.schedulerHistory.reserve, {
       secret, channelId: channel.id,
-      requestId: typeof body.requestId === 'string' && body.requestId.length <= 100 ? body.requestId : randomUUID(),
-      fingerprint: createHash('sha256').update(JSON.stringify({ caption: body.caption, draft: draftJson, image: draftJson ? null : imageUrl.href })).digest('hex'),
+      requestId,
+      fingerprint: fingerprint(body.caption),
       caption: body.caption, imageUrl: imageUrl.href, players, gameweek, season, template, design, draftJson,
       allowRepeat: body.allowRepeat === true,
     })

@@ -10,6 +10,31 @@ function authorize(secret: string) {
 }
 const queuedStatuses = ['submitting', 'scheduled', 'unknown'] as const
 const activeStatuses = new Set(['submitting', 'scheduled', 'unknown', 'published'])
+const reservationResult = v.object({ reserved: v.boolean(), postId: v.id('schedulerPosts'), bufferPostId: nullableString, dueAt: nullableNumber, status: postStatus })
+
+type Reservation = {
+  channelId: string; platform?: 'instagram' | 'x'; requestId: string; fingerprint: string
+  imageUrl: string; caption: string; players: { code: number; name: string }[]
+  gameweek: number | null; season: string | null; template: string | null; design: string | null
+  draftJson: string | null; allowRepeat: boolean
+}
+
+async function reservePost(ctx: MutationCtx, args: Reservation) {
+  if (args.players.length > 5 || new Set(args.players.map(item => item.code)).size !== args.players.length) throw new ConvexError('Choose no more than five different players.')
+  if ((args.draftJson?.length ?? 0) > 50000 || args.caption.length > 10000) throw new ConvexError('The post is too large to save.')
+  const sameRequest = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_requestId', q => q.eq('channelId', args.channelId).eq('requestId', args.requestId)).unique()
+  const identical = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_fingerprint', q => q.eq('channelId', args.channelId).eq('fingerprint', args.fingerprint)).order('desc').take(20)
+  const existing = sameRequest || identical.find(post => activeStatuses.has(post.status))
+  if (existing) return { reserved: false, postId: existing._id, bufferPostId: existing.bufferPostId, dueAt: existing.dueAt, status: existing.status }
+  const activity = await getActivity(ctx, args.channelId, args.players.map(item => item.code), args.gameweek, args.season)
+  if (!args.allowRepeat && activity.players.some(item => args.players.some(selected => selected.code === item.code) && (item.queued || item.postedThisGameweek))) throw new ConvexError('A selected player is already queued or was posted this gameweek. Review the warning and allow the repeat to continue.')
+  const { allowRepeat, ...record } = args
+  const now = Date.now()
+  const postId = await ctx.db.insert('schedulerPosts', { ...record, searchText: `${args.players.map(item => item.name).join(' ')} ${args.caption}`, bufferPostId: null, status: 'submitting', dueAt: null, sentAt: null, externalLink: null, error: null, createdAt: now, updatedAt: now, source: args.players.length ? 'scheduler' : 'buffer' })
+  await updatePlayerRows(ctx, (await ctx.db.get(postId))!)
+  await ctx.scheduler.runAfter(0, internal.schedulerHistory.submitToBuffer, { postId })
+  return { reserved: true, postId, bufferPostId: null, dueAt: null, status: 'submitting' as const }
+}
 
 async function getActivity(ctx: QueryCtx | MutationCtx, channelId: string, codes: number[], gameweek: number | null, season: string | null) {
   const week = gameweek === null || season === null ? [] : await ctx.db.query('schedulerPostPlayers').withIndex('by_channel_and_season_and_gameweek', q => q.eq('channelId', channelId).eq('season', season).eq('gameweek', gameweek)).take(2000)
@@ -133,24 +158,59 @@ export const reserve = mutation({
     imageUrl: v.string(), caption: v.string(), players: v.array(player), gameweek: nullableNumber, season: nullableString,
     template: nullableString, design: nullableString, draftJson: nullableString, allowRepeat: v.boolean(),
   },
-  returns: v.object({ reserved: v.boolean(), postId: v.id('schedulerPosts'), bufferPostId: nullableString, dueAt: nullableNumber, status: postStatus }),
+  returns: reservationResult,
   handler: async (ctx, args) => {
     authorize(args.secret)
-    if (args.players.length > 5 || new Set(args.players.map(item => item.code)).size !== args.players.length) throw new ConvexError('Choose no more than five different players.')
-    if ((args.draftJson?.length ?? 0) > 50000 || args.caption.length > 10000) throw new ConvexError('The post is too large to save.')
-    const sameRequest = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_requestId', q => q.eq('channelId', args.channelId).eq('requestId', args.requestId)).unique()
-    const identical = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_fingerprint', q => q.eq('channelId', args.channelId).eq('fingerprint', args.fingerprint)).order('desc').take(20)
-    const existing = sameRequest || identical.find(post => activeStatuses.has(post.status))
-    if (existing) return { reserved: false, postId: existing._id, bufferPostId: existing.bufferPostId, dueAt: existing.dueAt, status: existing.status }
-    const activity = await getActivity(ctx, args.channelId, args.players.map(item => item.code), args.gameweek, args.season)
-    if (!args.allowRepeat && activity.players.some(item => args.players.some(selected => selected.code === item.code) && (item.queued || item.postedThisGameweek))) throw new ConvexError('A selected player is already queued or was posted this gameweek. Review the warning and allow the repeat to continue.')
-    const { secret, allowRepeat, ...record } = args
-    const now = Date.now()
-    const postId = await ctx.db.insert('schedulerPosts', { ...record, searchText: `${args.players.map(item => item.name).join(' ')} ${args.caption}`, bufferPostId: null, status: 'submitting', dueAt: null, sentAt: null, externalLink: null, error: null, createdAt: now, updatedAt: now, source: args.players.length ? 'scheduler' : 'buffer' })
-    const post = (await ctx.db.get(postId))!
-    await updatePlayerRows(ctx, post)
-    await ctx.scheduler.runAfter(0, internal.schedulerHistory.submitToBuffer, { postId })
-    return { reserved: true, postId, bufferPostId: null, dueAt: null, status: 'submitting' as const }
+    const { secret, ...reservation } = args
+    return reservePost(ctx, reservation)
+  },
+})
+
+export const reservePair = mutation({
+  args: {
+    secret: v.string(), instagramChannelId: v.string(), xChannelId: v.string(), requestId: v.string(),
+    instagramFingerprint: v.string(), xFingerprint: v.string(), imageUrl: v.string(), caption: v.string(), xCaption: v.string(),
+    players: v.array(player), gameweek: nullableNumber, season: nullableString, template: nullableString,
+    design: nullableString, draftJson: nullableString, allowRepeat: v.boolean(),
+  },
+  returns: v.object({ instagram: reservationResult, x: reservationResult }),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    if (args.instagramChannelId === args.xChannelId) throw new ConvexError('Choose different Instagram and X channels.')
+    const common = { requestId: args.requestId, imageUrl: args.imageUrl, players: args.players, gameweek: args.gameweek, season: args.season, template: args.template, design: args.design, draftJson: args.draftJson, allowRepeat: args.allowRepeat }
+    const instagram = await reservePost(ctx, { ...common, channelId: args.instagramChannelId, platform: 'instagram', caption: args.caption, fingerprint: args.instagramFingerprint })
+    const x = await reservePost(ctx, { ...common, channelId: args.xChannelId, platform: 'x', caption: args.xCaption, fingerprint: args.xFingerprint })
+    return { instagram, x }
+  },
+})
+
+export const retryXSubmission = mutation({
+  args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts'), caption: v.string(), fingerprint: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const post = await ctx.db.get(args.postId)
+    if (!post || post.channelId !== args.channelId || post.platform !== 'x' || post.source !== 'scheduler' || post.status !== 'failed' || post.bufferPostId || post.deletedAt !== undefined) throw new ConvexError('This X submission cannot be retried. Check Buffer first.')
+    if (!args.caption.trim() || args.caption.length > 10000) throw new ConvexError('Write an X caption before retrying.')
+    const matches = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_fingerprint', q => q.eq('channelId', args.channelId).eq('fingerprint', args.fingerprint)).order('desc').take(20)
+    if (matches.some(item => item._id !== post._id && activeStatuses.has(item.status))) throw new ConvexError('This X post is already queued. Check Buffer before trying again.')
+    const activity = await getActivity(ctx, args.channelId, post.players.map(item => item.code), post.gameweek, post.season)
+    if (activity.players.some(item => post.players.some(selected => selected.code === item.code) && (item.queued || item.postedThisGameweek))) throw new ConvexError('A selected player is already queued or posted on X this gameweek. Check Buffer before trying again.')
+    await ctx.db.patch(post._id, { caption: args.caption, fingerprint: args.fingerprint, searchText: `${post.players.map(item => item.name).join(' ')} ${args.caption}`, status: 'submitting', error: null, updatedAt: Date.now() })
+    await updatePlayerRows(ctx, (await ctx.db.get(post._id))!)
+    await ctx.scheduler.runAfter(0, internal.schedulerHistory.submitToBuffer, { postId: post._id })
+    return null
+  },
+})
+
+export const retryCandidate = query({
+  args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
+  returns: v.union(v.object({ draftJson: nullableString, imageUrl: nullableString }), v.null()),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const post = await ctx.db.get(args.postId)
+    if (!post || post.channelId !== args.channelId || post.platform !== 'x' || post.status !== 'failed' || post.bufferPostId || post.source !== 'scheduler' || post.deletedAt !== undefined) return null
+    return { draftJson: post.draftJson, imageUrl: post.imageUrl }
   },
 })
 
@@ -198,7 +258,7 @@ export const submitToBuffer = internalAction({
             ... on PostActionSuccess { post { id dueAt status } }
             ... on MutationError { message }
           }
-        }`, variables: { input: { text: post.caption, channelId: post.channelId, schedulingType: 'automatic', mode: 'addToQueue', assets: [{ image: { url: post.imageUrl } }], metadata: { instagram: { type: 'post', shouldShareToFeed: true } } } } }),
+        }`, variables: { input: { text: post.caption, channelId: post.channelId, schedulingType: 'automatic', mode: 'addToQueue', assets: [{ image: { url: post.imageUrl } }], ...(post.platform === 'x' ? {} : { metadata: { instagram: { type: 'post', shouldShareToFeed: true } } }) } } }),
         signal: AbortSignal.timeout(12_000),
       })
     } catch {

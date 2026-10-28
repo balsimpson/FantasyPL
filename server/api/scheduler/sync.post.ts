@@ -1,5 +1,5 @@
-import { bufferRequest, getBufferInstagramChannel } from '../../utils/buffer'
-import { schedulerApi, schedulerHistoryError, schedulerDatabase, schedulerScope } from '../../utils/scheduler-history'
+import { bufferRequest, getBufferChannel } from '../../utils/buffer'
+import { schedulerApi, schedulerHistoryError, schedulerDatabase, schedulerPlatform, schedulerScope } from '../../utils/scheduler-history'
 import { requireAdmin, requireAdminOrigin } from '../../utils/admin'
 import type { SchedulerPostStatus } from '../../../utils/scheduler-history'
 
@@ -18,6 +18,7 @@ export default defineEventHandler(async event => {
   await requireAdmin(event)
   requireAdminOrigin(event)
   const body = await readBody(event)
+  const platform = schedulerPlatform(body?.platform)
   const after = typeof body?.cursor === 'string' && body.cursor ? body.cursor : null
   const postIds: string[] | undefined = body?.postIds
   if (postIds !== undefined && (!Array.isArray(postIds) || postIds.length > 20 || postIds.some(id => typeof id !== 'string' || !id.trim() || id.length > 200))) {
@@ -27,7 +28,7 @@ export default defineEventHandler(async event => {
     if (postIds) {
       const ids = [...new Set(postIds)]
       if (!ids.length) return { imported: 0, hasMore: false, cursor: null }
-      const { client, secret, channel } = await schedulerScope()
+      const { client, secret, channel } = await schedulerScope(platform)
       const variables = Object.fromEntries(ids.map((id, index) => [`p${index}`, { id }]))
       const declarations = ids.map((_, index) => `$p${index}: PostInput!`).join(', ')
       const selections = ids.map((_, index) => `p${index}: post(input: $p${index}) { id channelId text status createdAt dueAt sentAt externalLink assets { source thumbnail mimeType } }`).join('\n')
@@ -42,7 +43,7 @@ export default defineEventHandler(async event => {
       return { imported, hasMore: false, cursor: null }
     }
     const { client, secret } = schedulerDatabase()
-    const channel = await getBufferInstagramChannel()
+    const channel = await getBufferChannel(platform)
     const response = await bufferRequest<{ posts: { edges: { node: BufferHistoryPost }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } }>(`query($input: PostsInput!, $after: String) {
       posts(first: 50, after: $after, input: $input) {
         edges { node { id text status createdAt dueAt sentAt externalLink assets { source thumbnail mimeType } } }

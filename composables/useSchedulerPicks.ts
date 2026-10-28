@@ -8,6 +8,7 @@ export type SchedulerPostPick = SchedulerPickCandidate & {
   player: InstagramPlayer
   designId: InstagramDesignId
   caption: string
+  xCaption: string
 }
 
 export function useSchedulerPicks(players: ComputedRef<InstagramPlayer[]>, ready: Ref<boolean>, pendingIds: ComputedRef<number[]>, excludedCodes: Ref<number[]>, gameweek: ComputedRef<SchedulerPickGameweek | null>) {
@@ -24,7 +25,7 @@ export function useSchedulerPicks(players: ComputedRef<InstagramPlayer[]>, ready
     postPicks.value.push(...nextBatch.value.map((candidate, index) => ({
       ...candidate, id: candidate.player.id,
       designId: instagramDesigns[(offset + index) % instagramDesigns.length]!.id,
-      caption: '',
+      caption: '', xCaption: '',
     })))
   }
 

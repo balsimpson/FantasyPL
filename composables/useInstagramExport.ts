@@ -16,7 +16,7 @@ export function useInstagramExport(getElement: () => HTMLElement | null | undefi
   const failed = ref(false)
   const config = useRuntimeConfig()
   const { data: bufferStatus, status: connectionStatus } = useFetch('/api/buffer-status')
-  const schedulingConfigured = computed(() => Boolean(config.public.CLOUDINARY_UPLOAD_URL && bufferStatus.value?.configured))
+  const schedulingConfigured = computed(() => Boolean(config.public.CLOUDINARY_UPLOAD_URL && bufferStatus.value?.configured && bufferStatus.value?.xConfigured))
   const schedulingMessage = computed(() => {
     if (!config.public.CLOUDINARY_UPLOAD_URL) return 'Image upload is not configured.'
     if (connectionStatus.value === 'pending' || connectionStatus.value === 'idle') return 'Checking Buffer connection…'
@@ -78,14 +78,16 @@ export function useInstagramExport(getElement: () => HTMLElement | null | undefi
       message.value = 'PNG created at 1080 × 1080.'
     })
   }
-  function schedule(filename: string, caption: string, allowRepeat = false) {
+  function schedule(filename: string, caption: string, xCaption: string, allowRepeat = false) {
     return run(async () => {
       if (!schedulingConfigured.value) throw new Error(schedulingMessage.value)
       if (!caption.trim()) throw new Error('Write or generate a caption before scheduling.')
+      if (!xCaption.trim()) throw new Error('Write or generate an X caption before scheduling.')
       const snapshot = JSON.parse(JSON.stringify(draft.value)) as InstagramDraft
       const requestId = crypto.randomUUID()
       phase.value = 'Creating image…'
       const blob = await capture()
+      if (blob.size > 5_000_000) throw new Error('The image exceeds the 5 MB limit for X. Try another design before scheduling.')
       phase.value = 'Uploading image…'
       const form = new FormData()
       form.append('file', blob, filename)
@@ -100,14 +102,14 @@ export function useInstagramExport(getElement: () => HTMLElement | null | undefi
       try {
         scheduled = await $fetch('/api/send-buffer-post', {
           method: 'POST',
-          body: { caption, image_url: result.secure_url, draft: snapshot, requestId, allowRepeat },
+          body: { caption, xCaption, image_url: result.secure_url, draft: snapshot, requestId, allowRepeat },
           retry: 0,
         })
       } catch (error: unknown) {
         const detail = error as { data?: { data?: { message?: string }; statusMessage?: string } }
         throw new Error(detail?.data?.data?.message || detail?.data?.statusMessage || 'Buffer did not confirm the post. Check your Buffer queue before trying again.')
       }
-      if (!scheduled?.success || !(('queued' in scheduled && scheduled.queued) || ('alreadyScheduled' in scheduled && scheduled.alreadyScheduled))) throw new Error('The post could not be added to Buffer.')
+      if (!scheduled?.success || !('posts' in scheduled) || scheduled.posts?.length !== 2) throw new Error('The posts could not be added to Buffer.')
       useState('scheduler-history-revision', () => 0).value++
       return scheduled
     })

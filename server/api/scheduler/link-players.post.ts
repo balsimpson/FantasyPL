@@ -1,6 +1,6 @@
 import type { Id } from '../../../convex/_generated/dataModel'
 import { requireAdmin, requireAdminOrigin } from '../../utils/admin'
-import { schedulerApi, schedulerHistoryError, schedulerScope } from '../../utils/scheduler-history'
+import { schedulerApi, schedulerHistoryError, schedulerPlatform, schedulerScope } from '../../utils/scheduler-history'
 
 export default defineEventHandler(async event => {
   await requireAdmin(event)
@@ -11,7 +11,7 @@ export default defineEventHandler(async event => {
   const gameweek = body.gameweek == null ? null : Number(body.gameweek)
   if (gameweek !== null && (!Number.isSafeInteger(gameweek) || gameweek < 1 || gameweek > 100)) throw createError({ statusCode: 400, statusMessage: 'Enter a valid gameweek.' })
   try {
-    const { client, secret, channel } = await schedulerScope()
+    const { client, secret, channel } = await schedulerScope(schedulerPlatform(body.platform))
     await client.mutation(schedulerApi.schedulerHistory.linkPlayers, { secret, channelId: channel.id, postId: body.postId as Id<'schedulerPosts'>, players: body.players, gameweek, season })
     return { success: true }
   } catch (error) { throw schedulerHistoryError(error) }

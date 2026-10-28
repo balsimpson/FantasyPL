@@ -36,11 +36,13 @@ Change sentence length and opening style. Do not force every caption to end with
 
 Return only the caption text.`;
 
+const xInstructions = `You write short X posts for Fantasy Premier League fans. Sound like a knowledgeable fan talking to other managers. Use only facts in the supplied post, follow its story angle, and use the selected stats. Do not infer injuries, lineups, reasons for transfers, future returns, or missing fixture details. Total points, goals, assists, and minutes are season totals; transfers are gameweek totals. Transfer rankings are among eligible scheduler players. Include #FPL. Aim for no more than 240 characters so the post fits a free X account. Return only the post text.`;
+
 export default defineEventHandler(async (event) => {
   assertMethod(event, 'POST');
   await requireAdmin(event);
   requireAdminOrigin(event);
-  const { prompt } = await readBody(event);
+  const { prompt, platform } = await readBody(event);
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { success: false, error: "configuration" };
 
@@ -48,7 +50,7 @@ export default defineEventHandler(async (event) => {
     const openai = new OpenAI({ apiKey });
     const resp = await openai.responses.create({
       model: "gpt-5.4",
-      instructions: instructions_v2,
+      instructions: platform === 'x' ? xInstructions : instructions_v2,
       input: [{ role: "user", content: JSON.stringify(prompt) }],
       store: false,
     });

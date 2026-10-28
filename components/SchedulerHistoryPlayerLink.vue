@@ -2,7 +2,7 @@
 import type { InstagramPlayer } from '~/utils/instagram-templates'
 import type { SchedulerPostRecord } from '~/utils/scheduler-history'
 import { schedulerClientError } from '~/composables/useSchedulerPostList'
-const props = withDefaults(defineProps<{ post: SchedulerPostRecord; players: InstagramPlayer[]; showTrigger?: boolean }>(), { showTrigger: true })
+const props = withDefaults(defineProps<{ post: SchedulerPostRecord; players: InstagramPlayer[]; platform?: 'instagram' | 'x'; showTrigger?: boolean }>(), { platform: 'instagram', showTrigger: true })
 const emit = defineEmits<{ saved: [] }>()
 const open = ref(false)
 const codes = ref<number[]>(props.post.players.map(player => player.code))
@@ -16,7 +16,7 @@ async function save() {
   busy.value = true
   error.value = ''
   try {
-    await $fetch('/api/scheduler/link-players', { method: 'POST', body: { postId: props.post._id, season: season.value.trim() || null, gameweek: gameweek.value.trim() ? Number(gameweek.value) : null, players: codes.value.map(code => ({ code, name: props.players.find(player => player.code === code)?.fullName || props.post.players.find(player => player.code === code)?.name })) }, retry: 0 })
+    await $fetch('/api/scheduler/link-players', { method: 'POST', body: { platform: props.platform, postId: props.post._id, season: season.value.trim() || null, gameweek: gameweek.value.trim() ? Number(gameweek.value) : null, players: codes.value.map(code => ({ code, name: props.players.find(player => player.code === code)?.fullName || props.post.players.find(player => player.code === code)?.name })) }, retry: 0 })
     open.value = false
     emit('saved')
   } catch (cause) { error.value = schedulerClientError(cause) }

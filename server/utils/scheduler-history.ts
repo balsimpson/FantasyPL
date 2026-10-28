@@ -1,7 +1,7 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { anyApi } from 'convex/server'
 import type { api } from '../../convex/_generated/api'
-import { getBufferInstagramChannel } from './buffer'
+import { getBufferInstagramChannel, getBufferXChannel } from './buffer'
 export const schedulerApi = anyApi as unknown as typeof api
 
 export function schedulerDatabase() {
@@ -10,10 +10,16 @@ export function schedulerDatabase() {
   return { client: new ConvexHttpClient(config.CONVEX_URL), secret: config.SCHEDULER_SERVICE_TOKEN }
 }
 
-export async function schedulerScope() {
+export function schedulerPlatform(value: unknown): 'instagram' | 'x' {
+  if (value === undefined || value === null || value === '' || value === 'instagram') return 'instagram'
+  if (value === 'x') return 'x'
+  throw createError({ statusCode: 400, statusMessage: 'Choose Instagram or X.' })
+}
+
+export async function schedulerScope(platform: 'instagram' | 'x' = 'instagram') {
   const database = schedulerDatabase()
-  const configuredId = useRuntimeConfig().BUFFER_CHANNEL_ID
-  const channel = configuredId ? { id: configuredId } : await getBufferInstagramChannel()
+  const configuredId = platform === 'instagram' ? useRuntimeConfig().BUFFER_CHANNEL_ID : useRuntimeConfig().BUFFER_X_CHANNEL_ID
+  const channel = typeof configuredId === 'string' && configuredId ? { id: configuredId } : await (platform === 'instagram' ? getBufferInstagramChannel() : getBufferXChannel())
   return { ...database, channel }
 }
 

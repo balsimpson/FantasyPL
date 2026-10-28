@@ -42,9 +42,12 @@ export async function bufferRequest<T>(query: string, variables: Record<string, 
   return result.data
 }
 
-export async function getBufferInstagramChannel(): Promise<BufferChannel> {
+export async function getBufferChannel(platform: 'instagram' | 'x'): Promise<BufferChannel> {
   const fields = 'id organizationId name service isDisconnected isLocked isQueuePaused'
-  const configuredId = useRuntimeConfig().BUFFER_CHANNEL_ID
+  const configuredId = platform === 'instagram' ? useRuntimeConfig().BUFFER_CHANNEL_ID : useRuntimeConfig().BUFFER_X_CHANNEL_ID
+  const service = platform === 'instagram' ? 'instagram' : 'twitter'
+  const name = platform === 'instagram' ? 'Instagram' : 'X'
+  const setting = platform === 'instagram' ? 'BUFFER_CHANNEL_ID' : 'BUFFER_X_CHANNEL_ID'
   let channel: BufferChannel | undefined
 
   if (configuredId) {
@@ -64,14 +67,17 @@ export async function getBufferInstagramChannel(): Promise<BufferChannel> {
       )
       return response.channels
     }))
-    const channels = organizations.flat().filter(item => item.service === 'instagram')
-    if (channels.length > 1) throw bufferError('More than one Instagram channel is connected. Set BUFFER_CHANNEL_ID on the server to choose one.')
+    const channels = organizations.flat().filter(item => item.service === service)
+    if (channels.length > 1) throw bufferError(`More than one ${name} channel is connected. Set ${setting} on the server to choose one.`)
     channel = channels[0]
   }
 
-  if (!channel || channel.service !== 'instagram') throw bufferError('Connect your Instagram account in Buffer before scheduling.')
-  if (channel.isDisconnected) throw bufferError('Your Instagram connection has expired. Reconnect it in Buffer.')
-  if (channel.isLocked) throw bufferError('Your Instagram channel is locked in Buffer. Unlock it before scheduling.')
-  if (channel.isQueuePaused) throw bufferError('Your Instagram queue is paused in Buffer. Resume it before scheduling.')
+  if (!channel || channel.service !== service) throw bufferError(`Connect your ${name} account in Buffer before scheduling.`)
+  if (channel.isDisconnected) throw bufferError(`Your ${name} connection has expired. Reconnect it in Buffer.`)
+  if (channel.isLocked) throw bufferError(`Your ${name} channel is locked in Buffer. Unlock it before scheduling.`)
+  if (channel.isQueuePaused) throw bufferError(`Your ${name} queue is paused in Buffer. Resume it before scheduling.`)
   return channel
 }
+
+export const getBufferInstagramChannel = () => getBufferChannel('instagram')
+export const getBufferXChannel = () => getBufferChannel('x')

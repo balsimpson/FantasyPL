@@ -1,4 +1,4 @@
-import { schedulerApi, schedulerHistoryError, schedulerScope } from '../../utils/scheduler-history'
+import { schedulerApi, schedulerHistoryError, schedulerPlatform, schedulerScope } from '../../utils/scheduler-history'
 import { requireAdmin } from '../../utils/admin'
 import type { SchedulerPostStatus } from '../../../utils/scheduler-history'
 
@@ -8,7 +8,7 @@ export default defineEventHandler(async event => {
   const query = getQuery(event)
   const status = typeof query.status === 'string' && ['submitting', 'scheduled', 'published', 'failed', 'unknown', 'draft', 'cancelled'].includes(query.status) ? query.status as SchedulerPostStatus : undefined
   try {
-    const { client, secret, channel } = await schedulerScope()
+    const { client, secret, channel } = await schedulerScope(schedulerPlatform(query.platform))
     return await client.query(schedulerApi.schedulerHistory.list, {
       secret, channelId: channel.id, status,
       search: String(query.search || '').slice(0, 200),
