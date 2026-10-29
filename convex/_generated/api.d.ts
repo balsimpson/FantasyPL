@@ -22,6 +22,7 @@ import type * as articles from "../articles.js";
 import type * as crons from "../crons.js";
 import type * as homepageBuyLogic from "../homepageBuyLogic.js";
 import type * as homepageTradeLogic from "../homepageTradeLogic.js";
+import type * as homepageTradeReview from "../homepageTradeReview.js";
 import type * as homepageTrades from "../homepageTrades.js";
 import type * as managerShares from "../managerShares.js";
 import type * as schedulerHistory from "../schedulerHistory.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   homepageBuyLogic: typeof homepageBuyLogic;
   homepageTradeLogic: typeof homepageTradeLogic;
+  homepageTradeReview: typeof homepageTradeReview;
   homepageTrades: typeof homepageTrades;
   managerShares: typeof managerShares;
   schedulerHistory: typeof schedulerHistory;

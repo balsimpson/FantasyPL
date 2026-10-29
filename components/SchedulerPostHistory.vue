@@ -2,14 +2,14 @@
 import type { InstagramPlayer } from '~/utils/instagram-templates'
 import { formatSchedulerPostTiming } from '~/utils/scheduler-history'
 import SchedulerHistoryPostCard from '~/components/SchedulerHistoryPostCard.vue'
-import { useSchedulerHistoryRefresh } from '~/composables/useSchedulerHistoryRefresh'
+import { useSchedulerClock } from '~/composables/useSchedulerClock'
 const props = defineProps<{ players: InstagramPlayer[]; platform: 'instagram' | 'x'; initialSearch?: string }>()
 const emit = defineEmits<{ 'update:platform': [value: 'instagram' | 'x'] }>()
 const search = useState(`scheduler-history-search-${props.platform}`, () => props.initialSearch || '')
 const status = useState(`scheduler-history-status-${props.platform}`, () => 'all')
-const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, refreshPending, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError } = useSchedulerPostList(search, status, props.platform)
+const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError } = useSchedulerPostList(search, status, props.platform)
 const { overview, loading: overviewLoading, error: overviewError, load: loadOverview } = useSchedulerHistoryOverview(props.platform)
-const now = useSchedulerHistoryRefresh(refreshPending)
+const now = useSchedulerClock()
 const postTimings = computed(() => Object.fromEntries(posts.value.map(post => [post._id, formatSchedulerPostTiming(post, now.value)])))
 const metrics = computed(() => [
   { label: 'Posted · 7 days', value: overview.value?.published7Days },

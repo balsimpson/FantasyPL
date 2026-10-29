@@ -1,6 +1,9 @@
 import type { Ref } from 'vue'
 import type { SchedulerPostRecord } from '~/utils/scheduler-history'
 
+// Buffer is contacted at most once per open of History within this window. Filters and paging never contact Buffer.
+const SYNC_CACHE_MS = 10 * 60_000
+
 export function schedulerClientError(error: unknown) {
   const detail = error as { data?: { data?: { message?: string }; statusMessage?: string } }
   return detail?.data?.data?.message || detail?.data?.statusMessage || 'Post history could not load. Please try again.'
@@ -9,7 +12,7 @@ export function schedulerClientError(error: unknown) {
 export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, platform: 'instagram' | 'x' = 'instagram') {
   type Page = { posts: SchedulerPostRecord[]; cursor: string | null; hasMore: boolean; loading: boolean; error: string; revision: number; request: number }
   const pages = useState<Record<string, Page>>(`scheduler-history-pages-${platform}`, () => ({}))
-  const provider = useState(`scheduler-history-provider-${platform}`, () => ({ syncing: false, error: '', cursor: null as string | null, hasOlder: false, nextRefreshAt: 0, lastFullRefreshAt: 0, pendingOffset: 0 }))
+  const provider = useState(`scheduler-history-provider-${platform}`, () => ({ syncing: false, error: '', cursor: null as string | null, hasOlder: false, lastFullRefreshAt: 0 }))
   const deleting = ref('')
   const deleteError = ref('')
   const retrying = ref('')
@@ -56,12 +59,13 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
     } catch (cause) { if (current === currentPage.request) currentPage.error = schedulerClientError(cause) }
     finally { if (current === currentPage.request) currentPage.loading = false }
   }
+  // Buffer import. Runs on History open (cached) or on the explicit "Older from Buffer" action.
   async function sync(older = false) {
     if (syncing.value) return
     provider.value.syncing = true
     provider.value.error = ''
+    // Stamp before the request so a failure is not retried automatically on the next open.
     if (!older) provider.value.lastFullRefreshAt = Date.now()
-    provider.value.nextRefreshAt = Date.now() + 60_000
     try {
       const result = await $fetch('/api/scheduler/sync', { method: 'POST', body: { platform, cursor: older ? provider.value.cursor : null }, retry: 0 })
       provider.value.cursor = result.cursor
@@ -69,7 +73,6 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
       revision.value++
     } catch (cause) {
       provider.value.error = schedulerClientError(cause)
-      provider.value.nextRefreshAt = Date.now() + 300_000
     }
     finally {
       await load(false, true)
@@ -77,39 +80,16 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
       if (!page.value || (page.value.revision !== revision.value && !page.value.error)) await load(false, true)
     }
   }
-  async function initialize() {
+  // Reads saved history from Convex only. Buffer is not contacted.
+  function refreshSaved() {
     if (syncing.value || page.value?.loading) return
-    if (!page.value || page.value.revision !== revision.value) await load(false, true)
-    if (document.hidden) return
-    if (Date.now() >= (provider.value.nextRefreshAt || 0) && Date.now() - (provider.value.lastFullRefreshAt || 0) >= 300_000) await sync()
-    else void refreshPending()
+    if (!page.value || page.value.revision !== revision.value) void load(false, true)
   }
-  async function refreshPending() {
-    const now = Date.now()
-    if (document.hidden || syncing.value || loading.value || deleting.value) return
-    if (posts.value.some(post => post.status === 'submitting' && !post.bufferPostId)) await load(false, true)
-    if (now < (provider.value.nextRefreshAt || 0)) return
-    const candidates = [...posts.value, ...Object.values(pages.value).flatMap(cached => cached.posts)]
-    const eligibleIds = [...new Set(candidates.filter(post => post.bufferPostId && (
-      post.status === 'submitting' || post.status === 'unknown' || (post.status === 'scheduled' && (post.dueAt === null || post.dueAt <= now))
-    )).map(post => post.bufferPostId!))]
-    if (!eligibleIds.length) return
-    const offset = (provider.value.pendingOffset || 0) % eligibleIds.length
-    const postIds = [...eligibleIds.slice(offset), ...eligibleIds.slice(0, offset)].slice(0, 20)
-    provider.value.pendingOffset = (offset + postIds.length) % eligibleIds.length
-    provider.value.syncing = true
-    provider.value.error = ''
-    provider.value.nextRefreshAt = now + 60_000
-    try {
-      await $fetch('/api/scheduler/sync', { method: 'POST', body: { platform, postIds }, retry: 0 })
-      revision.value++
-      await load(false, true)
-    } catch (cause) {
-      provider.value.error = schedulerClientError(cause)
-      provider.value.nextRefreshAt = Date.now() + 300_000
-    } finally {
-      provider.value.syncing = false
-    }
+  // Runs when History opens. Buffer is contacted only if the last import is older than the session cache window.
+  async function initialize() {
+    refreshSaved()
+    if (document.hidden) return
+    if (Date.now() - (provider.value.lastFullRefreshAt || 0) >= SYNC_CACHE_MS) await sync()
   }
   async function deleteEntry(post: SchedulerPostRecord) {
     if (deleting.value) return
@@ -137,10 +117,11 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
     finally { retrying.value = '' }
   }
   function dismissSyncError() { provider.value.error = '' }
+  // Filters only reread saved history. They never start a Buffer import.
   watch([search, status], (_, __, onCleanup) => {
-    const timer = setTimeout(() => initialize(), 300)
+    const timer = setTimeout(() => refreshSaved(), 300)
     onCleanup(() => clearTimeout(timer))
   })
   watch(revision, () => { if (!syncing.value) void load(false, true) }, { flush: 'sync' })
-  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, refreshPending, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError }
+  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError }
 }
