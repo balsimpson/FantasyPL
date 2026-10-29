@@ -1,5 +1,7 @@
 # Homepage UX and UI implementation plan
 
+For the phased SEO work, new fixture/club/player discovery routes, site identity markup, and article/tool links, start with [IMPROVE_SEO.md](IMPROVE_SEO.md). This plan retains ownership of homepage composition, navigation/search behavior and homepage verification; record detailed homepage changes here and link their SEO phase evidence from that guide.
+
 ## Current status and next checks, 27 October 2026
 
 The local homepage has a deadline, captain and differential picks, recommended buys and trades, transfer trends, fixtures, and a recap. Player search opens from the shared header as a full-screen grid. The header already links to Articles and Watchlist. The homepage has no recent-articles section yet.

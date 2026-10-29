@@ -95,7 +95,7 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     fixtures: fixtures.value,
   }))
   const draftKey = computed(() => JSON.stringify(draft.value))
-  watch(draftKey, () => {
+  function resetCaptions() {
     captionRequest++
     captionController?.abort()
     captionLoading.value = false
@@ -103,7 +103,7 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     xCaption.value = ''
     captionError.value = ''
     xCaptionError.value = ''
-  }, { flush: 'sync' })
+  }
   const validationMessage = computed(() => {
     if (selectedPlayers.value.length !== template.value.count) return `Select ${template.value.count} ${template.value.count === 1 ? 'player' : 'players'} for this template.`
     if (!headline.value.trim()) return 'Add a headline before exporting.'
@@ -159,5 +159,5 @@ export function useInstagramEditor(data: Ref<any>, excludedPlayerCodes: Ref<numb
     }
   }
   onScopeDispose(() => captionController?.abort())
-  return { players, designId, palette, templateId, template, headline, statKeys, selectedPlayers, shortlistMode, candidates, togglePlayer, movePlayer, suggestPlayers, fixturesLoading, fixturesError, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, generateCaption }
+  return { players, designId, palette, templateId, template, headline, statKeys, selectedPlayers, shortlistMode, candidates, togglePlayer, movePlayer, suggestPlayers, fixturesLoading, fixturesError, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, resetCaptions, generateCaption }
 }

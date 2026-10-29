@@ -8,7 +8,7 @@ Before editing, confirm the working directory, Git remote, branch, dirty state, 
 
 - Expected checkout: `/Users/balsimpson/Documents/Projects/FantasyPL`.
 - Expected remote: `https://github.com/balsimpson/FantasyPL.git`.
-- Canonical public site: `https://www.sportsync.in`. Vercel redirects the apex to `www`; the local canonical, sitemap and calendar changes made on 27 October still need an authorized release and hosted verification. The previous address is `https://fantasyleague.vercel.app`; see [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md). Keep `NUXT_PUBLIC_SITE_URL` aligned with the canonical origin.
+- Canonical public site: `https://www.sportsync.in`. Vercel redirects the apex to `www`. See [IMPROVE_SEO.md](IMPROVE_SEO.md) for current search verification and remaining checks, including routes and metadata not yet sampled. The previous address is `https://fantasyleague.vercel.app`. Keep `NUXT_PUBLIC_SITE_URL` aligned with the canonical origin.
 - The branch was `main` when this guide was created. Check it each session; do not switch branches automatically.
 - Use npm only; install dependencies with `npm i`. Do not use pnpm, Yarn, Bun, or another package manager. Keep `package-lock.json` aligned with intentional dependency changes.
 
@@ -20,6 +20,7 @@ Read the relevant existing document before proposing work or creating another pl
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | Repository-wide working rules, boundaries, and pointers to topic documents |
 | [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) | Site-wide growth priorities, original audit evidence, and discovery/data/retention findings outside the dedicated plans |
+| [IMPROVE_SEO.md](IMPROVE_SEO.md) | Phased SEO implementation, indexing measurement, fixture/club/player discovery pages, structured data, cross-page links and SEO verification evidence |
 | [DESIGN.md](DESIGN.md) | Homepage visual direction, shared content width, spacing, and presentation rules |
 | [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) | Homepage structure, behavior, affected files, implementation checklist, and homepage verification evidence |
 | [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
@@ -27,6 +28,8 @@ Read the relevant existing document before proposing work or creating another pl
 | [Scheduler guide](docs/instascheduler/AGENTS.md) | Instagram scheduler design, player assets, preview, export and scheduling rules |
 
 The [scheduler template editing reference](docs/instascheduler/TEMPLATE_EDITING.md) is a quick component map and scoped edit workflow; the scheduler guide remains authoritative for design and behavior requirements.
+
+For SEO work, start with `IMPROVE_SEO.md`. It owns the current SEO phase order and supersedes older SEO sequencing in the audit. Blog publishing/evidence and homepage behavior remain in their existing owner documents; use short cross-references instead of duplicating their requirements. The guide is an implementation plan, not authorization to deploy, publish or change external accounts.
 
 For homepage work, start with the relevant sections of `HOMEPAGE_UX_PLAN.md` and use the audit for supporting evidence when needed. `DESIGN.md` supplies the shared visual direction; the homepage plan remains the authority for structure, behavior, and implementation status. The blog plan brings the blog forward alongside early site improvements and takes priority over the audit's original later editorial schedule. These documents provide context, not permission to implement every item.
 
@@ -44,7 +47,7 @@ The repository is **FantasyPL**. The current public header displays FantasyPL, w
 
 The working audience is casual or newer Fantasy Premier League managers who need understandable decisions backed by visible numbers. The README supports this direction, but the owner has not finalized the audience. Help visitors find a player, understand relevant stats and fixtures, and return before another gameweek deadline.
 
-Use this order when asked to choose the next growth task. Local implementation and hosted verification are separate; check the current status in [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md) before repeating a completed change.
+Use this order for wider growth work. For the owner-selected SEO implementation, follow [IMPROVE_SEO.md](IMPROVE_SEO.md). Local implementation and hosted verification are separate; check the relevant owner document before repeating a completed change.
 
 1. Verify search discovery: public origin/sitemap, preferred player URLs, and missing-player responses. Correct any remaining defects.
 2. Establish Search Console and available analytics evidence without assuming account access or buying a service.
@@ -131,7 +134,7 @@ The existing watchlist uses `savedWatchlist` in localStorage and player `code` v
 
 Preserve server-rendered player discovery while reducing homepage payload. The audit's initial target is roughly half the measured HTML and embedded payload under comparable conditions. Measure actual changes; do not call a smaller bundle proven visitor growth.
 
-Search Console access remains unverified. A Vercel Analytics baseline was recorded on 27 October; see [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md). Confirm a known test visit and custom-event availability before making more specific measurement claims. Compare equivalent gameweek/deadline periods and never invent traffic, rankings, or projected gains.
+Search Console access and sitemap submission were verified on 29 October; current evidence and indexing follow-up belong in [IMPROVE_SEO.md](IMPROVE_SEO.md). A Vercel Analytics baseline was recorded on 27 October; see [SITE_GROWTH_AUDIT.md](SITE_GROWTH_AUDIT.md). Confirm a known test visit and custom-event availability before making more specific measurement claims. Compare equivalent gameweek/deadline periods and never invent traffic, rankings, or projected gains.
 
 ## Blog requirements when implementation is requested
 

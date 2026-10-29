@@ -2,7 +2,7 @@
 
 A simplified data view for Fantasy PL newbies.
 
-The canonical site is [www.sportsync.in](https://www.sportsync.in). The apex redirects there; local metadata changes still need a release and hosted verification. The [site growth audit](SITE_GROWTH_AUDIT.md) tracks the remaining priorities.
+The canonical site is [www.sportsync.in](https://www.sportsync.in). The apex redirects there. The [SEO implementation guide](IMPROVE_SEO.md) tracks the current search checks and phased work for indexing, structured data, club pages, fixtures, player browsing and article links. The [site growth audit](SITE_GROWTH_AUDIT.md) retains the wider growth priorities and historical evidence.
 
 ## Setup
 

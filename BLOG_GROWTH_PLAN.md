@@ -2,6 +2,8 @@
 
 6 September 2026. Companion to [the site audit](SITE_GROWTH_AUDIT.md).
 
+For the current cross-page SEO sequence, article structured-data checks, author/publisher identity, and links between articles and the planned tools, use [IMPROVE_SEO.md](IMPROVE_SEO.md). That guide records the 29 October sitemap and live article-markup checks. This plan retains ownership of editorial requirements, publishing evidence, admin security and article-workspace implementation.
+
 ## Decision
 
 Build a blog into the existing site, with an admin page for generating and publishing articles from verified FPL data. Launch it alongside the search-discovery fixes and homepage improvements. Do not wait for every proposed tool to be complete.

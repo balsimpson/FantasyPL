@@ -4,6 +4,8 @@ Audit date: 6 September 2026. Public site at that audit: [fantasyleague.vercel.a
 
 Follow-up: the owner requested a blog with an AI-assisted admin publishing workflow. [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) adds a four-site competitor comparison, article strategy, and implementation scope. Its blog schedule takes priority over the later editorial timing in the initial plan below.
 
+SEO follow-up, 29 October 2026: [IMPROVE_SEO.md](IMPROVE_SEO.md) now owns the phased SEO implementation and current search verification evidence. It covers indexing, structured data, fixture and club pages, player browsing, player interpretation, and article/tool links. Search Console access and sitemap submission are now verified, and sampled hosted URLs use the `www` canonical origin. See that guide for the exact checks and limits. The 27 October status and older findings below remain dated evidence; their SEO sequence is superseded by the new guide.
+
 ## Current priorities and open work, 27 October 2026
 
 This is the site-wide roadmap. The statuses below combine local source review with the read-only hosted and account checks on 27 October. Detailed requirements and evidence remain in the owning documents. Earlier observations below describe their dated checkpoints, not the current hosted state.

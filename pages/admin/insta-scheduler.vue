@@ -32,7 +32,8 @@ const schedulingError = ref('')
 const queueNotice = ref('')
 const activePickId = ref<number | null>(null)
 const toast = useToast()
-const { players, designId, templateId, selectedPlayers, togglePlayer, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
+const { players, designId, templateId, selectedPlayers, togglePlayer, draft, draftKey, validationMessage, caption, xCaption, captionLoading, captionError, xCaptionError, resetCaptions, generateCaption } = useInstagramEditor(data, excludedPlayerCodes)
+const { drafts: savedCaptions, storageError: captionStorageError, find: findSavedCaption, save: saveCaption, remove: removeSavedCaption } = useSchedulerCaptionDrafts()
 const { postPicks, hasMorePicks, showMorePicks: loadMorePicks } = useSchedulerPicks(players, picksReady, computed(() => Object.values(bufferJobs.value).map(job => job.playerId)), excludedPlayerCodes, computed(() => data.value?.currentGameweek ?? null))
 const pickList = useTemplateRef<HTMLElement>('pickList')
 const activePick = computed(() => postPicks.value.find(pick => pick.id === activePickId.value))
@@ -53,6 +54,20 @@ const canExport = computed(() => !validationMessage.value && assetsReady.value &
 const hasPlayerJob = (playerId: number | undefined) => Object.values(bufferJobs.value).some(job => job.playerId === playerId)
 const playerJobState = (playerId: number) => Object.values(bufferJobs.value).find(job => job.playerId === playerId)?.state
 const canScheduleActive = computed(() => Boolean(activePick.value?.caption.trim() && activePick.value?.xCaption.trim()) && !hasPlayerJob(activePick.value?.id) && schedulingConfigured.value && historyReady.value && assetsReady.value && !busy.value && !captionLoading.value && (!repeatMessage.value || allowRepeat.value))
+let changingCaptionContext = false
+let activationVersion = 0
+
+function saveActiveCaptions() {
+  const pick = activePick.value
+  if (!pick || changingCaptionContext) return
+  saveCaption({ signature: activeDraftKey.value, playerName: pick.player.name, storyLabel: pick.story.label, gameweek: activeDraft.value.gameweek, season: activeDraft.value.season ?? null, caption: caption.value, xCaption: xCaption.value })
+}
+
+function restoreSavedCaptions() {
+  const saved = activePick.value ? findSavedCaption(activeDraftKey.value) : undefined
+  caption.value = saved?.caption ?? ''
+  xCaption.value = saved?.xCaption ?? ''
+}
 
 watch(history.excludedCodes, codes => { excludedPlayerCodes.value = codes }, { immediate: true })
 watch([history.ready, history.error, picksMounted], ([ready, error, mounted]) => {
@@ -62,9 +77,18 @@ watch([history.ready, history.error, picksMounted], ([ready, error, mounted]) =>
 watch(draftKey, () => { allowRepeat.value = false })
 watch(caption, value => {
   if (activePick.value) activePick.value.caption = value
+  saveActiveCaptions()
 }, { flush: 'sync' })
 watch(xCaption, value => {
   if (activePick.value) activePick.value.xCaption = value
+  saveActiveCaptions()
+}, { flush: 'sync' })
+watch(activeDraftKey, () => {
+  if (changingCaptionContext) return
+  changingCaptionContext = true
+  resetCaptions()
+  restoreSavedCaptions()
+  changingCaptionContext = false
 }, { flush: 'sync' })
 
 watch(postPicks, () => {
@@ -105,34 +129,24 @@ async function showMorePicks() {
 
 async function activatePick(pick: PostPick) {
   if (activePick.value?.id === pick.id) return
+  const version = ++activationVersion
+  changingCaptionContext = true
   schedulingError.value = ''
   queueNotice.value = ''
-  captionError.value = ''
-  xCaptionError.value = ''
-  const restoreCaption = pick.caption
-  const restoreXCaption = pick.xCaption
-  if (activePick.value) {
-    activePick.value.caption = caption.value
-    activePick.value.xCaption = xCaption.value
-  }
+  resetCaptions()
   activePickId.value = pick.id
   if (selectedPlayers.value[0]?.id !== pick.id) togglePlayer(pick.id)
   designId.value = pick.designId
   await nextTick()
-  caption.value = restoreCaption
-  xCaption.value = restoreXCaption
+  if (version !== activationVersion) return
+  restoreSavedCaptions()
+  changingCaptionContext = false
 }
 
 function changeTemplate(id: InstagramDesignId) {
   if (!activePick.value) return
   activePick.value.designId = id
-  activePick.value.caption = ''
-  activePick.value.xCaption = ''
   designId.value = id
-  caption.value = ''
-  xCaption.value = ''
-  captionError.value = ''
-  xCaptionError.value = ''
 }
 
 function cycleTemplate(direction: -1 | 1) {
@@ -271,6 +285,7 @@ onScopeDispose(() => {
             <h1 class="text-sm font-semibold text-highlighted sm:text-base">Post picks <span class="font-normal text-muted">· GW{{ draft.gameweek ?? '—' }}</span></h1>
           </div>
           <div class="flex items-center gap-1">
+            <SchedulerSavedCaptions v-if="savedCaptions.length || captionStorageError" :drafts="savedCaptions" :storage-error="captionStorageError" @remove="removeSavedCaption" />
             <UButton icon="i-lucide-download" color="neutral" variant="ghost" size="sm" aria-label="Download PNG" :disabled="!canExport" :loading="busy && phase === 'Creating PNG…'" @click="download(filename)" />
             <UButton :icon="view === 'history' ? 'i-lucide-arrow-left' : 'i-lucide-history'" color="neutral" variant="ghost" :label="view === 'history' ? 'Back to picks' : 'History'" :disabled="busy" @click="view = view === 'history' ? 'create' : 'history'" />
           </div>
@@ -340,6 +355,7 @@ onScopeDispose(() => {
 
             <UAlert v-if="repeatMessage" color="warning" :title="repeatMessage" class="w-full max-w-[660px]" />
             <UCheckbox v-if="repeatMessage" v-model="allowRepeat" label="Allow this repeat post" :disabled="busy" />
+            <p v-if="captionStorageError" class="w-[min(45vh,78vw)] max-w-[660px] text-xs text-error" role="alert">{{ captionStorageError }}</p>
             <p class="min-h-5 w-[min(45vh,78vw)] max-w-[660px] text-xs" :class="failed || schedulingError || !schedulingConfigured ? 'text-error' : 'text-muted'" role="status" aria-live="polite">{{ phase || (failed ? message : schedulingError || (!schedulingConfigured ? schedulingMessage : '')) }}</p>
           </div>
 
