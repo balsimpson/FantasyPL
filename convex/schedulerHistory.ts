@@ -203,6 +203,25 @@ export const retryXSubmission = mutation({
   },
 })
 
+export const retryInstagramSubmission = mutation({
+  args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.secret)
+    const post = await ctx.db.get(args.postId)
+    if (!post || post.channelId !== args.channelId || post.platform !== 'instagram' || post.source !== 'scheduler' || post.status !== 'failed' || post.bufferPostId || post.deletedAt !== undefined) throw new ConvexError('This Instagram submission cannot be retried. Check Buffer first.')
+    if (!post.caption.trim() || !post.imageUrl || !post.fingerprint) throw new ConvexError('The saved Instagram post is incomplete and cannot be retried.')
+    const matches = await ctx.db.query('schedulerPosts').withIndex('by_channel_and_fingerprint', q => q.eq('channelId', args.channelId).eq('fingerprint', post.fingerprint)).order('desc').take(20)
+    if (matches.some(item => item._id !== post._id && activeStatuses.has(item.status))) throw new ConvexError('This Instagram post is already queued. Check Buffer before trying again.')
+    const activity = await getActivity(ctx, args.channelId, post.players.map(item => item.code), post.gameweek, post.season)
+    if (activity.players.some(item => post.players.some(selected => selected.code === item.code) && (item.queued || item.postedThisGameweek))) throw new ConvexError('A selected player is already queued or posted on Instagram this gameweek. Check Buffer before trying again.')
+    await ctx.db.patch(post._id, { status: 'submitting', error: null, updatedAt: Date.now() })
+    await updatePlayerRows(ctx, (await ctx.db.get(post._id))!)
+    await ctx.scheduler.runAfter(0, internal.schedulerHistory.submitToBuffer, { postId: post._id })
+    return null
+  },
+})
+
 export const retryCandidate = query({
   args: { secret: v.string(), channelId: v.string(), postId: v.id('schedulerPosts') },
   returns: v.union(v.object({ draftJson: nullableString, imageUrl: nullableString }), v.null()),

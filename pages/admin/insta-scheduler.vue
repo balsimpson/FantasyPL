@@ -8,6 +8,7 @@ import SchedulerPickReason from '~/components/SchedulerPickReason.vue'
 import SchedulerPostHistory from '~/components/SchedulerPostHistory.vue'
 import SchedulerTemplateEditor from '~/components/SchedulerTemplateEditor.vue'
 import SchedulerInstagramPost from '~/components/SchedulerInstagramPost.vue'
+import { adminSchedulerToolbarKey, type AdminSchedulerToolbar } from '~/composables/adminSchedulerToolbar'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 useHead({ title: 'InstaScheduler' })
@@ -45,6 +46,7 @@ const activeDraft = computed<InstagramDraft>(() => activePick.value ? pickDraft(
 const activeDraftKey = computed(() => JSON.stringify(activeDraft.value))
 const activePreviewKey = computed(() => [activePick.value?.id ?? 'empty', activeDraft.value.design, ...activeDraft.value.players.map(player => `${player.id}:${player.photoUrl}`)].join(':'))
 const { assetsReady, busy, phase, message, failed, schedulingConfigured, schedulingMessage, download, schedule } = useInstagramExport(() => preview.value?.getElement(), activeDraftKey, activeDraft)
+const adminSchedulerToolbar = inject<Ref<AdminSchedulerToolbar | null>>(adminSchedulerToolbarKey)
 const history = useSchedulerHistory(computed(() => activeDraft.value.players), computed(() => activeDraft.value.gameweek), computed(() => activeDraft.value.season ?? null))
 const { repeatMessage, ready: historyReady, error: historyError } = history
 
@@ -54,6 +56,18 @@ const canExport = computed(() => !validationMessage.value && assetsReady.value &
 const hasPlayerJob = (playerId: number | undefined) => Object.values(bufferJobs.value).some(job => job.playerId === playerId)
 const playerJobState = (playerId: number) => Object.values(bufferJobs.value).find(job => job.playerId === playerId)?.state
 const canScheduleActive = computed(() => Boolean(activePick.value?.caption.trim() && activePick.value?.xCaption.trim()) && !hasPlayerJob(activePick.value?.id) && schedulingConfigured.value && historyReady.value && assetsReady.value && !busy.value && !captionLoading.value && (!repeatMessage.value || allowRepeat.value))
+const schedulerToolbarState = computed<AdminSchedulerToolbar>(() => ({
+  drafts: savedCaptions.value,
+  storageError: captionStorageError.value,
+  downloadDisabled: !canExport.value,
+  downloadLoading: busy.value && phase.value === 'Creating PNG…',
+  historyView: view.value === 'history',
+  historyDisabled: busy.value,
+  onRemove: removeSavedCaption,
+  onDownload: () => { void download(filename.value) },
+  onToggleHistory: () => { view.value = view.value === 'history' ? 'create' : 'history' },
+}))
+watchEffect(() => { if (adminSchedulerToolbar) adminSchedulerToolbar.value = schedulerToolbarState.value })
 let changingCaptionContext = false
 let activationVersion = 0
 
@@ -272,17 +286,13 @@ onMounted(() => {
 onScopeDispose(() => {
   if (pollTimer) clearInterval(pollTimer)
   if (queueNoticeTimer) clearTimeout(queueNoticeTimer)
+  if (adminSchedulerToolbar) adminSchedulerToolbar.value = null
 })
 
 </script>
 
 <template>
     <main class="h-full min-h-0 overflow-hidden bg-default text-default selection:bg-primary/20">
-      <Teleport to="#scheduler-navbar-actions">
-        <SchedulerSavedCaptions v-if="savedCaptions.length || captionStorageError" :drafts="savedCaptions" :storage-error="captionStorageError" @remove="removeSavedCaption" />
-        <UButton icon="i-lucide-download" color="neutral" variant="ghost" size="sm" aria-label="Download PNG" :disabled="!canExport" :loading="busy && phase === 'Creating PNG…'" @click="download(filename)" />
-        <UButton :icon="view === 'history' ? 'i-lucide-arrow-left' : 'i-lucide-history'" color="neutral" variant="ghost" :label="view === 'history' ? 'Back to picks' : 'History'" :disabled="busy" @click="view = view === 'history' ? 'create' : 'history'" />
-      </Teleport>
       <div class="flex h-full min-h-0 flex-col">
         <UAlert v-if="error" color="error" title="Player data could not load" description="Load the player list again to start creating a post." class="mx-auto mt-8 w-full max-w-lg" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
         <div v-else-if="status === 'pending'" role="status" class="flex flex-1 items-center justify-center text-muted">Loading players…</div>

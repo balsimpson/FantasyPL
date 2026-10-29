@@ -14,7 +14,7 @@ const props = defineProps<{
   retrying: boolean
   disabled: boolean
 }>()
-const emit = defineEmits<{ linked: []; delete: [post: SchedulerPostRecord]; retry: [post: SchedulerPostRecord, caption: string] }>()
+const emit = defineEmits<{ linked: []; delete: [post: SchedulerPostRecord]; retry: [post: SchedulerPostRecord, caption: string]; 'retry-instagram': [post: SchedulerPostRecord] }>()
 const imageFailed = ref(false)
 const editingRetry = ref(false)
 const retryCaption = ref(props.post.caption)
@@ -78,6 +78,7 @@ watch(() => props.post.imageUrl, () => { imageFailed.value = false })
             <div class="flex gap-2"><UButton type="submit" label="Retry X post" size="xs" :loading="retrying" :disabled="!retryCaption.trim() || disabled" /><UButton label="Cancel" size="xs" color="neutral" variant="ghost" :disabled="retrying" @click="editingRetry = false" /></div>
           </form>
         </template>
+        <UButton v-if="platform === 'instagram' && post.status === 'failed' && post.source === 'scheduler' && !post.bufferPostId" label="Retry Instagram post" size="xs" color="neutral" variant="soft" :loading="retrying" :disabled="disabled" @click="emit('retry-instagram', post)" />
         <SchedulerHistoryPlayerLink v-if="post.source === 'buffer'" ref="playerLink" :show-trigger="false" :platform="platform" :post="post" :players="players" @saved="$emit('linked')" />
       </div>
     </template>

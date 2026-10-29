@@ -7,7 +7,7 @@ const props = defineProps<{ players: InstagramPlayer[]; platform: 'instagram' | 
 const emit = defineEmits<{ 'update:platform': [value: 'instagram' | 'x'] }>()
 const search = useState(`scheduler-history-search-${props.platform}`, () => props.initialSearch || '')
 const status = useState(`scheduler-history-status-${props.platform}`, () => 'all')
-const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError } = useSchedulerPostList(search, status, props.platform)
+const { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, retryInstagram, dismissSyncError } = useSchedulerPostList(search, status, props.platform)
 const { overview, loading: overviewLoading, error: overviewError, load: loadOverview } = useSchedulerHistoryOverview(props.platform)
 const now = useSchedulerClock()
 const postTimings = computed(() => Object.fromEntries(posts.value.map(post => [post._id, formatSchedulerPostTiming(post, now.value)])))
@@ -55,14 +55,14 @@ onMounted(() => { void initialize(); void loadOverview() })
       </div>
       <UAlert v-if="error" color="error" title="History could not load" :description="error" class="mb-3" :actions="[{ label: 'Retry', onClick: () => load() }]" />
       <UAlert v-if="deleteError" color="error" title="Post could not be deleted" :description="deleteError" class="mb-3" />
-      <UAlert v-if="retryError" color="error" title="X post could not be retried" :description="retryError" class="mb-3" />
+      <UAlert v-if="retryError" color="error" title="Post could not be retried" :description="retryError" class="mb-3" />
       <div v-if="(loading || syncing) && !posts.length" role="status" class="flex justify-center py-12">
         <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-muted motion-reduce:animate-none" aria-hidden="true" />
         <span class="sr-only">Loading history</span>
       </div>
       <p v-else-if="!posts.length && !error" class="py-10 text-center text-sm text-muted">{{ search || status !== 'all' ? 'No matching posts.' : 'No posts yet.' }}</p>
       <div v-else role="list" :aria-label="`${platform === 'x' ? 'X' : 'Instagram'} post history`" class="columns-1 gap-4 @[32rem]:columns-2 @[52rem]:columns-3 @[72rem]:columns-4">
-        <SchedulerHistoryPostCard v-for="post in posts" :key="post._id" :post="post" :platform="platform" :players="players" :timing="postTimings[post._id]" :deleting="deleting === post._id" :retrying="retrying === post._id" :disabled="Boolean(deleting) || Boolean(retrying) || loading || syncing" @linked="linked" @delete="deleteEntry" @retry="retryX" />
+        <SchedulerHistoryPostCard v-for="post in posts" :key="post._id" :post="post" :platform="platform" :players="players" :timing="postTimings[post._id]" :deleting="deleting === post._id" :retrying="retrying === post._id" :disabled="Boolean(deleting) || Boolean(retrying) || loading || syncing" @linked="linked" @delete="deleteEntry" @retry="retryX" @retry-instagram="retryInstagram" />
       </div>
       <div v-if="hasMore || hasOlder" class="mt-3 flex flex-wrap justify-center gap-2">
         <UButton v-if="hasMore" label="Load more" size="sm" color="neutral" variant="outline" :loading="loading" :disabled="syncing" @click="load(true)" />

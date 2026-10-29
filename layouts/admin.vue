@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { adminSchedulerToolbarKey, type AdminSchedulerToolbar } from '~/composables/adminSchedulerToolbar'
 
 const { user, clear } = useUserSession()
 const route = useRoute()
@@ -15,6 +16,8 @@ const pageTitle = computed(() => {
 })
 const articleToolbar = shallowRef<import('~/composables/adminArticleToolbar').AdminArticleToolbar | null>(null)
 provide('admin-article-toolbar', articleToolbar)
+const schedulerToolbar = shallowRef<AdminSchedulerToolbar | null>(null)
+provide(adminSchedulerToolbarKey, schedulerToolbar)
 const articleMenu = computed(() => articleToolbar.value ? [[
   { label: articleToolbar.value.editLabel, icon: articleToolbar.value.editIcon, disabled: articleToolbar.value.editDisabled, onSelect: articleToolbar.value.onToggleEdit },
   { label: articleToolbar.value.saveLabel, icon: 'i-lucide-save', disabled: articleToolbar.value.saveDisabled, onSelect: articleToolbar.value.onSave },
@@ -89,7 +92,6 @@ async function signOut() {
               <UDashboardSidebarCollapse />
             </template>
             <template #right>
-              <div v-if="isScheduler" id="scheduler-navbar-actions" class="flex items-center gap-1" />
               <template v-if="articleToolbar">
                 <span role="status" aria-live="polite" class="hidden min-w-28 text-right text-xs text-muted sm:inline">{{ articleToolbar.saveLabel }}</span>
                 <UTooltip text="Save draft">
@@ -106,6 +108,11 @@ async function signOut() {
                 <UDropdownMenu :items="articleMenu" :content="{ align: 'end' }" class="md:hidden">
                   <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" aria-label="More article actions" />
                 </UDropdownMenu>
+              </template>
+              <template v-if="isScheduler && schedulerToolbar">
+                <SchedulerSavedCaptions v-if="schedulerToolbar.drafts.length || schedulerToolbar.storageError" :drafts="schedulerToolbar.drafts" :storage-error="schedulerToolbar.storageError" @remove="schedulerToolbar.onRemove" />
+                <UButton icon="i-lucide-download" color="neutral" variant="ghost" size="sm" aria-label="Download PNG" :disabled="schedulerToolbar.downloadDisabled" :loading="schedulerToolbar.downloadLoading" @click="schedulerToolbar.onDownload" />
+                <UButton :icon="schedulerToolbar.historyView ? 'i-lucide-arrow-left' : 'i-lucide-history'" color="neutral" variant="ghost" :label="schedulerToolbar.historyView ? 'Back to picks' : 'History'" :disabled="schedulerToolbar.historyDisabled" @click="schedulerToolbar.onToggleHistory" />
               </template>
               <UTooltip v-if="showNewArticle" text="New article">
                 <UButton to="/admin/articles/new" icon="i-lucide-plus" color="neutral" variant="ghost" aria-label="New article" />

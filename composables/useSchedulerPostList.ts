@@ -106,16 +106,18 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
     } catch (cause) { deleteError.value = schedulerClientError(cause) }
     finally { deleting.value = '' }
   }
-  async function retryX(post: SchedulerPostRecord, caption: string) {
+  async function retrySubmission(post: SchedulerPostRecord, path: string, payload: Record<string, string> = {}) {
     if (retrying.value) return
     retrying.value = post._id
     retryError.value = ''
     try {
-      await $fetch('/api/scheduler/retry-x', { method: 'POST', body: { postId: post._id, caption }, retry: 0 })
+      await $fetch(path, { method: 'POST', body: { postId: post._id, ...payload }, retry: 0 })
       revision.value++
     } catch (cause) { retryError.value = schedulerClientError(cause) }
     finally { retrying.value = '' }
   }
+  const retryX = (post: SchedulerPostRecord, caption: string) => retrySubmission(post, '/api/scheduler/retry-x', { caption })
+  const retryInstagram = (post: SchedulerPostRecord) => retrySubmission(post, '/api/scheduler/retry-instagram')
   function dismissSyncError() { provider.value.error = '' }
   // Filters only reread saved history. They never start a Buffer import.
   watch([search, status], (_, __, onCleanup) => {
@@ -123,5 +125,5 @@ export function useSchedulerPostList(search: Ref<string>, status: Ref<string>, p
     onCleanup(() => clearTimeout(timer))
   })
   watch(revision, () => { if (!syncing.value) void load(false, true) }, { flush: 'sync' })
-  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, dismissSyncError }
+  return { posts, loading, syncing, error, syncError, hasMore, hasOlder, load, sync, initialize, revision, deleting, deleteError, deleteEntry, retrying, retryError, retryX, retryInstagram, dismissSyncError }
 }
