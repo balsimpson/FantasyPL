@@ -36,6 +36,11 @@ export default defineNuxtConfig({
 		},
 	},
 	modules: ["@pinia/nuxt", "@nuxt/ui", "nuxt-og-image", "nuxt-auth-utils", "@vite-pwa/nuxt"],
+	// Keep session data out of HTML that Vercel can share between visitors.
+	auth: { loadStrategy: "client-only" },
+	// Keep the trimmed data inline; this Nitro version generates an invalid root ISR payload path.
+	experimental: { payloadExtraction: false },
+	nitro: { vercel: { functions: { runtime: "nodejs24.x" } } },
 	vite: {
 		optimizeDeps: {
 			include: [
@@ -100,6 +105,8 @@ export default defineNuxtConfig({
 		},
 	},
 	routeRules: {
+		"/": { isr: 600 },
+		"/player/**": { isr: 600 },
 		"/admin/**": { headers: { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store" } },
 		"/api/admin/**": { headers: { "Cache-Control": "private, no-store" } },
 	},

@@ -58,6 +58,7 @@ const props = defineProps({
     default: false,
   },
 });
+const emit = defineEmits(["expired"]);
 
 const mounted = ref(false);
 const renderTime = useState("deadline-render-time", () => Date.now());
@@ -84,6 +85,9 @@ const deadlineLabel = computed(() => {
 });
 
 const deadlinePassed = computed(() => deadlineDate.value && deadlineDate.value.getTime() <= now.value);
+watch([mounted, deadlinePassed], ([ready, passed]) => {
+  if (ready && passed) emit("expired");
+});
 
 const segments = computed(() => {
   const totalSeconds = Math.max(0, Math.ceil(((deadlineDate.value?.getTime() || now.value) - now.value) / 1000));

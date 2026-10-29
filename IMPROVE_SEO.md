@@ -54,7 +54,7 @@ No application code, deployment, publication or ranking improvement is establish
 | Phase | Deliverable | Starting status | Dependency |
 | --- | --- | --- | --- |
 | 1 | Indexing baseline and technical verification | Sitemap submission complete; follow-up open | None |
-| 2 | Site identity, article markup validation and existing-page breadcrumbs | Existing article markup only; additions planned | Phase 1 source/status check |
+| 2 | Site identity, article markup validation and existing-page breadcrumbs | Local implementation done 29 October; hosted validation, image crawl and author/About remain | Phase 1 source/status check |
 | 3 | Fixture planner and linked club pages | Planned | Shared URL/data rules; phase 2 markup conventions |
 | 4 | Public player directory | Planned | Club routes and shared filtering decisions |
 | 5 | Player summaries, alternatives and contextual links | Planned | Club/directory destinations; validated player history |
@@ -91,8 +91,8 @@ Indexing observation continues while local phases proceed. Do not wait for all p
 
 Author and publisher details follow [article guidance](https://developers.google.com/search/docs/appearance/structured-data/article), [organization guidance](https://developers.google.com/search/docs/appearance/structured-data/organization), [site-name guidance](https://developers.google.com/search/docs/appearance/site-names) and [profile-page eligibility](https://developers.google.com/search/docs/appearance/structured-data/profile-page). Breadcrumb requirements are in [Google's breadcrumb documentation](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb).
 
-- [ ] Inspect all structured-data formats in rendered HTML and extend the current article emitter without duplicate/conflicting objects. Use a small shared helper/composable only where needed across routes; keep it reactive on client navigation.
-- [ ] Emit safely serialized JSON-LD in server-rendered HTML. Escape HTML-significant content, including `<`, and test an article title containing `</script>`. Missing/error pages must not retain stale article/player metadata after navigation.
+- [x] Inspect all structured-data formats in rendered HTML and extend the current article emitter without duplicate/conflicting objects. Use a small shared helper/composable only where needed across routes; keep it reactive on client navigation. *(29 Oct: rendered HTML had JSON-LD only on articles; shared helper in `utils/structured-data.ts`; article, player and homepage heads use reactive `useHead`.)*
+- [x] Emit safely serialized JSON-LD in server-rendered HTML. Escape HTML-significant content, including `<`, and test an article title containing `</script>`. Missing/error pages must not retain stale article/player metadata after navigation. *(29 Oct: helper round-trip test passed; missing player page emits no breadcrumb. A live article title test is blocked locally by the unavailable article backend.)*
 - [ ] Keep stable object IDs and all canonical/image/profile URLs on the approved origin. Confirm images return image content and are crawlable. A reachable OG image alone is not full Rich Results Test validation. Consider useful image crops in Google's recommended aspect ratios without making decorative variants a release blocker.
 - [ ] Add useful About/source/method information and a real author destination where supported by verified details. Explain observed stats, fixture difficulty, predictions and editorial responsibility in plain language. Keep any needed owner information as an explicit remaining action.
 - [ ] Keep visible dates and JSON-LD aligned. A data refresh or deployment must not pretend an old article was newly published. Public metadata must describe the published revision, never a draft.
@@ -122,12 +122,16 @@ Proposed routes are `/fixtures`, `/clubs` and `/clubs/[slug]`. These do not exis
 
 **Outcome:** a stable `/players` destination supports browsing the whole catalog, rather than relying only on an opened search overlay.
 
+29 October 2026 local implementation: `/players` now serves 24 linked results at a time, with name/club text search, position, maximum price and ranking controls. Filtering and ranking apply to the complete current catalogue before pagination. Form is the stable default with existing deterministic tie-breakers. URL changes use browser history; invalid position/price/sort values fall back to supported defaults and page numbers are bounded by the result count. Flagged players retain FPL status/news. A separate club selector remains open. Focused full-catalogue/filter/pagination checks, local HTTP checks and connected Brave search/pagination/Back checks passed; see `HOMEPAGE_UX_PLAN.md` for the complete verification record. Hosted indexing and traffic effects are unverified.
+
+URL policy: the unfiltered directory and its numbered pages are indexable with matching page canonicals. Search/filter/sort variants use `noindex, follow`; their canonical keeps only a valid page number. Only `/players` is added to the sitemap; numbered results have crawlable Previous/Next links. The shared navigation and player breadcrumb link to the directory. `/players` stays outside ISR because its HTML depends on query parameters. The homepage/profile cache and payload changes are recorded in `HOMEPAGE_UX_PLAN.md`.
+
 - [ ] Reuse existing filtering and ranking utilities with page-owned URL/state handling. Provide name/club search, position, maximum price, club and clear sort controls. State whether a statistic is season-long or gameweek-specific. Apply filters to the full catalog before limiting visible results.
-- [ ] Use a stable default sort and deterministic tie-breaker. Do not copy the homepage composable's randomized initial ranking or its storage keys into a crawlable directory. Parse and bound URL state; browser Back and reload must restore the same valid selection.
-- [ ] Show availability accurately in the directory. It may list flagged/low-minute players; that is different from recommending them as incoming transfers. If adding recommendation labels, reuse the applicable availability rules without changing existing manager behavior.
-- [ ] Serve an initial player list with real links in HTML. Add accessible expansion or pagination and a crawlable route through the rest of the catalog; a sitemap alone must not be the only way to find later players. If pagination has URLs, use each page's appropriate canonical and do not canonicalize distinct later player lists to page one.
-- [ ] Index `/players` as the main directory. Keep arbitrary search/filter/sort combinations out of the sitemap and do not generate landing pages for every combination. For overlapping filtered views, use the base canonical where appropriate and avoid crawlable link grids for combinations. If a view needs `noindex`, allow crawling so Google can read it; robots blocking is not a substitute. Document the chosen URL policy before shipping.
-- [ ] Preserve the shared header search, homepage preferences and browser-local watchlist. Add links to the directory from public navigation and the player breadcrumb when ready.
+- [x] Use a stable default sort and deterministic tie-breaker. Do not copy the homepage composable's randomized initial ranking or its storage keys into a crawlable directory. Parse and bound URL state; browser Back and reload must restore the same valid selection.
+- [x] Show availability accurately in the directory. It may list flagged/low-minute players; that is different from recommending them as incoming transfers. If adding recommendation labels, reuse the applicable availability rules without changing existing manager behavior.
+- [x] Serve an initial player list with real links in HTML. Add accessible expansion or pagination and a crawlable route through the rest of the catalog; a sitemap alone must not be the only way to find later players. If pagination has URLs, use each page's appropriate canonical and do not canonicalize distinct later player lists to page one.
+- [x] Index `/players` as the main directory. Keep arbitrary search/filter/sort combinations out of the sitemap and do not generate landing pages for every combination. For overlapping filtered views, use the base canonical where appropriate and avoid crawlable link grids for combinations. If a view needs `noindex`, allow crawling so Google can read it; robots blocking is not a substitute. Document the chosen URL policy before shipping.
+- [x] Preserve the shared header search, homepage preferences and browser-local watchlist. Add links to the directory from public navigation and the player breadcrumb when ready.
 
 **Acceptance:** verify full-catalog filtering, price units, stable ties, valid/invalid URL state, empty results, pagination/expansion and history navigation. An empty valid search is useful empty-state UI, not a missing-player 404. Check the chosen URL policy against [Google's filter URL guidance](https://developers.google.com/crawling/docs/faceted-navigation).
 
@@ -180,3 +184,34 @@ Maintain one dated entry here for each completed SEO work slice. Include phase/d
 ### 29 October 2026: Guide created
 
 The phase requirements above are planned. The dated starting point records checks already completed in this chat. This documentation change adds no application behavior. `git diff --check` passed. A local Markdown-link check found no missing file targets in this guide or its five referring documents; it also confirmed all seven phase headings and their incoming guide links. No application tests or build were needed. Next work: Phase 1 current indexing inspection and Phase 2 markup/identity work within the requested implementation scope.
+
+### 29 October 2026: Phase 2 local structured data and breadcrumbs
+
+**Changed paths:** `utils/structured-data.ts` (new shared helper), `pages/index.vue`, `pages/blog/[slug].vue`, `pages/player/[id].vue`, and the AGENTS.md project-map row.
+
+- Homepage: `WebSite` and `Organization` in one `@graph`. Name is FantasyPL, with FPL Insights as alternate name, matching the visible header. Logo is `/FPL_logo.png` (512 × 512).
+- Article: `BlogPosting` publisher now uses the same Organization `@id` (was "FPL Insights"). The visible breadcrumb Home › FPL articles › title and its `BreadcrumbList` share the same items. The former one-link back link is replaced.
+- Player: `BreadcrumbList` of Home › player name, matching the visible breadcrumb. The unlinked "Player" crumb was removed because it cannot be a valid breadcrumb item.
+- Escaping bug fixed: the old `.replace(/</g, '\\\\u003c')` emitted a literal backslash, so a `<` in a title decoded as the text `\u003c`. The helper now escapes `<`, `>`, `&`, U+2028 and U+2029 inside the JSON.
+
+**Local checks**
+
+- `npm run build` passed. It ran on Node v25.8.0 because the declared Node 24 is not installed and I did not install a runtime. A baseline build of unchanged code also passed on the same runtime.
+- A scratch script checked the helper: a hostile title containing `</script>`, `<`, `&`, and U+2028 round-trips exactly with no raw `<`, `>` or `&`. The Organization/WebSite `@id` values, the publisher reference, and breadcrumb positions are correct.
+- `tsc --noEmit -p tsconfig.json` reported no errors in `utils/structured-data.ts`.
+
+**Browser checks** (headless Chrome for Testing via Playwright against the local production server; the browser tool blocks localhost)
+
+- `/player/david-raya-martin-1` at 390 × 844 and 1366 × 900: visible breadcrumb reads "Home David Raya Martín" and matches the single BreadcrumbList. No horizontal overflow. Screenshots were captured but not visually reviewed.
+- `/`: one `@graph` with WebSite and Organization.
+- `/player/999999`: "Player not found" with status 404 and no breadcrumb JSON-LD.
+- Pre-existing console warning: "Hydration completed but contains mismatches" on the player page. It also appears on the unchanged baseline build. The `/_vercel/insights/script.js` 404 is local only.
+
+**Not verified**
+
+- Article page: `/api/articles/...` returns 503 locally because the article backend (Convex) is not configured here. The rendered article JSON-LD, its breadcrumb and the live `</script>` title case are therefore covered only by the helper test.
+- Rich Results Test, Schema Markup Validator and image crawl need a deployed public URL. Not run.
+- Author page, About/source/method content and any author profile URL remain open. These need owner-supplied verified details; none were invented.
+- No deployment, Search Console action, or publication was performed.
+
+**Next:** finish the Phase 2 open items above, then run Phase 1 hosted checks after an authorized release.

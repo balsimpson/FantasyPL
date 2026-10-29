@@ -2,7 +2,7 @@ export function useHomepageBootstrap() {
   const lastSuccessful = shallowRef<Record<string, any>>();
   const mounted = ref(false);
   const recovering = ref(false);
-  const request = useAsyncData("homepage-bootstrap", () => $fetch<Record<string, any>>("/api/homepage-bootstrap", { retry: 0 }), {
+  const request = useAsyncData("homepage-overview", () => $fetch<Record<string, any>>("/api/homepage-overview", { retry: 0 }), {
     default: () => lastSuccessful.value,
   });
   const hasCatalog = computed(() => Array.isArray(request.data.value?.elements));
@@ -14,7 +14,8 @@ export function useHomepageBootstrap() {
   // A failed server request gets one client recovery attempt before showing the fallback.
   // The same placeholders render on the server and during hydration.
   onMounted(async () => {
-    if (!hasCatalog.value) {
+    const fetchedAt = Date.parse(request.data.value?.fetchedAt || "");
+    if (!hasCatalog.value || !Number.isFinite(fetchedAt) || Date.now() - fetchedAt >= 1_200_000) {
       recovering.value = true;
       try { await request.refresh(); }
       finally { recovering.value = false; mounted.value = true; }

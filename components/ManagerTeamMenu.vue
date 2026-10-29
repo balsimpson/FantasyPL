@@ -23,6 +23,7 @@
               <div class="min-w-0">
                 <span class="block text-base font-bold text-white [overflow-wrap:anywhere]">{{ manager.managerName || manager.teamName }}</span>
                 <span v-if="manager.managerName" class="mt-1 block text-xs text-stone-400 [overflow-wrap:anywhere]">{{ manager.teamName }}</span>
+                <span class="mt-1 block text-xs tabular-nums text-stone-400">Manager ID {{ manager.id }}</span>
               </div>
               <div class="flex shrink-0 items-center gap-2">
                 <span class="text-sm text-stone-300 tabular-nums">{{ manager.points !== null ? `${manager.points.toLocaleString('en-GB')} pts` : loadingPoints ? 'Loading…' : 'Unavailable' }}</span>

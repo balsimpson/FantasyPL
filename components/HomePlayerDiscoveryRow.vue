@@ -16,7 +16,8 @@
             :alt="player.web_name"
             :width="compact ? 68 : 44"
             :height="compact ? 76 : 56"
-            loading="lazy"
+            :loading="priority ? 'eager' : 'lazy'"
+            :fetchpriority="priority ? 'high' : undefined"
             decoding="async"
             class="relative z-10 h-full w-full object-contain object-bottom drop-shadow-[0_10px_12px_rgba(0,0,0,0.45)] transition duration-300 motion-safe:group-hover:scale-105"
             @error="handlePlayerImageError"
@@ -104,6 +105,10 @@ const props = defineProps({
     required: true,
   },
   compact: {
+    type: Boolean,
+    default: false,
+  },
+  priority: {
     type: Boolean,
     default: false,
   },

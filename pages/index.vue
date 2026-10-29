@@ -13,6 +13,7 @@
         :gameweek="nextGameweek?.id"
         :loading="bootstrapPending"
         :error="bootstrapFailed"
+        @expired="retryBootstrap"
       />
 
       <HomeCaptainPicks
@@ -24,8 +25,9 @@
         @retry="retryBootstrap"
       />
 
-      <HomeTransferTargets
-        :players="bootstrap?.elements || []"
+      <div ref="recommendationsTarget" class="grid min-w-0 gap-8">
+      <LazyHomeTransferTargets
+        :players="recommendationPlayers"
         :teams="bootstrap?.teams || []"
         :fixtures="fixturesList"
         :gameweeks="shortlistGameweeks"
@@ -34,22 +36,21 @@
         :snapshot="buyRecommendationData?.snapshot"
         :generated-at="buyRecommendationData?.generatedAt"
         :source="buyRecommendationData?.source"
-        :loading="bootstrapPending || buysPending"
-        :error="bootstrapFailed || Boolean(buyRecommendationError)"
+        :loading="bootstrapPending || catalogPending || buysPending"
+        :error="bootstrapFailed || catalogFailed || Boolean(buyRecommendationError)"
         @retry="retryBuyRecommendations"
       />
 
-      <HomeTradeRecommendations
-        :players="bootstrap?.elements || []"
+      <LazyHomeTradeRecommendations
+        :players="recommendationPlayers"
         :teams="bootstrap?.teams || []"
         :gameweeks="shortlistGameweeks"
         :snapshot="tradeRecommendationData?.snapshot"
         :generated-at="tradeRecommendationData?.generatedAt"
-        :loading="bootstrapPending || tradesPending"
-        :error="bootstrapFailed || Boolean(tradeRecommendationError)"
+        :loading="bootstrapPending || catalogPending || tradesPending"
+        :error="bootstrapFailed || catalogFailed || Boolean(tradeRecommendationError)"
         @retry="retryTradeRecommendations"
       />
-
       <HomePlayerTrends
         :players="bootstrap?.elements || []"
         :teams="bootstrap?.teams || []"
@@ -71,22 +72,32 @@
         FPL data updated <time :datetime="bootstrap.fetchedAt">{{ new Date(bootstrap.fetchedAt).toUTCString() }}</time>
       </p>
       <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
+      </div>
       </template>
     </main>
   </div>
 </template>
 
 <script setup>
-import { getShortlistGameweeks } from "~/utils/homepage-shortlist";
+import { useHomepageRecommendations } from "~/composables/useHomepageRecommendations";
+import { getHomepageCaptainPicks, getShortlistGameweeks } from "~/utils/homepage-shortlist";
+import { getJsonLdScript, getOrganizationSchema, getWebsiteSchema } from "~/utils/structured-data";
+import { getPublicSiteOrigin } from "~/utils/site-url";
 
 definePageMeta({
   keepalive: true,
 });
 
 const canonicalUrl = useCanonicalUrl();
+const siteOrigin = getPublicSiteOrigin(useRuntimeConfig().public.SITE_URL);
 
 useHead({
   link: [{ rel: "canonical", href: canonicalUrl }],
+  script: [
+    getJsonLdScript({
+      "@graph": [getWebsiteSchema(siteOrigin), getOrganizationSchema(siteOrigin)],
+    }),
+  ],
 });
 
 useSeoMeta({
@@ -105,38 +116,24 @@ useSeoMeta({
 const { request: bootstrapRequest, pending: bootstrapPending, failed: bootstrapFailed } = useHomepageBootstrap();
 await bootstrapRequest;
 const { data: bootstrap, refresh: refreshBootstrap } = bootstrapRequest;
+if (import.meta.server && bootstrapRequest.error.value && !Array.isArray(bootstrap.value?.elements)) {
+  setResponseStatus(502);
+}
 
-const {
-  data: fixtureData,
-  status: fixturesStatus,
-  error: fixturesRequestError,
-  refresh: refreshFixtures,
-} = useLazyAsyncData("homepage-fixtures", () => $fetch("/api/homepage-fixtures"), { server: false });
-
-const {
-  data: tradeRecommendationData,
-  status: tradeRecommendationStatus,
-  error: tradeRecommendationError,
-  refresh: refreshTradeRecommendations,
-} = useLazyAsyncData("homepage-trade-recommendations", () => $fetch("/api/homepage-trades"), {
-  server: false,
-  default: () => ({ snapshot: null, generatedAt: null, sourceFetchedAt: null }),
+useHead(() => {
+  const player = getHomepageCaptainPicks(bootstrap.value?.elements || []).captains[0];
+  return { link: player?.code ? [{
+    rel: "preload", as: "image", fetchpriority: "high",
+    href: `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`,
+  }] : [] };
 });
 
-const tradesPending = computed(() => tradeRecommendationStatus.value === "idle" || tradeRecommendationStatus.value === "pending");
-const retryTradeRecommendations = () => Promise.all([retryBootstrap(), refreshTradeRecommendations()]);
-
 const {
-  data: buyRecommendationData,
-  status: buyRecommendationStatus,
-  error: buyRecommendationError,
-  refresh: refreshBuyRecommendations,
-} = useLazyAsyncData("homepage-buy-recommendations", () => $fetch("/api/homepage-buys"), {
-  server: false,
-  default: () => ({ snapshot: null, generatedAt: null, source: 'rules' }),
-});
-const buysPending = computed(() => buyRecommendationStatus.value === "idle" || buyRecommendationStatus.value === "pending");
-const retryBuyRecommendations = () => Promise.all([retryBootstrap(), refreshBuyRecommendations()]);
+  target: recommendationsTarget, recommendationPlayers, catalogPending, catalogFailed,
+  fixtureData, fixturesStatus, fixturesRequestError, refreshFixtures,
+  tradeRecommendationData, tradeRecommendationError, tradesPending, retryTradeRecommendations,
+  buyRecommendationData, buyRecommendationError, buysPending, retryBuyRecommendations,
+} = useHomepageRecommendations();
 
 const hasFixtures = computed(() => Array.isArray(fixtureData.value?.fixtures));
 const fixturesPending = computed(() => fixturesStatus.value === "idle" || fixturesStatus.value === "pending");

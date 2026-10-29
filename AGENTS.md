@@ -72,10 +72,12 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `components/Home*.vue`, `components/GameWeekCardNew.vue` | Homepage sections and shared search content, including portrait cards, six upcoming matchups, three-gameweek player fixture runs, and recap |
 | `composables/useHomepageShortlist.ts`, `utils/homepage-shortlist.ts` | Full-catalog price/position filtering, stat ranking, rule-based player trends, and gameweek/fixture grouping |
 | `utils/carousel-layout.ts` | Shared public carousel sizing that reserves a preview of the next item; player-card fixture runs use a fixed grid instead |
-| `composables/useHomepageBootstrap.ts` | Homepage loading, one client recovery attempt after an SSR failure, and retention of already loaded data |
+| `composables/useHomepageBootstrap.ts`, `server/api/homepage-overview.get.ts` | Small SSR homepage shortlist, one client recovery attempt after an SSR failure, and retention of already loaded data |
+| `composables/useHomepageRecommendations.ts`, `composables/useNearViewport.ts` | Load the full recommendation catalogue, snapshots and fixtures near the viewport; shared observer also defers profile history |
 | `server/utils/homepage-data.ts`, `server/api/homepage-data.ts` | Homepage-only FPL snapshot; the shared bootstrap contract remains unchanged |
 | `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts` | Shared validated bootstrap cache and bounded upstream JSON request recovery |
-| `pages/player/[id].vue` | Player profile, fixtures, history, and metadata |
+| `pages/player/[id].vue`, `server/api/players/[id]/profile.get.ts` | Single-player SSR profile and metadata, with fixtures/history loaded near the viewport |
+| `pages/players.vue`, `composables/usePlayerDirectory.ts`, `server/api/player-directory.get.ts` | Public player directory with URL filters, stable ranking and 24-player server pagination |
 | `pages/manager/[id].vue` | Manager summary, published squad, five-gameweek planning and transfer recommendations |
 | `components/ManagerGameweekPlanner.vue`, `components/ManagerSquadBoard.vue` | Responsive week selector, fixture modal and stable published/suggested pitch, bench and gallery views |
 | `components/ManagerUpcomingFixtures.vue` | Full-width selected-gameweek fixture disclosure below the week controls, with tough published-XI matchups first and access to the five-week matrix |
@@ -97,6 +99,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `composables/usePremiereLeague.ts` | Existing FPL fetching, lookup, and scoring helpers; preserve this exact filename |
 | `composables/usePlayerRoute.ts` | Player slug creation and route ID parsing |
 | `utils/site-url.ts`, `composables/useCanonicalUrl.ts` | Shared public-origin normalization and canonical URL generation |
+| `utils/structured-data.ts` | Shared JSON-LD builders (WebSite, Organization, BreadcrumbList) and safe `<script>` serialization; see [IMPROVE_SEO.md](IMPROVE_SEO.md) Phase 2 |
 | `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts`, `server/routes/calendar/deadlines.ics.ts` | Crawl discovery and the public FPL deadline calendar feed |
 | `server/api/bootstrap-static.ts`, `server/api/homepage-data.ts`, `server/api/players/`, `server/api/fixtures.ts`, `server/api/managers/` | Public data handlers; the homepage projection is separate so shared bootstrap consumers retain their full contract |
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection |

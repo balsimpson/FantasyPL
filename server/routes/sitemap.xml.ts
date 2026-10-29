@@ -38,7 +38,7 @@ export default defineCachedEventHandler(
 		} catch {
 			publishedArticles = [];
 		}
-		const entries: { loc: string; lastmod?: string }[] = [...new Set([`${origin}/`, `${origin}/blog`, ...playerUrls])].map((loc) => ({ loc }));
+		const entries: { loc: string; lastmod?: string }[] = [...new Set([`${origin}/`, `${origin}/players`, `${origin}/blog`, ...playerUrls])].map((loc) => ({ loc }));
 		const urls = [...entries, ...publishedArticles];
 
 		setHeader(event, "content-type", "application/xml; charset=utf-8");

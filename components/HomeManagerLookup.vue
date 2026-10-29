@@ -1,5 +1,8 @@
 <template>
   <section aria-label="Manager lookup" class="min-w-0">
+    <h2 class="text-base font-semibold text-white">Your team and friends</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-300">See your squad, gaps and suggested transfers. Open each manager once to save their team and compare season points here.</p>
+    <p id="manager-id-help" class="mb-4 mt-2 text-xs leading-5 text-stone-400">Find it in FPL → Points → your ID in the URL.</p>
     <form class="w-full" novalidate @submit.prevent="submitManagerId">
       <UFormField
         label="Manager ID"
@@ -15,6 +18,7 @@
             autocomplete="off"
             placeholder="e.g. 123456"
             :aria-invalid="Boolean(managerError)"
+            aria-describedby="manager-id-help"
             class="h-11 min-w-0 flex-1"
             :ui="{
               root: 'h-11 w-full min-w-0 flex-1',

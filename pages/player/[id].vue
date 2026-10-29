@@ -70,7 +70,8 @@
         FPL data updated <time :datetime="bootstrap.fetchedAt">{{ new Date(bootstrap.fetchedAt).toUTCString() }}</time>
       </p>
       <PlayerPerformanceCard v-if="playerData" :player="playerData" :bootstrap="bootstrap" />
-      <PlayerProfileHistory
+      <div ref="historyTarget" class="min-h-64">
+      <LazyPlayerProfileHistory
         :player-id="playerId"
         :details="player"
         :bootstrap="bootstrap"
@@ -78,31 +79,39 @@
         :error="Boolean(playerError) && !player"
         @retry="refreshPlayer()"
       />
+      </div>
     </div>
 	</main>
 </template>
 
 <script setup>
+	import { useNearViewport } from "~/composables/useNearViewport";
 	import { getPlayerIdFromRouteParam, getPlayerRoute } from "~/composables/usePlayerRoute";
+	import { getPublicSiteOrigin } from "~/utils/site-url";
+	import { getAbsoluteUrl, getBreadcrumbSchema, getJsonLdScript } from "~/utils/structured-data";
 
 	const route = useRoute();
+	const siteOrigin = getPublicSiteOrigin(useRuntimeConfig().public.SITE_URL);
 	const playerId = computed(() => getPlayerIdFromRouteParam(route.params.id));
-	const playersStore = usePlayersStore();
-	const { bootstrap, loading: bootstrapLoading } = storeToRefs(playersStore);
-
-	const bootstrapRequest = useAsyncData("player-bootstrap", () => playersStore.fetchPlayers());
+	const bootstrapRequest = useFetch(() => `/api/players/${playerId.value}/profile`, { retry: 0 });
+	const { data: bootstrap, error: bootstrapError, refresh: refreshBootstrap } = bootstrapRequest;
+	const historyTarget = ref(null);
+	const historyVisible = useNearViewport(historyTarget);
 	const {
 		data: player,
 		status: playerStatus,
 		error: playerError,
 		refresh: refreshPlayer,
-	} = useLazyFetch(() => `/api/players/${playerId.value}`, { server: false, retry: 0 });
+	} = useLazyFetch(() => `/api/players/${playerId.value}`, { server: false, immediate: false, watch: false, retry: 0 });
+	watch([historyVisible, playerId], ([visible]) => {
+		if (visible) refreshPlayer();
+	});
 	const { pending: bootstrapPending } = await bootstrapRequest;
 	const bootstrapRecovering = ref(false);
 	onMounted(async () => {
-		if (Array.isArray(bootstrap.value?.elements)) return;
+		if (Array.isArray(bootstrap.value?.elements) || bootstrapError.value?.statusCode === 404) return;
 		bootstrapRecovering.value = true;
-		try { await playersStore.fetchPlayers(true); }
+		try { await refreshBootstrap(); }
 		finally { bootstrapRecovering.value = false; }
 	});
 
@@ -124,11 +133,12 @@
 	});
 
 	const hasBootstrapCatalog = computed(() => Array.isArray(bootstrap.value?.elements));
-	const bootstrapRequestPending = computed(() => bootstrapPending.value || bootstrapLoading.value || bootstrapRecovering.value);
+	const bootstrapRequestPending = computed(() => bootstrapPending.value || bootstrapRecovering.value);
 	const bootstrapFailed = computed(() => !bootstrapRequestPending.value && !hasBootstrapCatalog.value);
 	const isMalformedPlayerRoute = computed(() => !/^[1-9]\d*$/.test(String(playerId.value).trim()));
 	const isPlayerNotFound = computed(() => {
 		if (isMalformedPlayerRoute.value) return true;
+		if (bootstrapError.value?.statusCode === 404) return true;
 		return hasBootstrapCatalog.value && !playerData.value;
 	});
 
@@ -171,7 +181,7 @@
 			const requests = [refreshPlayer()];
 
 			if (bootstrapFailed.value) {
-				requests.push(playersStore.fetchPlayers(true));
+				requests.push(refreshBootstrap());
 			}
 
 			await Promise.all(requests);
@@ -194,9 +204,15 @@
 
 	const canonicalUrl = useCanonicalUrl(preferredPlayerPath);
 
-	useHead({
-		link: [{ rel: "canonical", href: canonicalUrl }],
-	});
+	useHead(() => ({
+		link: [
+			{ rel: "canonical", href: canonicalUrl.value },
+			...(playerData.value?.code ? [{
+				rel: "preload", as: "image", fetchpriority: "high",
+				href: `https://resources.premierleague.com/premierleague25/photos/players/110x140/${playerData.value.code}.png`,
+			}] : []),
+		],
+	}));
 
 	const playerName = computed(() => {
 		if (!playerData.value) {
@@ -215,9 +231,23 @@
 
 	const breadcrumbLinks = computed(() => [
 		{ label: "Home", to: "/" },
-		{ label: "Player" },
+		{ label: "Players", to: "/players" },
 		{ label: playerName.value },
 	]);
+
+	useHead(() => ({
+		script: playerData.value
+			? [
+				getJsonLdScript(
+					getBreadcrumbSchema([
+						{ name: "Home", url: getAbsoluteUrl(siteOrigin, "/") },
+						{ name: "Players", url: getAbsoluteUrl(siteOrigin, "/players") },
+						{ name: playerName.value, url: canonicalUrl.value },
+					]),
+				),
+			]
+			: [],
+	}));
 
 	const playerSummary = computed(() => {
 		if (!playerData.value) return playerErrorDescription.value;

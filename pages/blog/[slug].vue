@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { articleTemplates, type PublishedArticle } from '~/shared/articles'
 import { getPublicSiteOrigin } from '~/utils/site-url'
+import { getAbsoluteUrl, getBreadcrumbSchema, getJsonLdScript, getOrganizationSchema } from '~/utils/structured-data'
 import { getArticlePreviewPath, getArticlePreviewPlayers } from '~/utils/article-preview'
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
@@ -23,23 +24,34 @@ if (article.value) defineOgImageComponent('ArticlePreview', {
   alt: article.value.title,
   cacheMaxAgeSeconds: 300,
 })
-const structuredData = computed(() => article.value ? JSON.stringify({
-  '@context': 'https://schema.org',
+const breadcrumbLinks = computed(() => [
+  { label: 'Home', to: '/' },
+  { label: 'FPL articles', to: '/blog' },
+  { label: article.value?.title || '' },
+])
+const structuredData = computed(() => article.value ? getJsonLdScript({
   '@type': 'BlogPosting',
   headline: article.value.title,
   description: article.value.excerpt,
   datePublished: new Date(article.value.publishedAt).toISOString(),
   dateModified: new Date(article.value.updatedAt).toISOString(),
   author: { '@type': 'Person', name: article.value.author },
-  publisher: { '@type': 'Organization', name: 'FPL Insights', url: siteOrigin },
+  publisher: getOrganizationSchema(siteOrigin),
   mainEntityOfPage: canonicalUrl.value,
   image: previewUrl.value,
   citation: article.value.sources.map(source => ({ '@type': 'CreativeWork', name: source.title, url: source.url })),
   inLanguage: 'en',
-}).replace(/</g, '\\u003c') : '')
+}) : null)
+const breadcrumbStructuredData = computed(() => article.value ? getJsonLdScript(getBreadcrumbSchema([
+  { name: 'Home', url: getAbsoluteUrl(siteOrigin, '/') },
+  { name: 'FPL articles', url: getAbsoluteUrl(siteOrigin, '/blog') },
+  { name: article.value.title, url: canonicalUrl.value },
+])) : null)
 useHead(() => ({
   link: article.value ? [{ rel: 'canonical', href: canonicalUrl.value }] : [],
-  script: article.value ? [{ type: 'application/ld+json', innerHTML: structuredData.value }] : [],
+  script: article.value && structuredData.value && breadcrumbStructuredData.value
+    ? [structuredData.value, breadcrumbStructuredData.value]
+    : [],
 }))
 useSeoMeta({
   title: () => article.value?.title || 'Article unavailable',
@@ -64,7 +76,7 @@ const formattedDate = computed(() => article.value ? new Intl.DateTimeFormat('en
   <main id="main-content" class="site-content-rail min-h-[70vh] py-7 sm:py-12">
     <p v-if="!article" class="py-12 text-stone-300">{{ Number((error as any)?.statusCode) === 404 ? 'This article could not be found.' : 'Articles are temporarily unavailable.' }} <NuxtLink to="/blog" class="text-primary underline underline-offset-4">Browse FPL articles</NuxtLink>.</p>
     <article v-else class="mx-auto max-w-3xl">
-      <NuxtLink to="/blog" class="text-sm text-stone-300 underline underline-offset-4 hover:text-white">FPL articles</NuxtLink>
+      <UBreadcrumb :items="breadcrumbLinks" class="min-w-0" :ui="{ link: 'text-stone-300 hover:text-white', linkLabel: 'whitespace-normal [overflow-wrap:anywhere]' }" />
       <header class="mt-7 border-b border-white/10 pb-7">
         <p class="text-sm text-stone-400"><time :datetime="new Date(article.publishedAt).toISOString()">{{ formattedDate }}</time><span v-if="article.gameweek"> · Gameweek {{ article.gameweek }}</span><span v-if="article.season"> · {{ article.season }}</span></p>
         <h1 class="mt-3 break-words text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">{{ article.title }}</h1>

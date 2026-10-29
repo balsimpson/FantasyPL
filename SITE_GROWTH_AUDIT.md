@@ -185,6 +185,8 @@ These are HTML and element counts, not compressed browser transfer totals or 306
 
 **Local implementation status (6 September 2026).** A homepage-only data projection preserves the full shared bootstrap contract while reducing the local SSR homepage from 2,550,303 to 447,235 bytes and the largest Nuxt data script from 1,818,063 to 398,188 bytes. The corrected visual pass renders 6 player portraits and 18 club badges with fixed dimensions and lazy loading, while server-rendered profile links fall from 140 to 6. This is not a compressed-transfer, field-performance, or hosted measurement; see [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md) for the complete local record.
 
+29 October 2026: a further local payload reduction covers both the homepage and player profile, with viewport-triggered secondary requests, portrait preloads and Vercel ISR configuration. Current measurements, checks and hosted limitations are in [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md). The new player directory and its URL policy are recorded in [IMPROVE_SEO.md](IMPROVE_SEO.md).
+
 ### 7. P1: The watchlist cannot yet support repeat visits
 
 **Initial live and source evidence.** Before this correction, the inspected live watchlist showed only its title and the site shell. The navigation link was commented out in `layouts/default.vue:18`. The current main player profile and card had no visible save action in the inspected journey.

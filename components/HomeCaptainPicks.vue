@@ -39,6 +39,7 @@
           :player="player"
           :team="getTeam(player)"
           :rank="section.rankOffset + index + 1"
+          :priority="section.id === 'captains' && index === 0"
           compact
           :metric-label="section.metricLabel"
           :metric-value="formatMetric(player, section.metricKey)"
