@@ -1,6 +1,8 @@
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const url = query.url as string
+  // The OG renderer needs image bytes instead of the normal fallback redirect.
+  const inlineFallback = /^article-preview-player-\d{1,12}$/.test(getRouterParam(event, 'slug') || '')
 
   if (!url) {
     throw createError({ statusCode: 400, statusMessage: 'URL is required' })
@@ -24,6 +26,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const signal = inlineFallback ? AbortSignal.timeout(5000) : undefined
     let response = await fetch(imageUrl.toString(), {
       headers: {
         Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
@@ -33,13 +36,14 @@ export default defineEventHandler(async (event) => {
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
       },
       redirect: 'follow',
+      signal,
     })
 
     // Some players only have the archived headshot. Keep the same player code.
-    if (!response.ok && query.strict === '1') {
+    if (!response.ok && (query.strict === '1' || inlineFallback)) {
       const code = imageUrl.pathname.match(/\/photos\/players\/250x250\/p(\d+)\.png$/)?.[1]
       if (code) {
-        response = await fetch(`https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`)
+        response = await fetch(`https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`, { signal })
       }
     }
 
@@ -62,6 +66,12 @@ export default defineEventHandler(async (event) => {
     return Buffer.from(arrayBuffer)
   } catch (error) {
     console.warn('Image proxy fallback:', error instanceof Error ? error.message : error)
+    if (inlineFallback) {
+      const fallback = await $fetch<ArrayBuffer>('/fallback.png', { responseType: 'arrayBuffer' })
+      setResponseHeader(event, 'Content-Type', 'image/png')
+      setResponseHeader(event, 'Cache-Control', 'no-store')
+      return Buffer.from(fallback)
+    }
     if (query.strict === '1') {
       throw createError({ statusCode: 502, statusMessage: 'Player photo unavailable' })
     }

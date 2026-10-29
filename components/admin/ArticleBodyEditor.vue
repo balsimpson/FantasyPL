@@ -27,7 +27,7 @@ const items: EditorToolbarItem[][] = [
   [{ kind: 'bulletList', icon: 'i-lucide-list', 'aria-label': 'Bullet list', tooltip: { text: 'Bullet list' } }, { kind: 'orderedList', icon: 'i-lucide-list-ordered', 'aria-label': 'Numbered list', tooltip: { text: 'Numbered list' } }, { kind: 'blockquote', icon: 'i-lucide-text-quote', 'aria-label': 'Quote', tooltip: { text: 'Quote' } }],
 ]
 
-function updateSelection(editor: Editor) {
+function updateSelection({ editor }: { editor: Editor }) {
   currentEditor = editor
   const { from, to, empty } = editor.state.selection
   if (empty) {
@@ -87,7 +87,7 @@ async function applyEdit() {
 </script>
 
 <template>
-  <UEditor v-slot="{ editor }" v-model="body" :editable="!preview && !editing" :on-selection-update="() => updateSelection(editor)" :extensions="articleVisualExtensions" :image="false" :mention="false" :starter-kit="{ heading: { levels: [2, 3] }, codeBlock: false, code: false }" :editor-props="{ attributes: { 'aria-label': preview ? 'Article preview' : 'Article body', role: preview ? 'document' : 'textbox', 'aria-multiline': preview ? undefined : 'true' } }" class="w-full" :ui="{ base: 'min-h-96 px-0 py-6 text-base break-words sm:px-0', content: 'min-w-0' }">
+  <UEditor v-slot="{ editor }" v-model="body" :editable="!preview && !editing" :on-selection-update="updateSelection" :extensions="articleVisualExtensions" :image="false" :mention="false" :starter-kit="{ heading: { levels: [2, 3] }, codeBlock: false, code: false }" :editor-props="{ attributes: { 'aria-label': preview ? 'Article preview' : 'Article body', role: preview ? 'document' : 'textbox', 'aria-multiline': preview ? undefined : 'true' } }" class="w-full" :ui="{ base: 'min-h-96 px-0 py-6 text-base break-words sm:px-0', content: 'min-w-0' }">
     <div v-if="!preview && selection" class="mb-4 space-y-3 border-y border-default py-4" aria-label="Edit selected text">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0"><p class="text-sm font-medium text-highlighted">Edit selected text</p><p class="mt-1 max-w-3xl truncate text-xs text-muted">“{{ selection.text }}”</p></div>

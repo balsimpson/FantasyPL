@@ -13,10 +13,10 @@ This guide owns the article visual catalog and the rules for choosing cards in g
 
 | Card | Use it for | Required evidence and rules |
 | --- | --- | --- |
-| Player comparison (`comparisonCard`) | Help choose between two or three named players. | Uses one capture time and matching season/gameweek stats. Shows the same measures for each player: price, points, form, minutes, and ownership. It does not declare a winner. |
-| Transfer watch (`transferWatch`) | Show players moving in during the current gameweek. | Uses captured `transfersIn`, ranked by the current transfer template. Label the gameweek and capture time. These values are gameweek totals, not 24-hour totals. Net transfers are not shown. |
-| Budget shortlist (`budgetShortlist`) | Show candidates for a stated budget or position question. | Uses the ranked evidence set, with price, position, form, and points shown. Generation applies its minutes and topic filters. This is a shortlist, not a prediction. |
-| Team fixture table (`teamFixtureTable`) | Compare upcoming schedules across clubs. | Uses official fixtures grouped by gameweek. Preserves blanks and doubles. Shows difficulty values. Difficulty is not a scoring or clean-sheet probability. |
+| Player comparison (`comparisonCard`) | Help choose between two or three named players. | Uses one capture time and matching season/gameweek stats. Shows portraits and a separate zero-based bar comparison for each measure: price, season points, FPL form, season minutes, and ownership. Values remain visible as text. It does not declare a winner. |
+| Transfer watch (`transferWatch`) | Show players moving in during the current gameweek. | Shows player portraits and captured `transfersIn`, ranked by the current transfer template. Label the gameweek and capture time. These values are gameweek totals, not 24-hour totals. Net transfers are not shown. |
+| Budget shortlist (`budgetShortlist`) | Show candidates for a stated budget or position question. | Uses the ranked evidence set, with portraits, price, position, form, and points shown. Generation applies its minutes and topic filters. This is a shortlist, not a prediction. |
+| Team fixture table (`teamFixtureTable`) | Compare upcoming schedules across clubs. | Uses official fixtures grouped by gameweek, with club crests where available. Preserves blanks and doubles. Shows difficulty values. Difficulty is not a scoring or clean-sheet probability. |
 | Gameweek recap | Summarize completed gameweek returns. | Requires saved event-specific points and player identity for that completed gameweek. Season points are not a substitute. Do not generate this card until the evidence builder captures a completed game's results and the snapshot stores its gameweek and capture time. |
 
 ## Selection rules for article generation
@@ -32,5 +32,7 @@ This guide owns the article visual catalog and the rules for choosing cards in g
 ## Implementation status
 
 As of 24 October 2026, the editor and renderer support `playerCard`, `fixtureRun`, `comparisonCard`, `transferWatch`, `budgetShortlist`, and `teamFixtureTable`. The article generator adds the matching structured card for comparison, transfer, budget, and fixture article templates. `gameweekRecap` is not supported. The current generation snapshot has season totals and upcoming fixtures, but no completed-gameweek player points. Do not use season totals as a substitute. `npm run build` and `git diff --check` passed locally. The project-wide TypeScript check reported the Vue node-view import diagnostic in `utils/article-editor-extensions.ts` and unrelated existing project errors. Browser verification remains open. The visual-card follow-up did not deploy its changes or generate an article; earlier development generation is recorded in [BLOG_GROWTH_PLAN.md](../BLOG_GROWTH_PLAN.md).
+
+29 October 2026: comparison cards gained portrait-led bar charts, shortlist and transfer rows gained portraits, and fixture visuals gained player or club imagery. The data contracts and saved snapshots are unchanged. Local checks and the remaining hosted verification are recorded in [the blog plan](../BLOG_GROWTH_PLAN.md).
 
 When adding a card, update this guide, `shared/article-visuals.ts`, article validation, the editor extension and node view, article generation instructions/schema, the public renderer, and publication capture-time extraction. Add focused non-destructive checks for valid, invalid, missing, and stale evidence. Update `BLOG_GROWTH_PLAN.md` with implementation and verification status.

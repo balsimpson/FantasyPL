@@ -109,7 +109,11 @@ const stats = computed(() => [
       <SchedulerClubGraphics :colour="theme.colour" :dark="theme.dark" mode="sweep" />
     </div>
     <header class="relative z-10 flex items-center gap-3 border-b border-current/15 px-4 py-4 sm:px-6">
-      <SchedulerArtworkAsset :src="clubCrestUrl" :label="`${player.teamName} crest`" class="size-11 shrink-0 rounded-full bg-white/90 p-2 sm:size-12" />
+      <div class="relative size-14 shrink-0 overflow-hidden rounded-lg bg-white/35 sm:size-16">
+        <img v-if="!portraitFailed" :src="playerPhotoUrl" alt="" class="absolute inset-0 h-full w-full object-contain object-bottom" @error="portraitFailed = true">
+        <PlayerPortrait v-else :player="player" />
+        <SchedulerArtworkAsset :src="clubCrestUrl" :label="`${player.teamName} crest`" decorative class="absolute right-0 bottom-0 size-6 rounded-full bg-white/90 p-1" />
+      </div>
       <div class="min-w-0 flex-1">
         <p class="break-words text-xs font-semibold opacity-75">{{ player.teamName }} · {{ player.position }}</p>
         <NuxtLink :to="getPlayerRoute(player)" target="_blank" class="mt-1 block break-words text-xl font-semibold tracking-tight hover:opacity-75 sm:text-2xl">{{ name }}</NuxtLink>
@@ -120,7 +124,7 @@ const stats = computed(() => [
       <section v-for="gameweek in player.gameweeks" :key="gameweek" class="min-w-0 px-3 py-4 first:pl-4 last:pr-4 sm:px-5 sm:py-5 first:sm:pl-6 last:sm:pr-6" :aria-label="`Gameweek ${gameweek}`">
         <p class="text-[0.65rem] font-semibold tracking-[0.1em] uppercase opacity-65">GW {{ gameweek }}</p>
         <div v-for="(fixture, index) in player.fixtures.filter(f => f.gameweek === gameweek)" :key="index" class="mt-3 min-w-0">
-          <div class="flex min-w-0 items-center gap-2">
+          <div class="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
             <SchedulerArtworkAsset v-if="fixtureClubCode(fixture)" :src="opponentCrestUrl(fixtureClubCode(fixture)!)" :label="`${fixture.opponent} crest`" decorative class="size-7 shrink-0 rounded-full bg-white/90 p-1 sm:size-8" />
             <p class="min-w-0 break-words text-sm leading-tight font-semibold">{{ fixture.opponent }}</p>
           </div>

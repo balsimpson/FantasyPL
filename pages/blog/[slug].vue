@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { articleTemplates, type PublishedArticle } from '~/shared/articles'
 import { getPublicSiteOrigin } from '~/utils/site-url'
-import { getArticlePreviewPath } from '~/utils/article-preview'
+import { getArticlePreviewPath, getArticlePreviewPlayers } from '~/utils/article-preview'
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || ''))
 const { data: article, error } = await useFetch<PublishedArticle>(() => `/api/articles/${encodeURIComponent(slug.value)}`)
@@ -15,6 +15,7 @@ if (article.value) defineOgImageComponent('ArticlePreview', {
   category: computed(() => articleTemplates.find(template => template.value === article.value?.template)?.label || 'FPL articles'),
   season: computed(() => article.value?.season || ''),
   gameweek: computed(() => article.value?.gameweek),
+  players: computed(() => article.value ? getArticlePreviewPlayers(article.value.body, article.value.template) : []),
 }, {
   width: 1200,
   height: 630,
