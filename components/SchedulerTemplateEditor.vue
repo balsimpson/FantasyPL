@@ -63,7 +63,7 @@ const contextStyle = computed(() => {
   const top = above >= 8 ? above : Math.min(below, previewWidth.value - 48)
   return { width: `${width}px`, left: `${left}px`, top: `${top}px` }
 })
-const statusText = computed(() => props.editor.storageError.value || props.editor.notice.value || (props.editor.dirty.value ? 'Unsaved layout changes' : editing.value ? (scopeId.value ? 'Select a part to move, resize or align it.' : 'Drag to move. Double-click a group to edit its parts.') : 'Edit a layout, then save it for other players.'))
+const statusText = computed(() => props.editor.storageError.value || props.editor.notice.value || (props.editor.dirty.value ? 'Unsaved layout changes' : editing.value ? (scopeId.value ? 'Select a part to move, resize or align it.' : 'Drag to move. Double-click a group to edit its parts.') : ''))
 defineExpose({ getElement: () => preview.value?.getElement() })
 </script>
 
@@ -72,10 +72,6 @@ defineExpose({ getElement: () => preview.value?.getElement() })
     <Teleport :to="toolbarTarget ?? 'body'" :disabled="!toolbarTarget">
     <div role="toolbar" aria-label="Edit and create post" class="pointer-events-auto h-14 shrink-0 overflow-hidden rounded-full bg-zinc-900 text-white shadow-xl ring-1 ring-white/10 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none" :style="{ width: toolbarWidth ? `${toolbarWidth}px` : undefined }" @keydown="keyboard">
     <div ref="toolbarContent" class="flex h-14 w-max items-center gap-0.5 whitespace-nowrap px-1.5">
-      <UTooltip :text="editing ? 'Finish editing' : 'Edit layout'">
-        <UButton :icon="editing ? 'i-lucide-check' : 'i-lucide-pencil'" :label="editing ? 'Done' : 'Edit'" :aria-label="editing ? 'Finish editing' : 'Edit layout'" color="neutral" variant="ghost" class="h-9 justify-center rounded-full px-3 hover:bg-white/10 hover:text-white" :class="editing ? 'bg-white/10 text-primary' : 'text-zinc-300'" :disabled="disabled" :aria-pressed="editing" @click="editing = !editing" />
-      </UTooltip>
-      <span v-if="editing" class="mx-0.5 h-4 w-px shrink-0 bg-white/15" aria-hidden="true" />
       <UTooltip v-if="editing && editor.canUndo.value" text="Undo (⌘/Ctrl Z)">
         <UButton icon="i-lucide-undo-2" aria-label="Undo layout change" color="neutral" variant="ghost" class="size-9 justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white" :disabled="disabled || !editor.canUndo.value" @click="editor.undo()" />
       </UTooltip>

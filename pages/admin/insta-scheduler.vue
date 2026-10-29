@@ -278,19 +278,12 @@ onScopeDispose(() => {
 
 <template>
     <main class="h-full min-h-0 overflow-hidden bg-default text-default selection:bg-primary/20">
+      <Teleport to="#scheduler-navbar-actions">
+        <SchedulerSavedCaptions v-if="savedCaptions.length || captionStorageError" :drafts="savedCaptions" :storage-error="captionStorageError" @remove="removeSavedCaption" />
+        <UButton icon="i-lucide-download" color="neutral" variant="ghost" size="sm" aria-label="Download PNG" :disabled="!canExport" :loading="busy && phase === 'Creating PNG…'" @click="download(filename)" />
+        <UButton :icon="view === 'history' ? 'i-lucide-arrow-left' : 'i-lucide-history'" color="neutral" variant="ghost" :label="view === 'history' ? 'Back to picks' : 'History'" :disabled="busy" @click="view = view === 'history' ? 'create' : 'history'" />
+      </Teleport>
       <div class="flex h-full min-h-0 flex-col">
-        <header class="site-content-rail flex shrink-0 items-center justify-between py-3">
-          <div class="flex items-center gap-3">
-            <UButton to="/admin/articles" icon="i-lucide-arrow-left" color="neutral" variant="ghost" aria-label="Back to articles" />
-            <h1 class="text-sm font-semibold text-highlighted sm:text-base">Post picks <span class="font-normal text-muted">· GW{{ draft.gameweek ?? '—' }}</span></h1>
-          </div>
-          <div class="flex items-center gap-1">
-            <SchedulerSavedCaptions v-if="savedCaptions.length || captionStorageError" :drafts="savedCaptions" :storage-error="captionStorageError" @remove="removeSavedCaption" />
-            <UButton icon="i-lucide-download" color="neutral" variant="ghost" size="sm" aria-label="Download PNG" :disabled="!canExport" :loading="busy && phase === 'Creating PNG…'" @click="download(filename)" />
-            <UButton :icon="view === 'history' ? 'i-lucide-arrow-left' : 'i-lucide-history'" color="neutral" variant="ghost" :label="view === 'history' ? 'Back to picks' : 'History'" :disabled="busy" @click="view = view === 'history' ? 'create' : 'history'" />
-          </div>
-        </header>
-
         <UAlert v-if="error" color="error" title="Player data could not load" description="Load the player list again to start creating a post." class="mx-auto mt-8 w-full max-w-lg" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
         <div v-else-if="status === 'pending'" role="status" class="flex flex-1 items-center justify-center text-muted">Loading players…</div>
 
@@ -301,9 +294,19 @@ onScopeDispose(() => {
             <div class="flex h-5 w-[min(45vh,78vw)] max-w-[660px] items-center truncate text-xs font-medium text-success" role="status" aria-live="polite">
               <span v-if="queueNotice" class="truncate">{{ queueNotice }}</span>
             </div>
+            <div class="flex w-[min(45vh,78vw)] max-w-[660px] items-center justify-center gap-3">
+              <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Previous template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(-1)" />
+              <span class="min-w-36 text-center text-sm font-medium text-muted">{{ activeDesign.letter }} <span class="text-dimmed">·</span> {{ activeDesign.name }}</span>
+              <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Next template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(1)" />
+            </div>
             <SchedulerInstagramPost v-if="picksReady && activePick" class="w-[min(45vh,78vw)] max-w-[660px] shrink-0">
               <template #header-actions>
-                <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" size="xs" aria-label="Post options" />
+                <div class="flex items-center gap-1">
+                  <UTooltip :text="editingLayout ? 'Finish editing' : 'Edit layout'">
+                    <UButton :icon="editingLayout ? 'i-lucide-check' : 'i-lucide-pencil'" :label="editingLayout ? 'Done' : 'Edit'" :aria-label="editingLayout ? 'Finish editing' : 'Edit layout'" :aria-pressed="editingLayout" :color="editingLayout ? 'primary' : 'neutral'" :variant="editingLayout ? 'soft' : 'ghost'" size="xs" :disabled="busy || hasPlayerJob(activePick.id)" @click="editingLayout = !editingLayout" />
+                  </UTooltip>
+                  <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" size="xs" aria-label="Post options" />
+                </div>
               </template>
               <SchedulerTemplateEditor :key="activePreviewKey" ref="preview" v-model:editing="editingLayout" :draft="activeDraft" :editor="layoutEditor" :disabled="busy || hasPlayerJob(activePick.id)" toolbar-target="#scheduler-post-toolbar">
                 <template #actions>
@@ -347,12 +350,6 @@ onScopeDispose(() => {
               <span v-else>{{ picksReady ? 'No unposted players match the current picks.' : 'Checking queued and posted players…' }}</span>
             </div>
 
-            <div class="flex w-[min(45vh,78vw)] max-w-[660px] items-center justify-center gap-3">
-              <UButton icon="i-lucide-chevron-left" color="neutral" variant="ghost" aria-label="Previous template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(-1)" />
-              <span class="min-w-36 text-center text-sm font-medium text-muted">{{ activeDesign.letter }} <span class="text-dimmed">·</span> {{ activeDesign.name }}</span>
-              <UButton icon="i-lucide-chevron-right" color="neutral" variant="ghost" aria-label="Next template" :disabled="busy || !activePick || hasPlayerJob(activePick?.id)" @click="cycleTemplate(1)" />
-            </div>
-
             <UAlert v-if="repeatMessage" color="warning" :title="repeatMessage" class="w-full max-w-[660px]" />
             <UCheckbox v-if="repeatMessage" v-model="allowRepeat" label="Allow this repeat post" :disabled="busy" />
             <p v-if="captionStorageError" class="w-[min(45vh,78vw)] max-w-[660px] text-xs text-error" role="alert">{{ captionStorageError }}</p>
@@ -360,9 +357,9 @@ onScopeDispose(() => {
           </div>
 
           <footer class="relative z-40 shrink-0 border-t border-default bg-default/95 pb-2 pt-2">
-            <div id="scheduler-post-toolbar" class="pointer-events-none absolute inset-x-0 bottom-full flex justify-center px-2 pb-4" />
             <div class="site-content-rail flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1">
               <p class="text-xs text-muted">Post ideas · Differentials, transfers, value and form</p>
+              <div id="scheduler-post-toolbar" class="flex shrink-0" />
               <UButton label="Show more players" icon="i-lucide-plus" color="neutral" variant="ghost" size="sm" :disabled="!hasMorePicks || busy" @click="showMorePicks" />
             </div>
             <div v-if="picksReady" ref="pickList" class="site-content-rail flex gap-2 overflow-x-auto overscroll-x-contain py-2">

@@ -23,7 +23,7 @@ For two-player comparisons, the A–J compositions are in `components/SchedulerC
 
 ## Inline Layout Editing
 
-Use **Edit layout** in the floating toolbar above the thumbnail strip to select and drag an item. Corners resize it in proportion. The contextual toolbar adjusts size and text alignment; its menu centres, arranges or resets the selected item. Snapping aligns edges and centres with the canvas, margins and other items. Hold Alt to bypass snapping or Shift to constrain a drag. Arrow keys move one artwork pixel; Shift moves ten. Undo, redo and Save also support the usual Ctrl/Command shortcuts.
+Use **Edit** in the Instagram preview header, immediately left of Post options, to select and drag an item; **Done** leaves edit mode. The non-floating footer toolbar sits beside the Post ideas label above the thumbnail strip and contains layout controls, caption generation and scheduling. Corners resize an item in proportion. The contextual toolbar adjusts size and text alignment; its menu centres, arranges or resets the selected item. Snapping aligns edges and centres with the canvas, margins and other items. Hold Alt to bypass snapping or Shift to constrain a drag. Arrow keys move one artwork pixel; Shift moves ten. Undo, redo and Save also support the usual Ctrl/Command shortcuts.
 
 Select the player name and open **… → Text contrast** for None, Outline, Shadow or Exclusion. Template G defaults to Outline. The choice saves with the layout and changes only how the text is painted, without moving or resizing it.
 

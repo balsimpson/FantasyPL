@@ -89,6 +89,7 @@ async function signOut() {
               <UDashboardSidebarCollapse />
             </template>
             <template #right>
+              <div v-if="isScheduler" id="scheduler-navbar-actions" class="flex items-center gap-1" />
               <template v-if="articleToolbar">
                 <span role="status" aria-live="polite" class="hidden min-w-28 text-right text-xs text-muted sm:inline">{{ articleToolbar.saveLabel }}</span>
                 <UTooltip text="Save draft">
