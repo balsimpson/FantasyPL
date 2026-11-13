@@ -3,7 +3,7 @@
     v-model:open="open"
     title="Connect calendar"
     :ui="{
-      content: 'dark top-4 translate-y-0 max-w-md bg-[#101216] text-white divide-white/10 ring-white/10 sm:top-8',
+      content: 'dark max-w-md bg-[#101216] text-white divide-white/10 ring-white/10',
       title: 'text-white',
       overlay: 'bg-black/70',
       close: 'text-stone-300 hover:bg-lime-300/10 hover:text-lime-200',
