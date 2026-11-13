@@ -4,7 +4,7 @@
       <USelect v-model="calendarType" :items="calendarTypes" class="w-full" />
     </UFormField>
 
-    <form v-if="calendarType === 'team'" class="space-y-4" novalidate @submit.prevent="loadPreview">
+    <div v-if="calendarType === 'team'" class="space-y-4">
       <UFormField v-if="teams.length > 1" label="Team" class="w-full">
         <USelect v-model="selectedTeam" :items="teams" class="w-full" />
       </UFormField>
@@ -20,25 +20,11 @@
         <UInput v-model="enteredId" type="text" inputmode="numeric" autocomplete="off" class="w-full" :ui="{ root: 'w-full', base: 'w-full' }" />
       </UFormField>
 
-      <UCheckbox v-model="includeStartingXI" label="Include my starting XI" :ui="{ label: 'text-stone-200' }" />
+    </div>
 
-      <UButton v-if="!preview" type="submit" label="Preview calendar" color="primary" :loading="loading" />
-      <p v-if="previewError" class="text-sm text-error" role="alert">{{ previewError }}</p>
-    </form>
-
-    <section v-if="calendarType === 'team' && preview" aria-label="Calendar preview" aria-live="polite" class="border-t border-white/10 pt-4">
-      <h3 class="break-words text-sm font-semibold">{{ preview.name }}</h3>
-      <ul v-if="preview.events.length" class="mt-2 divide-y divide-white/10">
-        <li v-for="entry in preview.events" :key="entry.uid" class="py-2 text-sm">
-          <p>{{ entry.title }}</p>
-          <time :datetime="entry.start" class="text-xs text-stone-400">{{ formatTime(entry.start) }}</time>
-        </li>
-      </ul>
-      <p v-else class="mt-2 text-sm text-stone-400">No upcoming events.</p>
-    </section>
-
-    <div v-if="subscriptionUrl" class="flex flex-wrap gap-2">
+    <div v-if="subscriptionUrl || showPreview" class="flex min-h-9 flex-wrap items-start gap-2">
       <a
+        v-if="subscriptionUrl"
         :href="subscriptionUrl.replace(/^https?:/, 'webcal:')"
         class="inline-flex min-h-9 items-center gap-2 rounded-md bg-lime-300 px-3 text-sm font-medium text-zinc-950 hover:bg-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
       >
@@ -46,6 +32,7 @@
         Subscribe
       </a>
       <UButton
+        v-if="subscriptionUrl"
         type="button"
         color="neutral"
         variant="outline"
@@ -58,6 +45,19 @@
       <UInput :model-value="subscriptionUrl ?? ''" readonly class="w-full" :ui="{ root: 'w-full', base: 'w-full' }" @focus="selectLink" />
     </UFormField>
     <p v-if="copied" class="sr-only" role="status">Calendar link copied.</p>
+
+    <div v-if="showPreview" class="min-h-[26rem]">
+      <ManagerCalendarAgenda v-if="preview" :name="preview.name" :events="preview.events" />
+      <div v-else-if="previewError" class="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+        <p class="text-sm text-error" role="alert">{{ previewError }}</p>
+        <UButton type="button" label="Retry" color="neutral" variant="outline" size="xs" @click="loadPreview" />
+      </div>
+      <div v-else class="space-y-2 border-t border-white/10 pt-4" role="status">
+        <p class="sr-only">Loading calendar preview…</p>
+        <USkeleton class="h-5 w-40" aria-hidden="true" />
+        <USkeleton v-for="row in 5" :key="row" class="h-14 w-full rounded-md" aria-hidden="true" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -66,14 +66,12 @@ import { useManagerCalendarSubscription, type CalendarTeam } from "~/composables
 
 const props = defineProps<{ deadlineUrl: string; initialTeam?: CalendarTeam }>();
 const {
-  calendarTypes, calendarType, selectedTeam, teams, enteredId, includeStartingXI,
-  preview, loading, idError, previewError, subscriptionUrl, loadPreview,
+  calendarTypes, calendarType, selectedTeam, teams, enteredId,
+  preview, showPreview, idError, previewError, subscriptionUrl, loadPreview,
 } = useManagerCalendarSubscription(() => props.deadlineUrl, props.initialTeam);
 
 const copied = ref(false);
 const copyError = ref(false);
-const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" });
-const formatTime = (start: string) => dateFormat.format(new Date(start));
 
 watch(subscriptionUrl, () => {
   copied.value = false;

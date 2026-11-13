@@ -6,6 +6,7 @@ import {
 import { plannerPlayerName } from "../../utils/manager-planner";
 import { getCachedFplBootstrap } from "./fpl-bootstrap";
 import { getFplFixtureSchedule } from "./manager-fixtures";
+import { stadiums2026 } from "./fpl-stadiums";
 
 type ManagerPick = {
   element: number;
@@ -14,14 +15,11 @@ type ManagerPick = {
   is_vice_captain: boolean;
 };
 
-export function readManagerCalendarParams(id: string | undefined, xi: unknown) {
+export function readManagerCalendarId(id: string | undefined) {
   if (!id || !/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
     throw createError({ statusCode: 400, statusMessage: "Enter a valid Manager ID." });
   }
-  if (xi !== undefined && xi !== "1") {
-    throw createError({ statusCode: 400, statusMessage: "Invalid calendar option." });
-  }
-  return { id, includeStartingXI: xi === "1" };
+  return id;
 }
 
 async function getPublishedPicks(id: string, gameweek: number) {
@@ -33,7 +31,7 @@ async function getPublishedPicks(id: string, gameweek: number) {
   }
 }
 
-export async function getManagerCalendar(id: string, includeStartingXI: boolean, origin: string) {
+export async function getManagerCalendar(id: string, origin: string) {
   const [manager, { data }, fixtures] = await Promise.all([
     $fetch<{ name: string; current_event: number | null }>(`/api/managers/${id}`, { retry: 0 }),
     getCachedFplBootstrap(),
@@ -55,7 +53,9 @@ export async function getManagerCalendar(id: string, includeStartingXI: boolean,
     ? await getPublishedPicks(id, lastPublished.id)
     : null);
   const players = new Map<number, Record<string, any>>(data.elements.map((player: Record<string, any>) => [player.id, player]));
-  const clubs = new Map<number, string>(data.teams.map((team: Record<string, any>) => [team.id, team.name]));
+  const clubs = new Map<number, { name: string; code: number }>(
+    data.teams.map((team: Record<string, any>) => [team.id, { name: team.name, code: team.code }]),
+  );
 
   const nextFixtures = fixtures.filter((fixture) => fixture.event === next?.id);
   const scheduledClubs = new Set(nextFixtures.flatMap((fixture) => [fixture.team_h, fixture.team_a]));
@@ -82,30 +82,34 @@ export async function getManagerCalendar(id: string, includeStartingXI: boolean,
     const matchPicks = picks.flatMap((pick) => {
       const player = players.get(pick.element);
       if (!player || (player.team !== fixture.team_h && player.team !== fixture.team_a)) return [];
-      const role = pick.is_captain ? "Captain" : pick.is_vice_captain ? "Vice-captain" : "";
-      return [{ name: plannerPlayerName(player), role, position: pick.position, home: player.team === fixture.team_h }];
+      const name = plannerPlayerName(player);
+      const role: "C" | "VC" | "" = confirmed && pick.is_captain ? "C" : confirmed && pick.is_vice_captain ? "VC" : "";
+      return [{ name, shortName: player.web_name || name, role, position: pick.position }];
     });
-    const relevantPicks = matchPicks.filter((pick) => pick.role || (includeStartingXI && pick.position <= 11));
-    if (!relevantPicks.length) return [];
+    const starters = matchPicks.filter((pick) => pick.position <= 11);
+    if (!starters.length) return [];
 
-    const match = `${home} vs ${away}`;
-    const lead = relevantPicks.find((pick) => pick.role === "Captain") ?? relevantPicks.find((pick) => pick.role === "Vice-captain");
-    const title = confirmed && lead
-      ? `Your ${lead.role.toLowerCase()} ${lead.name} faces ${lead.home ? away : home}`
-      : match;
-    const details = [match];
+    const roleOrder = { C: 0, VC: 1, "": 2 };
+    starters.sort((left, right) => roleOrder[left.role] - roleOrder[right.role] || left.position - right.position);
+    const playerNames = starters.map((pick) => pick.role ? `${pick.name} (${pick.role})` : pick.name);
+    const lead = starters[0]!;
+    const leadName = lead.role ? `${lead.shortName} (${lead.role})` : lead.shortName;
+    const matchTitle = `${home.name} vs ${away.name} · GW${fixture.event}`;
+    const lineupLabel = confirmed ? "Your FPL starters" : "Your last published XI";
+    const details = [matchTitle, `${lineupLabel}: ${playerNames.join(", ")}`];
     if (confirmed) {
-      for (const pick of matchPicks) {
-        const label = pick.role || (pick.position <= 11 ? "Starting XI" : "Bench");
-        details.push(`${label}: ${pick.name}`);
-      }
+      const bench = matchPicks.filter((pick) => pick.position > 11).map((pick) => pick.name);
+      if (bench.length) details.push(`Bench: ${bench.join(", ")}`);
     }
     details.push(managerUrl);
 
     return [{
       uid: `fpl-${season}-manager-${id}-fixture-${fixture.id}@sportsync.in`,
       start: new Date(kickoff).toISOString(),
-      title: `GW${fixture.event} · ${title}`,
+      title: `${leadName} · ${matchTitle}`,
+      matchTitle,
+      playerNames,
+      location: season === 2026 ? stadiums2026[home.code] : undefined,
       description: details.join("\n"),
       url: managerUrl,
     }];

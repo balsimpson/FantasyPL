@@ -1,9 +1,11 @@
 import { useCanonicalUrl } from "./useCanonicalUrl";
 import { useSavedManagers } from "./useSavedManagers";
 
+export type CalendarPreviewEntry = { uid: string; title: string; start: string; players?: string[]; location?: string };
+
 type CalendarPreview = {
   name: string;
-  events: { uid: string; title: string; start: string }[];
+  events: CalendarPreviewEntry[];
 };
 
 export type CalendarTeam = { id: string; teamName: string };
@@ -18,10 +20,8 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
   const calendarType = ref("team");
   const selectedTeam = ref(initialTeam?.id ?? "manual");
   const enteredId = ref("");
-  const includeStartingXI = ref(false);
   const preview = ref<CalendarPreview | null>(null);
   const loading = ref(false);
-  const idError = ref("");
   const previewError = ref("");
   let request: AbortController | undefined;
 
@@ -36,35 +36,38 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
   const managerId = computed(() => selectedTeam.value === "manual"
     ? enteredId.value.trim().replace(/^0+(?=\d)/, "")
     : selectedTeam.value);
-  const options = computed(() => includeStartingXI.value ? "?xi=1" : "");
-  const managerUrl = useCanonicalUrl(() => `/calendar/managers/${managerId.value}/team.ics${options.value}`);
+  const validManagerId = computed(() =>
+    /^[1-9]\d*$/.test(managerId.value) && Number.isSafeInteger(Number(managerId.value)));
+  const showPreview = computed(() => calendarType.value === "team" && validManagerId.value);
+  const idError = computed(() => enteredId.value.trim() && !validManagerId.value ? "Enter a valid Manager ID." : "");
+  const managerUrl = useCanonicalUrl(() => `/calendar/managers/${managerId.value}/team.ics`);
   const subscriptionUrl = computed(() => calendarType.value === "deadlines"
     ? deadlineUrl()
-    : preview.value ? managerUrl.value : null);
+    : validManagerId.value && (selectedTeam.value !== "manual" || preview.value) ? managerUrl.value : null);
 
-  watch([calendarType, selectedTeam, enteredId, includeStartingXI], () => {
-    request?.abort();
+  watch([calendarType, selectedTeam, managerId], (_, __, onCleanup) => {
     preview.value = null;
     loading.value = false;
-    idError.value = "";
     previewError.value = "";
-  }, { flush: "sync" });
-  onBeforeUnmount(() => request?.abort());
+    if (!showPreview.value) return;
+
+    const timer = setTimeout(loadPreview, selectedTeam.value === "manual" ? 350 : 0);
+    onCleanup(() => {
+      clearTimeout(timer);
+      request?.abort();
+    });
+  }, { immediate: true });
 
   async function loadPreview() {
-    if (loading.value) return;
+    if (loading.value || !showPreview.value) return;
     const id = managerId.value;
-    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
-      idError.value = "Enter a valid Manager ID.";
-      return;
-    }
 
     const controller = new AbortController();
     request = controller;
     loading.value = true;
     previewError.value = "";
     try {
-      const result = await $fetch<CalendarPreview>(`/api/managers/${id}/calendar${options.value}`, {
+      const result = await $fetch<CalendarPreview>(`/api/managers/${id}/calendar`, {
         signal: controller.signal,
         retry: 0,
       });
@@ -83,7 +86,7 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
   }
 
   return {
-    calendarTypes, calendarType, selectedTeam, teams, enteredId, includeStartingXI,
-    preview, loading, idError, previewError, subscriptionUrl, loadPreview,
+    calendarTypes, calendarType, selectedTeam, teams, enteredId,
+    preview, showPreview, idError, previewError, subscriptionUrl, loadPreview,
   };
 }
