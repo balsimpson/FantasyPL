@@ -1,5 +1,5 @@
-import type { ComputedRef, Ref } from 'vue'
-import { clampLayoutValue, copyLayout, defaultElementTransform, resizeSchedulerBox, snapSchedulerBox, type SchedulerBox, type SchedulerElementTransform, type SchedulerGuide } from '~/utils/scheduler-layout'
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import { clampLayoutValue, copyLayout, defaultElementTransform, resizeSchedulerBox, schedulerArtboard, snapSchedulerBox, type ArtboardSpec, type SchedulerBox, type SchedulerElementTransform, type SchedulerGuide } from '~/utils/scheduler-layout'
 import type { useSchedulerLayouts } from './useSchedulerLayouts'
 
 interface CanvasElement extends SchedulerBox { id: string; label: string; z: number; textAlign: string; parentId: string; parentScale: number; group: boolean }
@@ -11,7 +11,10 @@ export function useSchedulerCanvas(
   enabled: ComputedRef<boolean>,
   revision: ComputedRef<string>,
   editor: ReturnType<typeof useSchedulerLayouts>,
+  // Optional: other artwork sizes (the scheduler uses the default 1080 px square).
+  options: { artboard?: MaybeRefOrGetter<ArtboardSpec | undefined> } = {},
 ) {
+  const board = () => toValue(options.artboard) ?? schedulerArtboard
   const elements = ref<CanvasElement[]>([])
   const selectedId = ref('')
   const scopeId = ref('')
@@ -38,7 +41,7 @@ export function useSchedulerCanvas(
     const artwork = getArtwork()
     const bounds = artwork?.getBoundingClientRect()
     if (!artwork || !bounds?.width) { elements.value = []; return }
-    const ratio = bounds.width / 1080
+    const ratio = bounds.width / board().width
     previewWidth.value = bounds.width
     elements.value = Array.from(artwork.querySelectorAll<HTMLElement>('[data-layout-id]')).flatMap(element => {
       const box = element.getBoundingClientRect()
@@ -91,7 +94,7 @@ export function useSchedulerCanvas(
     const target = event.currentTarget as HTMLElement
     target.setPointerCapture(event.pointerId)
     editor.begin()
-    gesture = { pointer: event.pointerId, target, startX: event.clientX, startY: event.clientY, box: { ...element }, transform: { ...transform.value }, corner, ratio: getArtwork()!.getBoundingClientRect().width / 1080 }
+    gesture = { pointer: event.pointerId, target, startX: event.clientX, startY: event.clientY, box: { ...element }, transform: { ...transform.value }, corner, ratio: getArtwork()!.getBoundingClientRect().width / board().width }
   }
   function move(event: PointerEvent) {
     if (!gesture || event.pointerId !== gesture.pointer) return
@@ -103,13 +106,13 @@ export function useSchedulerCanvas(
     let dy = (event.clientY - gesture.startY) / ratio
     guides.value = []
     if (corner) {
-      const result = resizeSchedulerBox(box, dx, dy, corner, 0.1 / original.scale, 3 / original.scale)
+      const result = resizeSchedulerBox(box, dx, dy, corner, 0.1 / original.scale, 3 / original.scale, board())
       setTransform({ ...original, x: original.x + (result.x - box.x) / box.parentScale, y: original.y + (result.y - box.y) / box.parentScale, scale: original.scale * result.ratio }, true)
     } else {
       if (event.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0 }
       const proposed = { ...box, x: box.x + dx, y: box.y + dy }
       const others = visibleElements.value.filter(element => element.id !== box.id)
-      const result = snapSchedulerBox(proposed, others, snapping.value && !event.altKey ? 6 / ratio : -1)
+      const result = snapSchedulerBox(proposed, others, snapping.value && !event.altKey ? 6 / ratio : -1, board())
       // Shift constrains motion to the dominant axis, even when a guide is near.
       if (event.shiftKey) { if (dy === 0) result.box.y = box.y; else result.box.x = box.x }
       guides.value = result.guides.filter(guide => !event.shiftKey || (dy === 0 ? guide.axis === 'x' : guide.axis === 'y'))
@@ -117,6 +120,7 @@ export function useSchedulerCanvas(
     }
   }
   function finish(cancel = false) {
+    if (pinch) pinchEnd(cancel)
     if (!gesture) return
     const { pointer, target } = gesture
     gesture = undefined
@@ -136,14 +140,14 @@ export function useSchedulerCanvas(
     if (!box) return
     const size = axis === 'x' ? box.width : box.height
     const parent = elements.value.find(element => element.id === box.parentId)
-    const extent = parent ? (axis === 'x' ? parent.width : parent.height) : 1080
+    const extent = parent ? (axis === 'x' ? parent.width : parent.height) : (axis === 'x' ? board().width : board().height)
     setTransform({ ...transform.value, [axis]: transform.value[axis] + ((parent?.[axis] ?? 0) + (extent - size) / 2 - box[axis]) / box.parentScale })
   }
   function resize(percent: number) {
     const box = selected.value
     if (!box || !Number.isFinite(percent)) return
     const value = clampLayoutValue(percent / 100, 0.1, 3)
-    const maximum = Math.min((1080 - box.x) / box.width, (1080 - box.y) / box.height)
+    const maximum = Math.min((board().width - box.x) / box.width, (board().height - box.y) / box.height)
     setTransform({ ...transform.value, scale: Math.min(value, transform.value.scale * maximum) })
   }
   function layer(direction: -1 | 1) {
@@ -178,9 +182,40 @@ export function useSchedulerCanvas(
     event.preventDefault()
     const step = event.shiftKey ? 10 : 1
     const box = selected.value
-    const x = clampLayoutValue(box.x + offset[0] * step, 0, Math.max(0, 1080 - box.width))
-    const y = clampLayoutValue(box.y + offset[1] * step, 0, Math.max(0, 1080 - box.height))
+    const x = clampLayoutValue(box.x + offset[0] * step, 0, Math.max(0, board().width - box.width))
+    const y = clampLayoutValue(box.y + offset[1] * step, 0, Math.max(0, board().height - box.height))
     setTransform({ ...transform.value, x: transform.value.x + (x - box.x) / box.parentScale, y: transform.value.y + (y - box.y) / box.parentScale })
   }
-  return { elements, visibleElements, scopeId, breadcrumbs, selectedId, selected, transform, snapping, guides, previewWidth, dragging, select, openGroup, navigateGroup, start, move, pointerEnd, finish, resetSelected, align, alignText, resize, layer, keyboard }
+  // Exact placement from numeric inputs, in artwork px for the item's visible top-left corner.
+  function moveTo(x?: number, y?: number) {
+    const box = selected.value
+    if (!box) return
+    const nextX = x == null || !Number.isFinite(x) ? box.x : clampLayoutValue(x, -box.width + 1, board().width - 1)
+    const nextY = y == null || !Number.isFinite(y) ? box.y : clampLayoutValue(y, -box.height + 1, board().height - 1)
+    setTransform({ ...transform.value, x: transform.value.x + (nextX - box.x) / box.parentScale, y: transform.value.y + (nextY - box.y) / box.parentScale })
+  }
+  // Two-finger pinch scales the selected item around its centre. Not used by the scheduler.
+  let pinch: { box: CanvasElement; transform: SchedulerElementTransform } | undefined
+  function pinchStart() {
+    if (!enabled.value || !selected.value) return false
+    if (gesture) finish(true)
+    editor.begin()
+    pinch = { box: { ...selected.value }, transform: { ...transform.value } }
+    dragging.value = true
+    return true
+  }
+  function pinchMove(ratio: number) {
+    if (!pinch || !Number.isFinite(ratio) || ratio <= 0) return
+    const { box, transform: original } = pinch
+    const scale = clampLayoutValue(original.scale * ratio, 0.1, 3)
+    const factor = scale / original.scale
+    setTransform({ ...original, scale, x: original.x - box.width * (factor - 1) / 2 / box.parentScale, y: original.y - box.height * (factor - 1) / 2 / box.parentScale }, true)
+  }
+  function pinchEnd(cancel = false) {
+    if (!pinch) return
+    pinch = undefined
+    dragging.value = false
+    editor.end(cancel)
+  }
+  return { elements, visibleElements, scopeId, breadcrumbs, selectedId, selected, transform, snapping, guides, previewWidth, dragging, select, openGroup, navigateGroup, start, move, pointerEnd, finish, resetSelected, align, alignText, resize, layer, keyboard, moveTo, pinchStart, pinchMove, pinchEnd }
 }

@@ -122,6 +122,13 @@ export default defineNuxtConfig({
 		},
 	},
 	  css: ['~/assets/css/main.css'],
+	// Display faces for the /wallpaper designs, self-hosted by Nuxt Fonts (bundled with Nuxt UI).
+	fonts: {
+		families: [
+			{ name: "Bodoni Moda", provider: "google", weights: [400, 500, 600, 700], styles: ["normal"] },
+			{ name: "Archivo Black", provider: "google", weights: [400], styles: ["normal"] },
+		],
+	},
 	runtimeConfig: {
 		adminGithubId: "",
 		contentConvexUrl: "",

@@ -29,6 +29,10 @@
 						<UIcon name="i-lucide-newspaper" class="size-4 sm:hidden" aria-hidden="true" />
 						<span class="hidden sm:inline">Articles</span>
 					</NuxtLink>
+					<NuxtLink to="/wallpaper" aria-label="Wallpapers" title="Wallpapers" class="inline-flex size-8 items-center justify-center rounded-sm text-sm font-medium text-stone-300 transition-colors hover:text-lime-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 sm:h-auto sm:w-auto sm:px-1 sm:py-2" :aria-current="route.path === '/wallpaper' ? 'page' : undefined">
+						<UIcon name="i-lucide-smartphone" class="size-4 sm:hidden" aria-hidden="true" />
+						<span class="hidden sm:inline">Wallpapers</span>
+					</NuxtLink>
 					<NuxtLink
 						to="/watchlist"
 						:aria-label="savedPlayerCount ? `Watchlist, ${savedPlayerCount} saved ${savedPlayerCount === 1 ? 'player' : 'players'}` : 'Watchlist'"

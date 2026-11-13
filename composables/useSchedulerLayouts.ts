@@ -1,7 +1,17 @@
 import type { ComputedRef } from 'vue'
 import { copyLayout, parseSchedulerLayouts, schedulerLayoutStorageKey, type SchedulerLayout } from '~/utils/scheduler-layout'
 
-export function useSchedulerLayouts(key: ComputedRef<string>) {
+interface LayoutStorageOptions {
+  storageKey?: string
+  parse?: (raw: string | null) => Record<string, SchedulerLayout>
+  savedNotice?: string
+}
+
+// Defaults keep the scheduler's storage key, parser and messages unchanged.
+export function useSchedulerLayouts(key: ComputedRef<string>, options: LayoutStorageOptions = {}) {
+  const storageKey = options.storageKey ?? schedulerLayoutStorageKey
+  const parse = options.parse ?? parseSchedulerLayouts
+  const savedNotice = options.savedNotice ?? 'Layout saved in this browser.'
   const layouts = ref<Record<string, SchedulerLayout>>({})
   const saved = ref<Record<string, SchedulerLayout>>({})
   const undoStacks = ref<Record<string, SchedulerLayout[]>>({})
@@ -16,7 +26,7 @@ export function useSchedulerLayouts(key: ComputedRef<string>) {
 
   onMounted(() => {
     try {
-      const stored = parseSchedulerLayouts(localStorage.getItem(schedulerLayoutStorageKey))
+      const stored = parse(localStorage.getItem(storageKey))
       saved.value = stored
       layouts.value = structuredClone(stored)
     } catch {
@@ -59,13 +69,13 @@ export function useSchedulerLayouts(key: ComputedRef<string>) {
     try {
       // Merge at save time so another tab's saved designs are retained.
       let stored: Record<string, SchedulerLayout>
-      try { stored = parseSchedulerLayouts(localStorage.getItem(schedulerLayoutStorageKey)) }
+      try { stored = parse(localStorage.getItem(storageKey)) }
       catch { stored = {} }
       stored[key.value] = copyLayout(layout.value)
-      localStorage.setItem(schedulerLayoutStorageKey, JSON.stringify({ version: 1, layouts: stored }))
+      localStorage.setItem(storageKey, JSON.stringify({ version: 1, layouts: stored }))
       saved.value[key.value] = copyLayout(layout.value)
       storageError.value = ''
-      notice.value = 'Layout saved in this browser.'
+      notice.value = savedNotice
     } catch {
       storageError.value = 'The layout could not save. Check browser storage permissions and try again.'
     }
