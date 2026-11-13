@@ -46,16 +46,16 @@
     </UFormField>
     <p v-if="copied" class="sr-only" role="status">Calendar link copied.</p>
 
-    <div v-if="showPreview" class="min-h-[26rem]">
-      <ManagerCalendarAgenda v-if="preview" :name="preview.name" :events="preview.events" />
-      <div v-else-if="previewError" class="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+    <div v-if="showPreview" class="space-y-2 border-t border-white/10 pt-3">
+      <ManagerCalendarFormat v-model="matchTitle" />
+      <ManagerCalendarAgenda v-if="preview" :entry="preview.events[0]" :match-title="matchTitle" />
+      <div v-else-if="previewError" class="flex flex-wrap items-center gap-2">
         <p class="text-sm text-error" role="alert">{{ previewError }}</p>
         <UButton type="button" label="Retry" color="neutral" variant="outline" size="xs" @click="loadPreview" />
       </div>
-      <div v-else class="space-y-2 border-t border-white/10 pt-4" role="status">
+      <div v-else role="status">
         <p class="sr-only">Loading calendar preview…</p>
-        <USkeleton class="h-5 w-40" aria-hidden="true" />
-        <USkeleton v-for="row in 5" :key="row" class="h-14 w-full rounded-md" aria-hidden="true" />
+        <USkeleton class="h-20 w-full rounded-md" aria-hidden="true" />
       </div>
     </div>
   </div>
@@ -67,7 +67,7 @@ import { useManagerCalendarSubscription, type CalendarTeam } from "~/composables
 const props = defineProps<{ deadlineUrl: string; initialTeam?: CalendarTeam }>();
 const {
   calendarTypes, calendarType, selectedTeam, teams, enteredId,
-  preview, showPreview, idError, previewError, subscriptionUrl, loadPreview,
+  preview, showPreview, idError, previewError, subscriptionUrl, loadPreview, matchTitle,
 } = useManagerCalendarSubscription(() => props.deadlineUrl, props.initialTeam);
 
 const copied = ref(false);

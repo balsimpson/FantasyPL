@@ -1,7 +1,8 @@
 import { useCanonicalUrl } from "./useCanonicalUrl";
 import { useSavedManagers } from "./useSavedManagers";
+import { defaultMatchTitle, matchTitleSearch, type MatchTitlePart, type MatchTitleValues } from "~/shared/manager-calendar-format";
 
-export type CalendarPreviewEntry = { uid: string; title: string; start: string; players?: string[]; location?: string };
+export type CalendarPreviewEntry = { uid: string; title: string; start: string; location?: string; titleValues?: MatchTitleValues };
 
 type CalendarPreview = {
   name: string;
@@ -23,6 +24,7 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
   const preview = ref<CalendarPreview | null>(null);
   const loading = ref(false);
   const previewError = ref("");
+  const matchTitle = useState<MatchTitlePart[]>("manager-calendar-title", () => defaultMatchTitle);
   let request: AbortController | undefined;
 
   const teams = computed(() => {
@@ -40,7 +42,7 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
     /^[1-9]\d*$/.test(managerId.value) && Number.isSafeInteger(Number(managerId.value)));
   const showPreview = computed(() => calendarType.value === "team" && validManagerId.value);
   const idError = computed(() => enteredId.value.trim() && !validManagerId.value ? "Enter a valid Manager ID." : "");
-  const managerUrl = useCanonicalUrl(() => `/calendar/managers/${managerId.value}/team.ics`);
+  const managerUrl = useCanonicalUrl(() => `/calendar/managers/${managerId.value}/team.ics${matchTitleSearch(matchTitle.value)}`);
   const subscriptionUrl = computed(() => calendarType.value === "deadlines"
     ? deadlineUrl()
     : validManagerId.value && (selectedTeam.value !== "manual" || preview.value) ? managerUrl.value : null);
@@ -87,6 +89,6 @@ export function useManagerCalendarSubscription(deadlineUrl: () => string, initia
 
   return {
     calendarTypes, calendarType, selectedTeam, teams, enteredId,
-    preview, showPreview, idError, previewError, subscriptionUrl, loadPreview,
+    preview, showPreview, idError, previewError, subscriptionUrl, loadPreview, matchTitle,
   };
 }

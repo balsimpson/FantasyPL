@@ -4,6 +4,8 @@ import {
   getDeadlineCalendarEvents,
 } from "~~/utils/deadline-calendar.js";
 import { plannerPlayerName } from "../../utils/manager-planner";
+import { fetchFplJson } from "../../utils/fpl-fetch";
+import { formatMatchTitle, type MatchTitlePart, type MatchTitleValues } from "../../shared/manager-calendar-format";
 import { getCachedFplBootstrap } from "./fpl-bootstrap";
 import { getFplFixtureSchedule } from "./manager-fixtures";
 import { stadiums2026 } from "./fpl-stadiums";
@@ -14,6 +16,15 @@ type ManagerPick = {
   is_captain: boolean;
   is_vice_captain: boolean;
 };
+
+const getGameweekPoints = defineCachedFunction(async (_season: number, gameweek: number) => {
+  const data = await fetchFplJson(`https://fantasy.premierleague.com/api/event/${gameweek}/live/`,
+    (value): value is { elements: { id: number; stats?: { total_points?: number } }[] } =>
+      Boolean(value && typeof value === "object" && "elements" in value && Array.isArray(value.elements)));
+  return Object.fromEntries(data.elements.flatMap(({ id, stats }) =>
+    Number.isInteger(id) && Number.isInteger(stats?.total_points) ? [[id, stats!.total_points]] : [],
+  ));
+}, { name: "manager-calendar-gameweek-points", maxAge: 600 });
 
 export function readManagerCalendarId(id: string | undefined) {
   if (!id || !/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
@@ -31,7 +42,7 @@ async function getPublishedPicks(id: string, gameweek: number) {
   }
 }
 
-export async function getManagerCalendar(id: string, origin: string) {
+export async function getManagerCalendar(id: string, origin: string, titleParts?: MatchTitlePart[]) {
   const [manager, { data }, fixtures] = await Promise.all([
     $fetch<{ name: string; current_event: number | null }>(`/api/managers/${id}`, { retry: 0 }),
     getCachedFplBootstrap(),
@@ -47,7 +58,18 @@ export async function getManagerCalendar(id: string, origin: string) {
   const managerUrl = new URL(`/manager/${id}`, origin).href;
   const next = gameweeks.find((week) => Date.parse(week.deadline_time) > now.getTime());
   const current = gameweeks.findLast((week) => Date.parse(week.deadline_time) <= now.getTime());
-  const currentPicks = current ? await getPublishedPicks(id, current.id) : null;
+  const pointsWeek = data.events.find((week: Record<string, any>) => week.is_current === true)?.id;
+  const lastFinishedWeek = gameweeks.findLast((week) => data.events.some((event: Record<string, any>) =>
+    event.id === week.id && event.finished === true))?.id;
+  const clubsWithLivePoints = new Set(fixtures
+    .filter((fixture) => fixture.event === pointsWeek && fixture.started)
+    .flatMap((fixture) => [fixture.team_h, fixture.team_a]));
+  const [currentPicks, lastPointsByPlayer] = await Promise.all([
+    current ? getPublishedPicks(id, current.id) : null,
+    lastFinishedWeek && lastFinishedWeek !== pointsWeek && (!titleParts || titleParts.includes("lastPoints"))
+      ? getGameweekPoints(season, lastFinishedWeek).catch(() => undefined)
+      : undefined,
+  ]);
   const lastPublished = gameweeks.find((week) => week.id === manager.current_event && Date.parse(week.deadline_time) <= now.getTime());
   const lastPicks = currentPicks ?? (next && lastPublished && lastPublished.id !== current?.id
     ? await getPublishedPicks(id, lastPublished.id)
@@ -66,7 +88,7 @@ export async function getManagerCalendar(id: string, origin: string) {
   const deadlines = getDeadlineCalendarEvents(gameweeks, origin, now).map((deadline) => {
     const details = [`Review your team for Gameweek ${deadline.deadlineGameweek}.`];
     if (deadline.deadlineGameweek === next?.id && playersWithoutFixture.length) {
-      details.push(`Players from your last published XI with no scheduled fixture: ${playersWithoutFixture.join(", ")}.`);
+      details.push(`Players with no scheduled fixture: ${playersWithoutFixture.join(", ")}.`);
     }
     return { ...deadline, description: [...details, managerUrl].join("\n"), url: managerUrl };
   });
@@ -79,39 +101,41 @@ export async function getManagerCalendar(id: string, origin: string) {
     const away = clubs.get(fixture.team_a);
     if (!picks || !home || !away || !Number.isFinite(kickoff)) return [];
 
-    const matchPicks = picks.flatMap((pick) => {
+    const starters = picks.flatMap((pick) => {
       const player = players.get(pick.element);
-      if (!player || (player.team !== fixture.team_h && player.team !== fixture.team_a)) return [];
-      const name = plannerPlayerName(player);
+      if (pick.position > 11 || !player || (player.team !== fixture.team_h && player.team !== fixture.team_a)) return [];
       const role: "C" | "VC" | "" = confirmed && pick.is_captain ? "C" : confirmed && pick.is_vice_captain ? "VC" : "";
-      return [{ name, shortName: player.web_name || name, role, position: pick.position }];
+      const points = typeof player.total_points === "number" && Number.isFinite(player.total_points) ? player.total_points : undefined;
+      const hasGameweekPoints = fixture.event === pointsWeek && clubsWithLivePoints.has(player.team);
+      const gwPoints = hasGameweekPoints && Number.isInteger(player.event_points) ? player.event_points : undefined;
+      const lastPoints = lastFinishedWeek && lastFinishedWeek === pointsWeek ? player.event_points : lastPointsByPlayer?.[player.id];
+      const cost = Number.isInteger(player.now_cost) && player.now_cost > 0 ? player.now_cost / 10 : undefined;
+      const form = typeof player.form === "string" && player.form.trim() && Number.isFinite(Number(player.form)) ? player.form : undefined;
+      return [{ name: player.web_name || plannerPlayerName(player), role, position: pick.position, points, gwPoints, lastPoints, cost, form }];
     });
-    const starters = matchPicks.filter((pick) => pick.position <= 11);
     if (!starters.length) return [];
 
     const roleOrder = { C: 0, VC: 1, "": 2 };
     starters.sort((left, right) => roleOrder[left.role] - roleOrder[right.role] || left.position - right.position);
-    const playerNames = starters.map((pick) => pick.role ? `${pick.name} (${pick.role})` : pick.name);
     const lead = starters[0]!;
-    const leadName = lead.role ? `${lead.shortName} (${lead.role})` : lead.shortName;
-    const matchTitle = `${home.name} vs ${away.name} · GW${fixture.event}`;
-    const lineupLabel = confirmed ? "Your FPL starters" : "Your last published XI";
-    const details = [matchTitle, `${lineupLabel}: ${playerNames.join(", ")}`];
-    if (confirmed) {
-      const bench = matchPicks.filter((pick) => pick.position > 11).map((pick) => pick.name);
-      if (bench.length) details.push(`Bench: ${bench.join(", ")}`);
-    }
-    details.push(managerUrl);
+    const titleValues: MatchTitleValues = {
+      player: lead.role ? `${lead.name} (${lead.role})` : lead.name,
+      form: lead.form,
+      points: lead.points === undefined ? undefined : `${lead.points} pts`,
+      gwPoints: lead.gwPoints === undefined ? undefined : `${lead.gwPoints} GW pts`,
+      lastPoints: Number.isInteger(lead.lastPoints) ? `${lead.lastPoints} pts (GW${lastFinishedWeek})` : undefined,
+      cost: lead.cost === undefined ? undefined : `£${lead.cost.toFixed(1)}m`,
+      fixture: `${home.name} vs ${away.name}`,
+      gameweek: `GW${fixture.event}`,
+    };
 
     return [{
       uid: `fpl-${season}-manager-${id}-fixture-${fixture.id}@sportsync.in`,
       start: new Date(kickoff).toISOString(),
       durationMinutes: 90,
-      title: `${leadName} · ${matchTitle}`,
-      matchTitle,
-      playerNames,
+      title: formatMatchTitle(titleValues, titleParts),
+      titleValues,
       location: season === 2026 ? stadiums2026[home.code] : undefined,
-      description: details.join("\n"),
       url: managerUrl,
     }];
   });

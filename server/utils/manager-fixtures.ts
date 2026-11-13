@@ -8,9 +8,9 @@ export const getFplFixtureSchedule = defineCachedFunction(async () => {
   return fixtures.map((fixture) => ({
     id: fixture.id, event: fixture.event, team_h: fixture.team_h, team_a: fixture.team_a,
     team_h_difficulty: fixture.team_h_difficulty, team_a_difficulty: fixture.team_a_difficulty,
-    kickoff_time: fixture.kickoff_time,
+    kickoff_time: fixture.kickoff_time, started: fixture.started === true || fixture.finished === true,
   }));
-}, { name: 'fpl-fixture-schedule-v1', maxAge: 600, swr: false });
+}, { name: 'fpl-fixture-schedule-v2', maxAge: 600, swr: false });
 
 export const getManagerFixtures = defineCachedFunction(async () => {
   const [{ data }, fixtures] = await Promise.all([
@@ -20,7 +20,7 @@ export const getManagerFixtures = defineCachedFunction(async () => {
   const gameweeks = getPlannerGameweeks(data.events);
   return {
     gameweeks,
-    fixtures: fixtures.filter((fixture) => gameweeks.includes(fixture.event)),
+    fixtures: fixtures.filter((fixture) => gameweeks.includes(fixture.event)).map(({ started, ...fixture }) => fixture),
     deadline: data.events.find((event: Record<string, any>) => event.is_next)?.deadline_time ?? null,
     fetchedAt: new Date().toISOString(),
   };

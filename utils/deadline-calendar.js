@@ -92,7 +92,7 @@ export function getDeadlineCalendarEvents(publishedEvents, siteUrl, now = new Da
 
 /**
  * @param {string} name
- * @param {{ uid: string, start: string, durationMinutes?: number, title: string, location?: string, description: string, url: string, deadlineGameweek?: number }[]} events
+ * @param {{ uid: string, start: string, durationMinutes?: number, title: string, location?: string, description?: string, url: string, deadlineGameweek?: number }[]} events
  * @param {Date} now
  */
 export function serializeCalendarFeed(name, events, now = new Date()) {
@@ -108,7 +108,7 @@ export function serializeCalendarFeed(name, events, now = new Date()) {
       ...(end ? [`DTEND:${toCalendarDate(end)}`] : []),
       `SUMMARY:${escapeCalendarText(event.title)}`,
       ...(event.location ? [`LOCATION:${escapeCalendarText(event.location)}`] : []),
-      `DESCRIPTION:${escapeCalendarText(event.description)}`,
+      ...(event.description ? [`DESCRIPTION:${escapeCalendarText(event.description)}`] : []),
       `URL:${event.url}`,
       ...(event.deadlineGameweek ? reminderMinutes.flatMap((minutes) => makeAlarm(event.deadlineGameweek, minutes)) : []),
       "END:VEVENT",
