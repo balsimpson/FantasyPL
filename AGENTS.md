@@ -26,6 +26,7 @@ Read the relevant existing document before proposing work or creating another pl
 | [BLOG_GROWTH_PLAN.md](BLOG_GROWTH_PLAN.md) | Blog, editorial, admin publishing, and article acquisition requirements and implementation status |
 | [Article visual cards](docs/ARTICLE_VISUAL_CARDS.md) | Supported article data visuals, evidence rules, selection guidance, and implementation status |
 | [Scheduler guide](docs/instascheduler/AGENTS.md) | Instagram scheduler design, player assets, preview, export and scheduling rules |
+| [Wallpaper plan](docs/wallpaper/WALLPAPER_PLAN.md) | Public `/wallpaper` creator: designs, editor, device previews, export and implementation status |
 
 The [scheduler template editing reference](docs/instascheduler/TEMPLATE_EDITING.md) is a quick component map and scoped edit workflow; the scheduler guide remains authoritative for design and behavior requirements.
 
@@ -108,6 +109,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection |
 | `pages/admin/articles/`, `components/admin/ArticleResearchPanel.vue` | Private article workspace and research/editor UI; read `BLOG_GROWTH_PLAN.md` before changing its workflow |
 | `server/api/admin/`, `convex/`, `shared/` | Authorized admin APIs, durable article/research storage and shared contracts; `shared/article-publish.ts` validates publishing evidence and `convex/homepageTradeReview.ts` batches trade reviews. Preserve server authorization and read the blog plan for subsystem requirements |
+| `pages/wallpaper.vue`, `components/wallpaper/`, `composables/useWallpaper*.ts`, `utils/wallpaper*.ts`, `server/api/wallpaper/players.get.ts` | Public player-wallpaper creator; reuses the scheduler canvas engine with a 1080 × 2400 artboard. See [the wallpaper plan](docs/wallpaper/WALLPAPER_PLAN.md) |
 | `nuxt.config.ts` | Modules, global metadata, and runtime configuration |
 
 Available scripts are `npm run dev`, `npm run build`, `npm run preview`, and `npm run generate`. `postinstall` runs Nuxt preparation. There are currently no dedicated test, lint, or typecheck scripts in `package.json`; use the installed TypeScript compiler directly when a TypeScript check is needed, and do not treat the `/test` route as a test suite. Do not add a test framework for a documentation-only change.

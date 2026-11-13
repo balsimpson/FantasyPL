@@ -1,0 +1,17 @@
+/* Wallpaper artwork type. Anton and Oswald are the self-hosted scheduler fonts;
+   Bodoni Moda and Archivo Black load through Nuxt Fonts (see nuxt.config.ts). */
+@import './instagram-artwork.css';
+
+.wp-display { font-family: FPLDisplay, Impact, sans-serif; }
+.wp-numbers { font-family: FPLNumbers, 'Arial Narrow', sans-serif; }
+.wp-heavy { font-family: 'Archivo Black', FPLDisplay, sans-serif; }
+.wp-serif { font-family: 'Bodoni Moda', 'Didot', Georgia, serif; }
+
+/* The depth layer shows only the portrait, drawn above the preview clock. */
+.wp-portrait-only { background: transparent !important; }
+.wp-portrait-only * { visibility: hidden; }
+.wp-portrait-only [data-wp-portrait],
+.wp-portrait-only [data-wp-portrait] * { visibility: visible; }
+.wp-portrait-only [data-wp-fade] { visibility: hidden; }
+
+.wp-portrait img { image-rendering: auto; }

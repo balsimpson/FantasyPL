@@ -1,13 +1,13 @@
 import type { ObjectDirective } from 'vue'
 import type { SchedulerLayout, SchedulerTextContrast } from './scheduler-layout'
 
-interface ElementBinding { id: string; label: string; layout?: SchedulerLayout; group?: boolean; contrast?: SchedulerTextContrast }
-const originals = new WeakMap<HTMLElement, { transform: string; transformOrigin: string; z: number; position: string; isStatic: boolean; textAlign: string }>()
+interface ElementBinding { id: string; label: string; layout?: SchedulerLayout; group?: boolean; contrast?: SchedulerTextContrast; textContrast?: boolean }
+const originals = new WeakMap<HTMLElement, { transform: string; transformOrigin: string; z: number; position: string; isStatic: boolean; textAlign: string; visibility: string }>()
 
 function apply(element: HTMLElement, { value }: { value: ElementBinding }) {
   if (!originals.has(element)) {
     const computed = getComputedStyle(element)
-    originals.set(element, { transform: element.style.transform, transformOrigin: element.style.transformOrigin, z: (Number(computed.zIndex) || 0) + 10, position: element.style.position, isStatic: computed.position === 'static', textAlign: element.style.textAlign })
+    originals.set(element, { transform: element.style.transform, transformOrigin: element.style.transformOrigin, z: (Number(computed.zIndex) || 0) + 10, position: element.style.position, isStatic: computed.position === 'static', textAlign: element.style.textAlign, visibility: element.style.visibility })
   }
   const original = originals.get(element)!
   element.dataset.layoutId = value.id
@@ -19,7 +19,8 @@ function apply(element: HTMLElement, { value }: { value: ElementBinding }) {
   element.style.zIndex = String(change?.z ?? original.z)
   element.style.position = original.isStatic ? 'relative' : original.position
   element.style.textAlign = change?.align ?? original.textAlign
-  if (value.id === 'player-name') {
+  element.style.visibility = change?.hidden ? 'hidden' : original.visibility
+  if (value.textContrast || value.id === 'player-name') {
     const contrast = change?.contrast ?? value.contrast ?? 'none'
     element.classList.toggle('[-webkit-text-stroke:4px_#071829]', contrast === 'outline')
     element.classList.toggle('[paint-order:stroke_fill]', contrast === 'outline')
