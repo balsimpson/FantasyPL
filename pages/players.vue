@@ -31,17 +31,20 @@
       <UButton color="neutral" variant="outline" @click="refresh()">Try again</UButton>
     </div>
     <template v-else-if="data">
-      <p role="status" aria-live="polite" class="text-sm text-stone-400">{{ data.total }} {{ data.total === 1 ? 'player' : 'players' }} · Page {{ data.page }} of {{ data.pages }}</p>
-      <p v-if="!data.elements.length" class="py-8 text-stone-300">No players match. Try another search, position, or price cap.</p>
+      <p role="status" class="text-sm text-stone-400">Showing {{ players.length }} of {{ data.total }} {{ data.total === 1 ? 'player' : 'players' }}</p>
+      <p v-if="!players.length" class="py-8 text-stone-300">No players match. Try another search, position, or price cap.</p>
       <ul v-else aria-label="Players" class="grid min-w-0 gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
-        <HomePlayerDiscoveryRow v-for="(player, index) in data.elements" :key="player.id" :player="player"
-          :team="data.teams.find((team) => team.id === player.team)" :rank="(data.page - 1) * data.pageSize + index + 1"
+        <HomePlayerDiscoveryRow v-for="(player, index) in players" :key="player.id" :player="player"
+          :team="teamsById.get(player.team)" :rank="(data.page - 1) * data.pageSize + index + 1"
           compact show-availability :metric-label="sortLabel" :metric-value="String(player[sort] ?? '—')" class="border-t border-white/10" />
       </ul>
-      <nav v-if="data.pages > 1" aria-label="Player pages" class="flex items-center justify-between border-t border-white/10 pt-4">
-        <UButton v-if="data.page > 1" :to="pageLink(data.page - 1)" color="neutral" variant="outline" icon="i-lucide-arrow-left">Previous</UButton>
+      <div v-if="canAutoLoad" :key="nextPage" ref="loadMoreTarget" aria-hidden="true" class="h-px" />
+      <p v-if="loadingMore" role="status" class="text-sm text-stone-400">Loading more players…</p>
+      <p v-else-if="loadMoreError" role="status" class="text-sm text-stone-300">Couldn’t load more players. Open the next page to try again.</p>
+      <nav v-if="data.page > 1 || nextPage" aria-label="Player pages" class="flex items-center justify-between border-t border-white/10 pt-4">
+        <UButton v-if="data.page > 1" :to="pageLink(data.page - 1)" no-prefetch color="neutral" variant="outline" icon="i-lucide-arrow-left">Previous</UButton>
         <span v-else />
-        <UButton v-if="data.page < data.pages" :to="pageLink(data.page + 1)" color="neutral" variant="outline" trailing-icon="i-lucide-arrow-right">Next</UButton>
+        <UButton v-if="nextPage" :to="pageLink(nextPage)" no-prefetch color="neutral" variant="outline" trailing-icon="i-lucide-arrow-right">Next</UButton>
       </nav>
     </template>
   </main>
@@ -49,8 +52,14 @@
 
 <script setup lang="ts">
 import { usePlayerDirectory } from "~/composables/usePlayerDirectory";
+import { usePlayerSearchAutoLoad } from "~/composables/usePlayerSearchAutoLoad";
 import { SHORTLIST_POSITIONS, SHORTLIST_PRICE_LIMITS, SHORTLIST_SORTS } from "~/utils/homepage-shortlist";
-const { request, search, position, price, sort, submit, pageLink } = usePlayerDirectory();
+const {
+  request, search, position, price, sort, submit, pageLink,
+  players, teamsById, nextPage, loadingMore, loadMoreError, canAutoLoad, loadMore,
+} = usePlayerDirectory();
+const loadMoreTarget = ref<HTMLElement | null>(null);
+usePlayerSearchAutoLoad(loadMoreTarget, canAutoLoad, loadMore);
 const { data, status, error, refresh } = await request;
 const positions = SHORTLIST_POSITIONS.map((item) => ({ ...item, value: String(item.value) }));
 const prices = SHORTLIST_PRICE_LIMITS.map((item) => ({ ...item, value: String(item.value) }));

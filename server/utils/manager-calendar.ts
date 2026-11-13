@@ -106,6 +106,7 @@ export async function getManagerCalendar(id: string, origin: string) {
     return [{
       uid: `fpl-${season}-manager-${id}-fixture-${fixture.id}@sportsync.in`,
       start: new Date(kickoff).toISOString(),
+      durationMinutes: 90,
       title: `${leadName} · ${matchTitle}`,
       matchTitle,
       playerNames,
