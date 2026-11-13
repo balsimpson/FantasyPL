@@ -71,7 +71,7 @@ export const remixSkeletons: SkeletonSpec[] = [
   {
     id: 'stage', name: 'Centre stage',
     portrait: { x: 60, y: 560, size: 960, fade: 30 },
-    word: { x: -20, y: 290, length: 1120, maxSize: 600, minSize: 220, popOut: false, sources: ['surname', 'fpl', 'club'] },
+    word: { x: 72, y: 290, length: 936, maxSize: 600, minSize: 220, popOut: false, sources: ['surname', 'fpl', 'club'] },
     hero: { x: 72, y: 1440, width: 936, align: 'center', maxSize: 430, label: 'below' },
     stats: { x: 72, y: 1990, width: 936, align: 'center', arrangements: ['row', 'pair'] },
     crest: { x: 72, y: 870 }, season: { x: 1008, y: 894, align: 'right' }, ticker: true,
@@ -80,7 +80,7 @@ export const remixSkeletons: SkeletonSpec[] = [
   {
     id: 'headline', name: 'Headline',
     portrait: { x: 40, y: 600, size: 1000, fade: 22 },
-    word: { x: -30, y: 1060, length: 1140, maxSize: 560, minSize: 220, popOut: true, sources: ['surname'] },
+    word: { x: 40, y: 1060, length: 1000, maxSize: 560, minSize: 220, popOut: true, sources: ['surname'] },
     hero: { x: 72, y: 1660, width: 560, align: 'left', maxSize: 300, label: 'beside' },
     stats: { x: 72, y: 1990, width: 936, align: 'center', arrangements: ['row', 'lines'] },
     crest: { x: 920, y: 1720 }, season: { x: 72, y: 664, align: 'left' }, ticker: true,
@@ -114,7 +114,7 @@ export const remixSkeletons: SkeletonSpec[] = [
   {
     id: 'monument', name: 'Monument',
     portrait: { x: 130, y: 600, size: 820, fade: 0 },
-    word: { x: -20, y: 250, length: 1120, maxSize: 520, minSize: 200, popOut: false, sources: ['fpl', 'club', 'surname'] },
+    word: { x: 72, y: 250, length: 936, maxSize: 520, minSize: 200, popOut: false, sources: ['fpl', 'club', 'surname'] },
     hero: { x: 72, y: 1250, width: 936, align: 'center', maxSize: 640, label: 'below' },
     stats: { x: 72, y: 1990, width: 936, align: 'center', arrangements: ['row', 'pair'] },
     crest: { x: 72, y: 640 }, season: { x: 1008, y: 664, align: 'right' },
@@ -123,7 +123,7 @@ export const remixSkeletons: SkeletonSpec[] = [
   {
     id: 'corner', name: 'Off-centre',
     portrait: { x: 300, y: 880, size: 1000, fade: 0 },
-    word: { x: -20, y: 1860, length: 1120, maxSize: 420, minSize: 200, popOut: false, front: true, sources: ['surname'] },
+    word: { x: 72, y: 1860, length: 936, maxSize: 420, minSize: 200, popOut: false, front: true, sources: ['surname'] },
     hero: { x: 64, y: 620, width: 560, align: 'left', maxSize: 460, label: 'below' },
     stats: { x: 72, y: 1230, width: 300, align: 'left', arrangements: ['column', 'lines'] },
     crest: { x: 920, y: 640 },
