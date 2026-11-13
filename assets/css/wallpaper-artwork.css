@@ -17,3 +17,7 @@
 [data-wallpaper-artwork] [data-custom-text-colour] {
   color: var(--wallpaper-text-colour);
 }
+
+/* Remix faces. Declared here so Nuxt Fonts includes them; remix parts set the family inline. */
+.wp-wide { font-family: Unbounded, 'Archivo Black', sans-serif; font-weight: 800; }
+.wp-italic { font-family: 'Instrument Serif', 'Bodoni Moda', Georgia, serif; font-style: italic; }

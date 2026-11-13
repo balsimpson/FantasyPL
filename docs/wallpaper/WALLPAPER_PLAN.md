@@ -358,3 +358,18 @@ Local Brave checks on 13 November 2026 confirmed the dice switched layout and ba
 2. Phase 0 spikes, then the side-by-side mockups for approval.
 3. Phase 1 engine generalisation and the scheduler regression gate.
 4. Phases 2 to 6 in order, each delivered with visible UI early so it can be tested in the browser.
+
+---
+
+## 11. Remix generator (dice)
+
+Added 13 November 2026. The dice no longer swaps a layout and a backdrop. It builds a new wallpaper from a kit of parts (`utils/wallpaper-remix.ts`, rendered by `components/wallpaper/remix/`).
+
+- **Four aspects, four seeds.** Layout (skeleton, backdrop shape, stat arrangement, lettering source, accents), colours (curated or club-derived palette, grain finish), type (font pairing, lettering treatment, skew) and depth. A remix code is the four seeds in base 36 (`?remix=a-b-c-d`), so a link reproduces it exactly. The lock menu next to the dice keeps any aspect while the rest rerolls; Previous steps back through this session's remixes.
+- **Skeletons** (`remixSkeletons`): Centre stage, Headline, Vertical name, Editorial, Print column, Monument, Off-centre, Split field. Data stays between y ≈ 600 and 2200, clear of the clock; only atmosphere goes behind it.
+- **Depth modes.** Flat; Layered (pop-out lettering in front of the body, cast shadow, rim light, outline echo); Sculpted (extruded lettering or hero number, long shadow, 3D stat tiles, perspective floor, embossed crest). One sculpted object at a time.
+- **Rules and scoring.** Ink is forced to ≥ 4.5:1 and accents to ≥ 3:1 on the whole field gradient; invisible lettering is rejected; backdrops are matched to light or dark fields; long names in wide faces are penalised; the last result's layout, palette and type are avoided. Each roll first picks a layout and depth mode, then scores ~24 candidates.
+- **Export safety.** Depth is stacked text/box shadows, CSS masks, one `drop-shadow` filter and SVG; no CSS 3D transforms or blend modes. Check the PNG export on a physical iPhone, especially the cast-shadow filter and pop-out mask.
+- **Estimates to verify:** `PORTRAIT_HEAD_LINE` (0.6, the chin line used to split pop-out lettering) and skeleton coordinates, against real renders.
+- **Fonts added:** Unbounded (700, 800) and Instrument Serif (400, normal + italic) through Nuxt Fonts.
+- **Preview sheet:** `/wallpaper?sheet=1` shows nine remixes (three per depth mode) for the selected player; *Shuffle sheet* rerolls; each code opens in the editor.

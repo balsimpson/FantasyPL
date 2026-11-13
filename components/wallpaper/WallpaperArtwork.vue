@@ -7,6 +7,7 @@ import WallpaperGallery from '~/components/wallpaper/designs/WallpaperGallery.vu
 import WallpaperHalftone from '~/components/wallpaper/designs/WallpaperHalftone.vue'
 import WallpaperFloodlit from '~/components/wallpaper/designs/WallpaperFloodlit.vue'
 import WallpaperSplit from '~/components/wallpaper/designs/WallpaperSplit.vue'
+import WallpaperRemix from '~/components/wallpaper/remix/WallpaperRemix.vue'
 // Fixed 1080 × 2400 artwork. Preview, thumbnails and export all render this component.
 const props = defineProps<{ model: WallpaperArtworkModel }>()
 const designs = { royal: WallpaperRoyal, poster: WallpaperPoster, gallery: WallpaperGallery, halftone: WallpaperHalftone, floodlit: WallpaperFloodlit, split: WallpaperSplit }
@@ -21,9 +22,13 @@ const backdropColours = computed(() => backdrop.value === props.model.design
     class="relative isolate h-[2400px] w-[1080px] overflow-hidden font-sans"
     :style="{ backgroundColor: model.colours.field, color: model.colours.ink }"
     :aria-label="`${model.player.fullName} wallpaper`"
-    :data-wallpaper-artwork="model.design"
+    :data-wallpaper-artwork="model.recipe ? 'remix' : model.design"
+    :data-remix="model.recipe?.code"
   >
-    <WallpaperBackdrop v-if="backdrop !== 'poster'" :design="backdrop" :c="backdropColours" :layout="model.layout" />
-    <component :is="designs[model.design]" :model="model" />
+    <WallpaperRemix v-if="model.recipe" :model="model" />
+    <template v-else>
+      <WallpaperBackdrop v-if="backdrop !== 'poster'" :design="backdrop" :c="backdropColours" :layout="model.layout" />
+      <component :is="designs[model.design]" :model="model" />
+    </template>
   </article>
 </template>
