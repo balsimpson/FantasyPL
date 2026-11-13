@@ -1,24 +1,25 @@
 <template>
-  <section aria-label="Manager lookup" class="min-w-0">
-    <h2 class="text-base font-semibold text-white">Your team and friends</h2>
-    <p class="mt-2 text-sm leading-6 text-stone-300">See your squad, gaps and suggested transfers. Open each manager once to save their team and compare season points here.</p>
-    <p id="manager-id-help" class="mb-4 mt-2 text-xs leading-5 text-stone-400">Find it in FPL → Points → your ID in the URL.</p>
+  <div :role="homepage ? undefined : 'region'" :aria-label="homepage ? undefined : 'Manager lookup'" class="min-w-0">
+    <template v-if="!homepage">
+      <h2 class="text-base font-semibold text-white">Your team and friends</h2>
+      <p class="mt-2 text-sm leading-6 text-stone-300">See your squad, gaps and suggested transfers. Open each manager once to save their team and compare season points here.</p>
+      <p :id="helpId" class="mb-4 mt-2 text-xs leading-5 text-stone-400">Find it in FPL → Points → your ID in the URL.</p>
+    </template>
     <form class="w-full" novalidate @submit.prevent="submitManagerId">
       <UFormField
-        label="Manager ID"
+        :label="homepage ? 'FPL Team ID' : 'Manager ID'"
+        :help="homepage ? 'Find your ID in the URL of your FPL Points page.' : undefined"
         :error="managerError || undefined"
-        :ui="{ root: 'w-full', label: 'text-xs font-medium text-stone-300', error: 'mt-2 text-sm text-error' }"
+        :ui="{ root: 'w-full', label: 'text-xs font-medium text-stone-300', help: 'mt-2 text-xs text-stone-400', error: 'mt-2 text-sm text-error' }"
       >
         <div class="flex w-full items-center gap-2">
           <UInput
-            id="manager-id"
             v-model="managerId"
             type="text"
             inputmode="numeric"
             autocomplete="off"
-            placeholder="e.g. 123456"
-            :aria-invalid="Boolean(managerError)"
-            aria-describedby="manager-id-help"
+            :placeholder="homepage ? undefined : 'e.g. 123456'"
+            :aria-describedby="!homepage && !managerError ? helpId : undefined"
             class="h-11 min-w-0 flex-1"
             :ui="{
               root: 'h-11 w-full min-w-0 flex-1',
@@ -30,21 +31,26 @@
             type="submit"
             color="primary"
             variant="solid"
-            icon="i-lucide-arrow-right"
+            :icon="homepage ? undefined : 'i-lucide-arrow-right'"
+            :trailing-icon="homepage ? 'i-lucide-arrow-right' : undefined"
+            :label="homepage ? 'Open team' : undefined"
             aria-label="Open team"
             title="Open team"
             :loading="isSubmitting"
             :disabled="isSubmitting || !managerId.trim()"
-            class="size-11 shrink-0 justify-center rounded-md bg-lime-300 text-zinc-950 hover:bg-lime-200 disabled:bg-lime-300/25 disabled:text-lime-100/60"
+            class="h-11 shrink-0 justify-center rounded-md bg-lime-300 text-zinc-950 hover:bg-lime-200 disabled:bg-lime-300/25 disabled:text-lime-100/60"
+            :class="homepage ? 'whitespace-nowrap px-3 sm:px-4' : 'w-11'"
           />
         </div>
       </UFormField>
     </form>
-  </section>
+  </div>
 </template>
 
 <script setup>
+const props = defineProps({ homepage: Boolean });
 const emit = defineEmits(["opened"]);
+const helpId = `${useId()}-manager-help`;
 const managerId = ref("");
 const managerError = ref("");
 const isSubmitting = ref(false);
@@ -61,7 +67,7 @@ const submitManagerId = async () => {
   const normalizedId = managerId.value.trim().replace(/^0+(?=\d)/, "");
 
   if (!/^\d+$/.test(normalizedId) || !Number.isSafeInteger(Number(normalizedId)) || Number(normalizedId) < 1) {
-    managerError.value = "Enter a valid numeric Manager ID.";
+    managerError.value = props.homepage ? "Enter a valid FPL Team ID using digits only." : "Enter a valid numeric Manager ID.";
     return;
   }
 

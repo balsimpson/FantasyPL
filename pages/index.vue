@@ -25,7 +25,11 @@
         @retry="retryBootstrap"
       />
 
-      <div ref="recommendationsTarget" class="grid min-w-0 gap-8">
+      </template>
+
+      <HomeTeamPlanner :gameweek="nextGameweek?.id" :players="captainPicks.slice(0, 3)" />
+
+      <div v-if="!bootstrapFailed" ref="recommendationsTarget" class="grid min-w-0 gap-8">
       <LazyHomeTransferTargets
         :players="recommendationPlayers"
         :teams="bootstrap?.teams || []"
@@ -73,12 +77,12 @@
       </p>
       <GameWeekCardNew v-if="recapGameweek" :gameweek="recapGameweek" :teams="bootstrap?.teams || []" />
       </div>
-      </template>
     </main>
   </div>
 </template>
 
 <script setup>
+import HomeTeamPlanner from "~/components/HomeTeamPlanner.vue";
 import { useHomepageRecommendations } from "~/composables/useHomepageRecommendations";
 import { getHomepageCaptainPicks, getShortlistGameweeks } from "~/utils/homepage-shortlist";
 import { getJsonLdScript, getOrganizationSchema, getWebsiteSchema } from "~/utils/structured-data";
@@ -120,8 +124,10 @@ if (import.meta.server && bootstrapRequest.error.value && !Array.isArray(bootstr
   setResponseStatus(502);
 }
 
+const captainPicks = computed(() => getHomepageCaptainPicks(bootstrap.value?.elements || []).captains);
+
 useHead(() => {
-  const player = getHomepageCaptainPicks(bootstrap.value?.elements || []).captains[0];
+  const player = captainPicks.value[0];
   return { link: player?.code ? [{
     rel: "preload", as: "image", fetchpriority: "high",
     href: `https://resources.premierleague.com/premierleague25/photos/players/110x140/${player.code}.png`,

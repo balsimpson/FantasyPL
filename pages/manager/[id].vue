@@ -4,7 +4,7 @@
 			<UAlert color="error" variant="soft" :title="managerErrorTitle" :description="managerErrorDescription" />
 			<div class="flex flex-wrap gap-3">
 				<UButton v-if="managerLookupUnavailable" icon="i-lucide-refresh-cw" color="primary" :loading="pending" @click="refresh">Try again</UButton>
-				<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="outline">Go back home</UButton>
+				<UButton to="/manager" icon="i-lucide-arrow-left" color="neutral" variant="outline">Enter another Team ID</UButton>
 			</div>
 		</section>
 
@@ -60,9 +60,8 @@
 			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" />
 		</template>
 
-		<section v-else class="space-y-6 py-4" role="status" aria-label="Loading manager profile">
-			<USkeleton class="h-10 w-full max-w-sm" />
-			<USkeleton class="h-5 w-48" />
+		<section v-else class="space-y-6 py-4" role="status">
+			<p class="text-lg font-semibold text-stone-300">Loading your FPL team…</p>
 			<div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
 				<USkeleton v-for="item in 4" :key="item" class="h-20 rounded-xl" />
 			</div>

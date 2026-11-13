@@ -40,7 +40,7 @@ No application code, deployment, publication or ranking improvement is establish
 | Existing source | Reuse or inspect for |
 | --- | --- |
 | `utils/site-url.ts`, `composables/useCanonicalUrl.ts`, `composables/usePlayerRoute.ts` | Public origin, canonical metadata and preferred player routes |
-| `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts` | Public discovery; sitemap currently combines homepage, blog, players and published articles |
+| `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts` | Public discovery; sitemap combines the homepage, player directory and profiles, manager landing page, blog and published articles |
 | `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts`, `server/api/fixtures.ts` | Validated upstream data, recovery, caching and existing fixture contract |
 | `server/utils/manager-fixtures.ts`, `server/api/managers/fixtures.get.ts`, `utils/manager-planner.ts` | Cached five-gameweek projection and week selection; preserve current manager consumers |
 | `utils/homepage-shortlist.ts`, `composables/useHomepageShortlist.ts`, `composables/usePlayerSearchData.ts` | Filtering, ranking, fixture grouping and loaded catalog reuse; avoid sharing homepage preference state accidentally |
@@ -50,6 +50,8 @@ No application code, deployment, publication or ranking improvement is establish
 | `plugins/analytics.client.ts` | Existing Vercel Analytics injection; this alone does not prove custom-event collection |
 
 ## Phase order and status
+
+13 November 2026: the FPL Team Planner at `/manager` has its own search title and description, a canonical URL, Open Graph and X card tags, a 1200 × 630 pitch preview, and discovery links in the footer and sitemap. Local HTML and the parsed sitemap use `https://www.sportsync.in/manager` even when the landing page is requested with a trailing slash. The local preview image rendered as a 1200 × 630 PNG. Hosted crawling and social preview refresh remain open.
 
 | Phase | Deliverable | Starting status | Dependency |
 | --- | --- | --- | --- |

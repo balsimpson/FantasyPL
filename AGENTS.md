@@ -78,6 +78,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `server/utils/fpl-bootstrap.ts`, `utils/fpl-fetch.ts` | Shared validated bootstrap cache and bounded upstream JSON request recovery |
 | `pages/player/[id].vue`, `server/api/players/[id]/profile.get.ts` | Single-player SSR profile and metadata, with fixtures/history loaded near the viewport |
 | `pages/players.vue`, `composables/usePlayerDirectory.ts`, `server/api/player-directory.get.ts` | Public player directory with URL filters, stable ranking and 24-player server pagination |
+| `pages/manager/index.vue`, `components/HomeTeamPlanner.vue`, `components/HomeManagerLookup.vue` | Team ID landing page, shared portrait panel and lookup form |
 | `pages/manager/[id].vue` | Manager summary, published squad, five-gameweek planning and transfer recommendations |
 | `components/ManagerGameweekPlanner.vue`, `components/ManagerSquadBoard.vue` | Responsive week selector, fixture modal and stable published/suggested pitch, bench and gallery views |
 | `components/ManagerUpcomingFixtures.vue` | Full-width selected-gameweek fixture disclosure below the week controls, with tough published-XI matchups first and access to the five-week matrix |
