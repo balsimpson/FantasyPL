@@ -2,21 +2,13 @@
 import { vSchedulerElement } from '~/utils/scheduler-element'
 import type { WallpaperArtworkModel } from '~/utils/wallpaper'
 import WallpaperPortrait from '~/components/wallpaper/WallpaperPortrait.vue'
-import WallpaperBrand from '~/components/wallpaper/WallpaperBrand.vue'
+import WallpaperClubLogo from '~/components/wallpaper/WallpaperClubLogo.vue'
 const props = defineProps<{ model: WallpaperArtworkModel }>()
 const c = computed(() => props.model.colours)
 const el = (id: string, label: string, extra: Record<string, unknown> = {}) => ({ id, label, layout: props.model.layout, ...extra })
 </script>
 
 <template>
-  <svg v-scheduler-element="el('blocks', 'Colour blocks')" class="absolute left-0 top-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
-    <polygon points="0,0 470,0 0,760" fill="#000" opacity="0.12" />
-    <polygon points="700,0 1080,0 1080,1620 850,1700" :fill="c.alt" />
-    <polygon points="0,1380 420,1960 0,2180" :fill="c.alt" />
-    <polygon points="540,2400 1080,1880 1080,2400" :fill="c.alt" />
-    <polygon points="620,420 760,380 700,1180" :fill="c.alt" opacity="0.55" />
-  </svg>
-
   <div v-scheduler-element="el('stats', 'Stat column', { group: true })" class="absolute right-[64px] top-[640px] flex w-[290px] flex-col items-center text-center">
     <template v-for="(slot, index) in [0, 1, 2]" :key="slot">
       <span v-if="index" aria-hidden="true" class="my-7 block h-[4px] w-[90px]" :style="{ backgroundColor: c.muted }" />
@@ -38,5 +30,5 @@ const el = (id: string, label: string, extra: Record<string, unknown> = {}) => (
     </template>
   </div>
 
-  <WallpaperBrand :player="model.player" :layout="model.layout" class="absolute left-[72px] top-[620px]" />
+  <WallpaperClubLogo :player="model.player" :layout="model.layout" class="absolute left-[72px] top-[620px]" />
 </template>

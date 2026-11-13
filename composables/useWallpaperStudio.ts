@@ -1,10 +1,9 @@
 import { useSchedulerLayouts } from '~/composables/useSchedulerLayouts'
 import {
-  defaultWallpaperPrefs, defaultWallpaperStats, getWallpaperColours, getWallpaperDesign, isWallpaperDesign, normalizeWallpaperPlayers,
+  defaultWallpaperPrefs, defaultWallpaperStats, getWallpaperColours, getWallpaperDesign, isWallpaperDesign, normalizeWallpaperPlayers, wallpaperDesigns,
   parseWallpaperLayouts, parseWallpaperPrefs, wallpaperBackgroundText, wallpaperLayoutsKey, wallpaperPrefsKey, wallpaperStatView,
   type WallpaperArtworkModel, type WallpaperCatalogue, type WallpaperDesignId, type WallpaperPalette, type WallpaperPlayer, type WallpaperPrefs, type WallpaperStatKey,
 } from '~/utils/wallpaper'
-import type { WallpaperWidget } from '~/utils/wallpaper-devices'
 
 // A clock that ticks on each minute boundary, for the preview only.
 function useMinuteClock() {
@@ -17,14 +16,6 @@ function useMinuteClock() {
   onMounted(tick)
   onBeforeUnmount(() => { if (timeout) clearTimeout(timeout) })
   return now
-}
-
-function countdown(target: number, now: number) {
-  const minutes = Math.floor((target - now) / 60_000)
-  if (minutes < 0) return ''
-  const days = Math.floor(minutes / 1440)
-  const hours = Math.floor((minutes % 1440) / 60)
-  return days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes % 60}m` : `${minutes % 60}m`
 }
 
 export function useWallpaperStudio() {
@@ -46,7 +37,8 @@ export function useWallpaperStudio() {
   onMounted(() => {
     try {
       const stored = parseWallpaperPrefs(localStorage.getItem(wallpaperPrefsKey))
-      prefs.value = { ...stored, playerCode: prefs.value.playerCode ?? stored.playerCode, design: isWallpaperDesign(queryDesign) ? queryDesign : stored.design }
+      const design = isWallpaperDesign(queryDesign) ? queryDesign : stored.design
+      prefs.value = { ...stored, playerCode: prefs.value.playerCode ?? stored.playerCode, design, backdrop: design === stored.design ? stored.backdrop : null }
     } catch {
       prefsError.value = 'Saved choices couldn’t load. Anything you change now is still kept.'
     }
@@ -76,6 +68,34 @@ export function useWallpaperStudio() {
 
   const layoutKey = computed(() => `wallpaper:${prefs.value.design}`)
   const layouts = useSchedulerLayouts(layoutKey, { storageKey: wallpaperLayoutsKey, parse: parseWallpaperLayouts, savedNotice: 'Saved' })
+  const canResetTemplate = computed(() => {
+    const current = player.value
+    if (!current) return false
+    const defaults = defaultWallpaperStats[current.positionShort]
+    return Object.keys(layouts.layout.value).length > 0 || prefs.value.backdrop !== null || palette.value !== 'signature'
+      || Boolean(prefs.value.texts[prefs.value.design]) || stats.value.some((key, slot) => key !== defaults[slot])
+  })
+
+  function resetTemplate() {
+    const current = player.value
+    if (!current || !canResetTemplate.value) return
+    const { design, backdrop, palettes, texts, stats } = prefs.value
+    const position = current.positionShort
+    function restoreAppearance(backdrop: WallpaperPrefs['backdrop'], palette?: WallpaperPalette, text?: string, stats?: WallpaperStatKey[]) {
+      prefs.value = {
+        ...prefs.value,
+        backdrop,
+        palettes: { ...prefs.value.palettes, [design]: palette },
+        texts: { ...prefs.value.texts, [design]: text },
+        stats: { ...prefs.value.stats, [position]: stats },
+      }
+    }
+    layouts.change({}, {
+      undo: () => restoreAppearance(backdrop, palettes[design], texts[design], stats[position]),
+      redo: () => restoreAppearance(null),
+    })
+    if (layouts.dirty.value) layouts.save()
+  }
 
   function modelFor(designId: WallpaperDesignId, withPlayer = player.value): WallpaperArtworkModel | undefined {
     if (!withPlayer) return
@@ -83,14 +103,28 @@ export function useWallpaperStudio() {
     return {
       player: withPlayer,
       design: designId,
-      colours: getWallpaperColours(designId, prefs.value.palettes[designId] ?? 'signature', withPlayer.clubCode),
+      colours: getWallpaperColours(designId, prefs.value.palettes[designId] ?? 'signature', withPlayer.clubCode, prefs.value.background),
       stats: Object.fromEntries(keys.map((key, slot) => [slot, wallpaperStatView(withPlayer, key, slot)])),
       text: wallpaperBackgroundText(designId, withPlayer, prefs.value.texts[designId]),
       season: data.value?.season ?? null,
-      layout: designId === prefs.value.design ? layouts.layout.value : layouts.layouts.value[`wallpaper:${designId}`] ?? {},
+      layout: layouts.layouts.value[`wallpaper:${designId}`] ?? {},
     }
   }
-  const model = computed(() => modelFor(prefs.value.design))
+  const model = computed(() => {
+    const artwork = modelFor(prefs.value.design)
+    return artwork && prefs.value.backdrop ? { ...artwork, backdrop: prefs.value.backdrop } : artwork
+  })
+
+  function remix() {
+    const current = prefs.value
+    const layouts = wallpaperDesigns.filter(design => design.id !== current.design)
+    const design = layouts[Math.floor(Math.random() * layouts.length)]!.id
+    const previousBackdrop = current.backdrop ?? current.design
+    const backdrops = wallpaperDesigns.filter(item => item.id !== design && item.id !== previousBackdrop)
+    const backdrop = backdrops[Math.floor(Math.random() * backdrops.length)]!.id
+    const palette = current.palettes[current.design] === 'custom' ? 'custom' : current.palettes[design] ?? 'signature'
+    prefs.value = { ...current, design, backdrop, palettes: { ...current.palettes, [design]: palette } }
+  }
 
   // Layout edits save themselves shortly after a gesture ends.
   const interacting = ref(false)
@@ -106,24 +140,6 @@ export function useWallpaperStudio() {
   })
 
   const now = useMinuteClock()
-  const widgets = computed<WallpaperWidget[]>(() => {
-    const result: WallpaperWidget[] = []
-    const catalogue = data.value
-    const current = player.value
-    if (!catalogue || !current) return result
-    const deadline = catalogue.deadline ? Date.parse(catalogue.deadline) : Number.NaN
-    const remaining = Number.isFinite(deadline) ? countdown(deadline, now.value) : ''
-    if (remaining) result.push({ id: 'deadline', icon: 'i-lucide-timer', title: catalogue.nextGameweek ? `GW${catalogue.nextGameweek}` : 'Deadline', value: remaining })
-    const fixture = catalogue.nextFixtures.find(item => item.team === current.team)
-    const opponent = fixture && catalogue.teams.find(team => team.id === fixture.opponent)
-    if (fixture && opponent) {
-      const kickoff = fixture.kickoff ? new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date(fixture.kickoff)) : ''
-      result.push({ id: 'fixture', icon: 'i-lucide-calendar-days', title: 'Next', value: `${opponent.short_name} (${fixture.home ? 'H' : 'A'})${kickoff ? ` ${kickoff}` : ''}` })
-    }
-    if (current.values.form != null) result.push({ id: 'form', icon: 'i-lucide-trending-up', title: 'Form', value: current.values.form.toFixed(1) })
-    return result
-  })
-
   function setStat(slot: number, key: WallpaperStatKey) {
     const current = player.value
     if (!current) return
@@ -138,5 +154,5 @@ export function useWallpaperStudio() {
     prefs.value.stats = rest
   }
 
-  return { request, data, players, player, featured, requestedMissing, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, widgets, setStat, resetStats }
+  return { request, data, players, player, featured, requestedMissing, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, setStat, resetStats, canResetTemplate, resetTemplate }
 }

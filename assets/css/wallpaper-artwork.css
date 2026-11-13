@@ -7,11 +7,13 @@
 .wp-heavy { font-family: 'Archivo Black', FPLDisplay, sans-serif; }
 .wp-serif { font-family: 'Bodoni Moda', 'Didot', Georgia, serif; }
 
-/* The depth layer shows only the portrait, drawn above the preview clock. */
-.wp-portrait-only { background: transparent !important; }
-.wp-portrait-only * { visibility: hidden; }
-.wp-portrait-only [data-wp-portrait],
-.wp-portrait-only [data-wp-portrait] * { visibility: visible; }
-.wp-portrait-only [data-wp-fade] { visibility: hidden; }
-
 .wp-portrait img { image-rendering: auto; }
+
+[data-wallpaper-artwork] [data-layout-id] {
+  --wallpaper-layer-opacity: 1;
+  opacity: var(--wallpaper-layer-opacity);
+}
+
+[data-wallpaper-artwork] [data-custom-text-colour] {
+  color: var(--wallpaper-text-colour);
+}

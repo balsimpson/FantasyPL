@@ -20,7 +20,7 @@ Add a public page at `/wallpaper` where any visitor can:
 1. Pick a Premier League player.
 2. Pick one of six poster-style wallpaper designs (the owner's reference sheet, described in §4).
 3. Move, resize, align, layer and hide the artwork elements with the same direct-manipulation editor the InstaScheduler uses (snapping, guides, keyboard nudges, undo/redo, groups).
-4. Preview the wallpaper inside a simulated **iPhone** or **Android** lock screen or home screen, with a live clock, the date and optional widget overlays.
+4. Preview the wallpaper inside a simulated **iPhone** or **Android** lock screen with the local date and time.
 5. Save the wallpaper to the device as a PNG at phone resolution, or share it with the native share sheet.
 
 The artwork stays data driven: name, portrait, crest, club colours and stats come from the normalised FPL player record. Nothing is baked from the reference image.
@@ -82,7 +82,7 @@ Fix: add an `ArtboardSpec` with **scheduler defaults**, so the scheduler's behav
 - **Public and indexable.** `/wallpaper` uses the default layout and goes in the sitemap. It doesn't need an account. Per-player deep links come later (§7, Phase 7).
 - **One canonical artboard:** **1080 × 2400 px (20:9)**. The iPhone export is a **centred 1080 × 2340 crop (19.5:9)**, trimming 30 px top and bottom, so one layout works for both platforms. Every critical element must sit inside the shared safe rectangle `y ∈ [30, 2370]`. Check the actual device resolutions and aspect ratios in Phase 0. Don't hard-code specific models.
 - **Drafts stay in the browser.** Save to `localStorage` with an explicit Save, like the scheduler. There is no account sync. A failed save keeps the draft in memory and shows an error (it is never silently dropped).
-- **Overlays are preview-only.** The clock, widgets, app icons and status bar are never in the exported PNG.
+- **Overlays are preview-only.** The exported PNG contains the artwork alone.
 - **No native `alert`/`confirm`.** Destructive actions (reset the layout, discard a draft) use in-app confirmation modals.
 
 ---
@@ -100,7 +100,7 @@ The six references are roughly 2:3. A phone is roughly 9:20, so each design need
 | `floodlit` | Floodlit | Deep purple with a radial glow, central portrait, centred giant number with a spaced label, two split stats | The glow is centred behind the head at ~35%. The giant number sits at ~66% and the split stats at ~80%. Follow the scheduler's G and J lighting rule: glow never sits behind text. | `glow`, `portrait`, `hero-stat` (group), `stats` (group), `season`, `brand` |
 | `split` | Split block | Orange/blue diagonal blocks, a stacked stats column on the right, a form/bonus footer | The diagonals run the full height. The stacked stat column is right-aligned at ~28–62%, the portrait sits left of centre at the bottom, and the footer stat pair is at ~88% (above the home-indicator zone). | `blocks`, `stats` (group), `footer-stats` (group), `portrait`, `brand` |
 
-**Palette modes**, per design: `reference` (the fixed palette shown in the sheet), `club` (`getInstagramClubTheme`) and `complementary`. Every mode must pass a text-contrast check against its field. Pink goalkeeper kits on lime or orange show that some combinations clash, so the jersey hue is a reason to switch palette, not to drop the design.
+**Palette modes:** Signature, club colours, and a custom background with matching accents and light or dark text. Every mode must pass a text-contrast check against its field. Pink goalkeeper kits on lime or orange show that some combinations clash, so the jersey hue is a reason to switch palette, not to drop the design.
 
 **Stats are position aware by default:** GK/DEF use points, clean sheets and saves (GK) or goals plus assists (DEF). MID/FWD use points, goals and assists. The user can change the hero stat and the supporting stats from the inspector. Values always come from data.
 
@@ -115,9 +115,9 @@ The design meets the owner's bar for editors: a modern full-screen app, not a fo
 - **Desktop:** the page header is followed by a single editor surface on the shared rail.
   - Centre: the phone preview frame at viewport height.
   - Left (compact): the player picker plus design thumbnails, rendered live with the selected player like the scheduler's design gallery.
-  - Right: a **context-aware inspector** that shows only controls for the current selection, with progressive disclosure (common edits first, advanced behind "More").
-- **Mobile:** the phone preview fills the screen. Player and design are horizontal filmstrips under it. The inspector is a bottom sheet that opens on selection and never covers the selected element (the canvas scrolls or shifts to keep it visible).
-- **One floating toolbar** is reused from the scheduler's dark rounded toolbar: Edit/Done, Undo, Redo, Snap, Layers, Device (iPhone/Android), Screen (Lock/Home), Overlay on/off, Save draft, and **Download** as the primary action. Its height is fixed and its width animates (respect `prefers-reduced-motion`).
+  - Right: design, colour and stat controls stay visible while an item is selected. Each stat uses a searchable dropdown with the player's current value. The panel scrolls vertically when needed.
+- **Mobile:** the phone preview fills the screen. Player and design are horizontal filmstrips under it. The selected item opens a compact toolbar beside the selection, as on desktop.
+- **Canvas controls.** The canvas is always editable. Undo, Redo, Snap, Layers and Save are below it. The phone selector, dice and Reset are above it.
 - Status text (saving, saved, export phase) sits in **fixed-size slots**, so changes never shift the layout.
 - Page elements enter with the site's shared subtle staggered motion.
 
@@ -127,9 +127,11 @@ Everything in TEMPLATE_EDITING.md "Inline Layout Editing" applies: select, drag,
 
 The wallpaper adds:
 
-- **Numeric readouts.** The inspector shows the selected item's `x`, `y`, `w`, `h` in artwork px and scale in %, each editable, so spacing can be kept consistent.
-- **Safe-zone guides.** Faint bands for the active device's clock, widget and bottom-control zones. Their edges are snap targets.
-- **Show/hide per element.** A new `hidden` transform flag; hidden items are listed in the Layers menu so they can be restored.
+- **Numeric readouts.** The inline toolbar opens position and size controls and shows the selected item's `x`, `y`, `w`, `h` in artwork px and scale in %, each editable, so spacing can be kept consistent.
+- **Layer appearance and reset.** The inline toolbar opens the text colour picker in one click and has opacity, bring to front, send to back, and reset controls. The Reset button above the canvas restores the template's signature colours, backdrop, text, layers, and the recommended stats for the player's position. Undo and Redo include the whole reset. Local Brave verified reset on all six templates, undo for a mixed backdrop and custom colour, and direct colour selection.
+- **Safe-zone guides.** Faint bands for the active preview's date and time area. Their edges are snap targets.
+- **Show/hide per element.** Use Hide in the inline toolbar. Use Layers → Hidden items → Show to restore an item, including a part of a group.
+- **Remix wallpaper.** The dice combines the composition from one template with the backdrop from another and keeps the selected player and any active custom background. The club logo is an independent layer that can be moved, resized, or hidden.
 - **Swap content.** For the hero stat, supporting stats, background text (surname, "FPL", rank, gameweek or custom ≤ 3 chars) and palette mode. The data stays live.
 - **Portrait framing.** Move and scale the portrait. The scheduler's head-visibility rule still applies: no `object-cover` cropping of the face by default, and a warning if the head leaves the artboard.
 
@@ -141,16 +143,8 @@ The wallpaper adds:
 
 ### 5.4 Device preview overlays
 
-Overlays are drawn in HTML/SVG on a layer **above** the artwork but **outside** the captured element. They are generic approximations, not pixel copies of Apple or Google UI. They use no Apple or Google icons or artwork and use the platform system font stack.
+The iPhone and Android lock-screen previews show the local date and time. The clock updates once a minute. The lower corners show flashlight and camera shortcuts on iPhone, and wallet and camera shortcuts on Android. The shortcuts stay above the artwork during edits. The overlay sits outside the captured artwork.
 
-| Screen | iPhone | Android |
-| --- | --- | --- |
-| Lock | Status bar, the date line above a large clock, an optional widget row under the clock, flashlight and camera buttons in the bottom corners, home indicator | Status bar, a clock (choose a "Large" or "Compact" style, since OEM clocks vary), an "at a glance" line, bottom corner shortcuts, gesture bar |
-| Home | Status bar, a 4-column grid of generic rounded app tiles, an optional widget, dock, page dots | Status bar, a search pill, an app grid, a dock, gesture bar |
-
-- The clock and date are live from the visitor's local time (`Intl.DateTimeFormat`) and update once a minute, aligned to the minute boundary. Don't poll for anything else.
-- **Widgets show real FPL data or nothing.** For example: the next deadline countdown (from bootstrap `events[].deadline_time`), the player's next fixture (from the fixtures feed), and the player's form and points. A widget whose data is unavailable is hidden; it never shows a placeholder value. Widgets can be toggled per screen.
-- **Depth-effect preview (iPhone lock):** an optional toggle that paints the portrait above the clock, as iOS can do when the subject overlaps the clock. Label it as an approximation.
 - Safe-zone percentages are **estimates** stored as named constants in one file, `utils/wallpaper-devices.ts`. Measure and correct them against real screenshots in Phase 0.
 
 ---
@@ -197,7 +191,7 @@ export interface WallpaperDraft {
 
 ### 6.4 Player data endpoint
 
-Preferred: reuse `usePlayerSearchData` for search. Add `GET /api/wallpaper/players`, a cached handler (`maxAge` 600, `swr`) that returns only what the picker and artwork need (code, id, names, club code, team, position, photo code, birth date, the wallpaper stat fields, status), plus `currentGameweek` and the next deadline. It shares the existing validated bootstrap cache (`server/utils/fpl-bootstrap.ts`). Check the serialized size against the full bootstrap.
+Preferred: reuse `usePlayerSearchData` for search. Add `GET /api/wallpaper/players`, a cached handler (`maxAge` 600, `swr`) that returns only what the picker and artwork need (code, id, names, club code, team, position, photo code, birth date, the wallpaper stat fields, status), plus the current gameweek and season. It shares the existing validated bootstrap cache (`server/utils/fpl-bootstrap.ts`). Check the serialized size against the full bootstrap.
 
 ---
 
@@ -247,16 +241,15 @@ Each phase lists its files, and each ends with the checks in §9. Nothing is com
 
 - `components/wallpaper/WallpaperCanvasEditor.vue`: the same chrome and behaviour as `SchedulerTemplateEditor.vue`, driven by the generalised composables with the wallpaper artboard. Guides are positioned as `% of width` for x and `% of height` for y, and the context-menu bounds use both dimensions.
   - *Follow-up (optional):* extract the shared selection overlay, guides, breadcrumbs and contextual toolbar into `components/artwork-editor/ArtboardSelectionOverlay.vue`, used by both editors, once the wallpaper editor is stable. This avoids risking the scheduler during the first build.
-- `components/wallpaper/WallpaperInspector.vue`: context-aware controls (numeric x/y/w/h/scale, alignment, contrast, layer, visibility, content swaps), shown as a side panel on desktop and a bottom sheet on mobile.
+- `components/wallpaper/WallpaperInspector.vue`: selected-item toolbar on desktop and mobile, with hide and a popover for position, scale, alignment, contrast and layer order.
 - `components/wallpaper/WallpaperToolbar.vue`: the floating toolbar from §5.1.
 - In-app confirm modals for resetting the layout and discarding a draft.
 
 ### Phase 5: Device preview
 
 - `components/wallpaper/DeviceFrame.vue`: a rounded phone frame with an iPhone or Android aspect. On iPhone, it masks the artwork to the 19.5:9 crop.
-- `components/wallpaper/overlays/{IosLock,IosHome,AndroidLock,AndroidHome}.vue`: `pointer-events: none` except where a toggle needs a tap. They are never inside `[data-wallpaper-artwork]`.
-- `components/wallpaper/widgets/{DeadlineWidget,NextFixtureWidget,PlayerFormWidget}.vue`: each uses real data, or is hidden when its data is unavailable.
-- `composables/useWallpaperClock.ts`: local time, one timer aligned to the minute and cleaned up on dispose (or extend `useSchedulerClock` if it fits).
+- `components/wallpaper/WallpaperDeviceOverlay.vue`: shows local date and time outside `[data-wallpaper-artwork]`.
+- `composables/useWallpaperStudio.ts`: updates the clock at minute boundaries.
 - A clock-overlap warning: if a data-bearing element intersects the active clock zone, a quiet inline note appears in the status slot.
 
 ### Phase 6: Export, save and share
@@ -267,6 +260,7 @@ Each phase lists its files, and each ends with the checks in §9. Nothing is com
   2. Require every `[data-asset-state]` to be `ready`. If any is `missing`, block the export with a clear message rather than exporting a broken portrait.
   3. Capture `[data-wallpaper-artwork]` at 1080 × 2400 (Android), or capture and crop to 1080 × 2340 (iPhone).
   4. Check the draft revision (as `useInstagramExport` does), so a changed draft never exports stale art.
+- Prepare one PNG in the browser after edits settle. Save reuses the prepared file for the current artwork and device, and can start preparation immediately after a change. Embed the same TrueType and WOFF2 fonts used in the editor.
 - Actions:
   - **Download PNG** (filename `fpl-wallpaper-<player-slug>-<design>-<device>.png`).
   - **Share** (`navigator.canShare({ files })`) when supported.
@@ -331,9 +325,15 @@ Follow the repo's rule that a build, an HTTP 200 or a button state is not proof.
 
 ### 9.2 Wallpaper checks
 
+On 13 November 2026, added the Nuxt UI tooltip provider around the wallpaper editor to fix the `/wallpaper` server error. The editor loaded after a reload in local Brave, and the Show widgets button toggled with Space. Hosted verification remains open.
+
+Local Brave checks on 13 November 2026 confirmed that reopening Save reuses the prepared PNG and switching devices produces the correct 1296 × 2808 or 1296 × 2880 image. The Name poster PNG matched the editor's surname font and diagonal portrait cut. The Royal PNG preserved the portrait fade over the design behind it. The iPhone depth effect is clipped to the clock area in the editor. Physical device and hosted checks remain open.
+
+Local Brave checks on 13 November 2026 confirmed the dice switched layout and backdrop while retaining the custom background. Light and dark backgrounds switched the text colour. The inline toolbar left the design controls in place, and Layers restored a hidden club logo and a stat inside a group. Two consecutive logo drags completed without a reload. The PNG preview rendered the edited artwork with no date or time overlay. The lock-screen-only controls were checked on desktop and at 390 × 844.
+
 - **Every design × palette:** test light, dark and complementary clubs (not only one club), long names (for example a double-barrelled surname), a missing portrait (honest missing state, export blocked) and missing stats (shown as unavailable, never 0).
-- **Editor:** check mouse, trackpad and a physical touch phone. Confirm pinch scale, that handles are reachable, and that the bottom sheet never covers the selection. Check that undo/redo and save/reload survive a reload, and that malformed storage recovers without losing other drafts.
-- **Overlays:** check iPhone and Android lock and home. Confirm the clock updates, that widgets with no data are hidden, and that the depth toggle works.
+- **Editor:** check mouse, trackpad and a physical touch phone. Confirm pinch scale, that handles are reachable, and that the inline toolbar is reachable. Check that undo/redo and save/reload survive a reload, and that malformed storage recovers without losing other drafts.
+- **Overlays:** check both lock-screen previews. Confirm the clock updates, the correct shortcuts appear in the lower corners, and they stay visible over the artwork during edits. Local Brave confirmed both shortcut pairs and their position above the artwork.
 - **Export:** open the downloaded PNG and confirm it is the right size (1080 × 2400 or 1080 × 2340), with no overlays, controls or guides, correct fonts, a sharp-enough portrait at the chosen ceiling, and the same layout as the preview.
 - **Devices:** actually set the image as the wallpaper on one iPhone and one Android phone, check the clock zone, and record the result. Until then, label the safe zones as estimates.
 - **Performance:** no layout shift from status text, and the payload of `/api/wallpaper/players` is recorded against the full bootstrap.

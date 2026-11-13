@@ -26,7 +26,9 @@ useSeoMeta({
       <h1 class="sr-only">Player wallpapers</h1>
       <USkeleton class="aspect-[9/19.5] h-[60dvh] rounded-[2.5rem]" />
     </div>
-    <WallpaperStudio v-else :studio="studio" />
+    <UApp v-else>
+      <WallpaperStudio :studio="studio" />
+    </UApp>
 
     <section class="site-content-rail grid gap-8 border-t border-white/10 py-12 text-sm text-stone-300 sm:grid-cols-2" aria-labelledby="wallpaper-howto">
       <h2 id="wallpaper-howto" class="text-lg font-semibold text-white sm:col-span-2">Set it as your wallpaper</h2>

@@ -20,6 +20,11 @@ function apply(element: HTMLElement, { value }: { value: ElementBinding }) {
   element.style.position = original.isStatic ? 'relative' : original.position
   element.style.textAlign = change?.align ?? original.textAlign
   element.style.visibility = change?.hidden ? 'hidden' : original.visibility
+  if (change?.opacity !== undefined) element.style.setProperty('--wallpaper-layer-opacity', String(change.opacity))
+  else element.style.removeProperty('--wallpaper-layer-opacity')
+  if (change?.textColour) element.style.setProperty('--wallpaper-text-colour', change.textColour)
+  else element.style.removeProperty('--wallpaper-text-colour')
+  element.toggleAttribute('data-custom-text-colour', Boolean(change?.textColour))
   if (value.textContrast || value.id === 'player-name') {
     const contrast = change?.contrast ?? value.contrast ?? 'none'
     element.classList.toggle('[-webkit-text-stroke:4px_#071829]', contrast === 'outline')

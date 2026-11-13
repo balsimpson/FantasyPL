@@ -2,9 +2,10 @@
 import { vSchedulerElement } from '~/utils/scheduler-element'
 import { positionName, type WallpaperArtworkModel } from '~/utils/wallpaper'
 import WallpaperPortrait from '~/components/wallpaper/WallpaperPortrait.vue'
-import WallpaperBrand from '~/components/wallpaper/WallpaperBrand.vue'
+import WallpaperClubLogo from '~/components/wallpaper/WallpaperClubLogo.vue'
 const props = defineProps<{ model: WallpaperArtworkModel }>()
 const c = computed(() => props.model.colours)
+const numeralColour = computed(() => props.model.layout.numerals?.textColour ?? c.value.alt)
 const el = (id: string, label: string, extra: Record<string, unknown> = {}) => ({ id, label, layout: props.model.layout, ...extra })
 const id = useId()
 // Anton numerals are roughly half an em wide; this keeps 1–3 characters inside the field.
@@ -13,26 +14,12 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
 </script>
 
 <template>
-  <svg class="absolute inset-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
-    <defs>
-      <pattern :id="`${id}-dots`" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <circle cx="11" cy="11" r="7" :fill="c.alt" />
-      </pattern>
-      <pattern :id="`${id}-fine`" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <circle cx="8" cy="8" r="3" :fill="c.alt" />
-      </pattern>
-      <radialGradient :id="`${id}-corner`" cx="1" cy="0" r="1">
-        <stop offset="0" stop-color="#fff" stop-opacity="0.9" />
-        <stop offset="0.55" stop-color="#fff" stop-opacity="0" />
-      </radialGradient>
-      <mask :id="`${id}-corner-mask`"><rect width="1080" height="2400" :fill="`url(#${id}-corner)`" /></mask>
-    </defs>
-    <rect width="1080" height="1100" :fill="`url(#${id}-fine)`" :mask="`url(#${id}-corner-mask)`" opacity="0.5" />
-  </svg>
-
   <div v-if="model.text.text" v-scheduler-element="el('numerals', 'Big numerals')" class="absolute left-[16px] top-[250px] h-[1040px] w-[780px]" aria-hidden="true">
     <svg width="780" height="1040" viewBox="0 0 780 1040">
       <defs>
+        <pattern :id="`${id}-dots`" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <circle cx="11" cy="11" r="7" :fill="numeralColour" />
+        </pattern>
         <linearGradient :id="`${id}-solid`" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0.35" stop-color="#fff" />
           <stop offset="0.85" stop-color="#000" />
@@ -41,13 +28,13 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
       </defs>
       <g transform="skewX(-8) translate(120 0)">
         <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="`url(#${id}-dots)`">{{ model.text.text }}</text>
-        <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="c.alt" :mask="`url(#${id}-solid-mask)`">{{ model.text.text }}</text>
+        <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="numeralColour" :mask="`url(#${id}-solid-mask)`">{{ model.text.text }}</text>
       </g>
     </svg>
   </div>
-  <p v-if="caption && model.text.text" v-scheduler-element="el('caption', 'Rank caption')" class="wp-numbers absolute left-[80px] top-[1300px] text-[30px] font-semibold uppercase tracking-[0.2em]" :style="{ color: c.muted }">{{ caption }}</p>
+  <p v-if="caption && model.text.text" v-scheduler-element="el('caption', 'Rank caption')" class="wp-numbers absolute left-[80px] top-[1300px] text-[30px] font-semibold uppercase tracking-[0.2em]" :style="{ color: `var(--wallpaper-text-colour, ${c.muted})` }">{{ caption }}</p>
 
-  <div v-scheduler-element="el('stats', 'Stat column', { group: true })" class="absolute right-[64px] top-[620px] flex w-[300px] flex-col items-end text-right" :style="{ color: c.accent }">
+  <div v-scheduler-element="el('stats', 'Stat column', { group: true })" class="absolute right-[64px] top-[620px] flex w-[300px] flex-col items-end text-right" :style="{ color: `var(--wallpaper-text-colour, ${c.accent})` }">
     <template v-for="(slot, index) in [0, 1, 2]" :key="slot">
       <span v-if="index" aria-hidden="true" class="my-7 block h-[5px] w-[70px]" :style="{ backgroundColor: c.accent }" />
       <div v-if="model.stats[slot]" v-scheduler-element="el(`stat-${slot}`, model.stats[slot]!.label, { group: true })">
@@ -61,5 +48,5 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
 
   <WallpaperPortrait :player="model.player" :layout="model.layout" class="absolute left-[-40px] top-[1250px] h-[1150px] w-[1150px]" />
 
-  <WallpaperBrand :player="model.player" :layout="model.layout" :season="model.season" align="right" class="absolute right-[64px] top-[1480px]" :style="{ color: c.accent }" />
+  <WallpaperClubLogo :player="model.player" :layout="model.layout" class="absolute right-[64px] top-[1480px]" />
 </template>

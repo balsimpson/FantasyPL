@@ -14,8 +14,10 @@ export interface SchedulerElementTransform {
   z?: number
   align?: 'left' | 'center' | 'right'
   contrast?: SchedulerTextContrast
-  // Wallpaper layouts only; the scheduler parser drops it, so its saved data is unchanged.
+  // Appearance overrides used by the wallpaper editor.
   hidden?: boolean
+  opacity?: number
+  textColour?: string
 }
 export type SchedulerLayout = Record<string, SchedulerElementTransform>
 export interface SchedulerBox { x: number; y: number; width: number; height: number }

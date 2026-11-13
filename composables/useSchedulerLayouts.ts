@@ -7,6 +7,11 @@ interface LayoutStorageOptions {
   savedNotice?: string
 }
 
+interface LayoutHistoryEntry {
+  layout: SchedulerLayout
+  appearance?: { undo: () => void; redo: () => void }
+}
+
 // Defaults keep the scheduler's storage key, parser and messages unchanged.
 export function useSchedulerLayouts(key: ComputedRef<string>, options: LayoutStorageOptions = {}) {
   const storageKey = options.storageKey ?? schedulerLayoutStorageKey
@@ -14,8 +19,8 @@ export function useSchedulerLayouts(key: ComputedRef<string>, options: LayoutSto
   const savedNotice = options.savedNotice ?? 'Layout saved in this browser.'
   const layouts = ref<Record<string, SchedulerLayout>>({})
   const saved = ref<Record<string, SchedulerLayout>>({})
-  const undoStacks = ref<Record<string, SchedulerLayout[]>>({})
-  const redoStacks = ref<Record<string, SchedulerLayout[]>>({})
+  const undoStacks = ref<Record<string, LayoutHistoryEntry[]>>({})
+  const redoStacks = ref<Record<string, LayoutHistoryEntry[]>>({})
   const storageError = ref('')
   const notice = ref('')
   const layout = computed(() => layouts.value[key.value] ?? {})
@@ -34,8 +39,8 @@ export function useSchedulerLayouts(key: ComputedRef<string>, options: LayoutSto
     }
   })
   watch(key, () => { notice.value = '' })
-  function remember(before: SchedulerLayout, target = key.value) {
-    undoStacks.value[target] = [...(undoStacks.value[target] ?? []), copyLayout(before)].slice(-50)
+  function remember(before: SchedulerLayout, target = key.value, appearance?: LayoutHistoryEntry['appearance']) {
+    undoStacks.value[target] = [...(undoStacks.value[target] ?? []), { layout: copyLayout(before), appearance }].slice(-50)
     redoStacks.value[target] = []
     notice.value = ''
   }
@@ -48,22 +53,25 @@ export function useSchedulerLayouts(key: ComputedRef<string>, options: LayoutSto
     if (cancel) layouts.value[target] = before
     else if (JSON.stringify(before) !== JSON.stringify(layouts.value[target] ?? {})) remember(before, target)
   }
-  function change(next: SchedulerLayout) {
-    if (JSON.stringify(next) === JSON.stringify(layout.value)) return
-    remember(layout.value)
+  function change(next: SchedulerLayout, appearance?: LayoutHistoryEntry['appearance']) {
+    if (!appearance && JSON.stringify(next) === JSON.stringify(layout.value)) return
+    remember(layout.value, key.value, appearance)
     update(next)
+    appearance?.redo()
   }
   function undo() {
     const previous = undoStacks.value[key.value]?.pop()
     if (!previous) return
-    redoStacks.value[key.value] = [...(redoStacks.value[key.value] ?? []), copyLayout(layout.value)]
-    update(previous)
+    redoStacks.value[key.value] = [...(redoStacks.value[key.value] ?? []), { layout: copyLayout(layout.value), appearance: previous.appearance }]
+    update(previous.layout)
+    previous.appearance?.undo()
   }
   function redo() {
     const next = redoStacks.value[key.value]?.pop()
     if (!next) return
-    undoStacks.value[key.value] = [...(undoStacks.value[key.value] ?? []), copyLayout(layout.value)]
-    update(next)
+    undoStacks.value[key.value] = [...(undoStacks.value[key.value] ?? []), { layout: copyLayout(layout.value), appearance: next.appearance }]
+    update(next.layout)
+    next.appearance?.redo()
   }
   function save() {
     try {

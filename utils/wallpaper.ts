@@ -9,7 +9,7 @@ export const IPHONE_CROP = 30
 export const wallpaperArtboard: ArtboardSpec = { width: WALLPAPER_WIDTH, height: WALLPAPER_HEIGHT, margin: 72 }
 
 export type WallpaperDesignId = 'royal' | 'poster' | 'gallery' | 'halftone' | 'floodlit' | 'split'
-export type WallpaperPalette = 'signature' | 'club'
+export type WallpaperPalette = 'signature' | 'club' | 'custom'
 export type WallpaperPosition = 'GK' | 'DEF' | 'MID' | 'FWD'
 export type WallpaperStatKey = 'total_points' | 'event_points' | 'form' | 'points_per_game' | 'goals_scored' | 'assists'
   | 'clean_sheets' | 'saves' | 'bonus' | 'minutes' | 'now_cost' | 'selected_by_percent'
@@ -41,15 +41,11 @@ export interface WallpaperPlayer extends InstagramPlayer {
 }
 
 export interface WallpaperTeam { id: number; code: number; name: string; short_name: string }
-export interface WallpaperFixture { team: number; opponent: number; home: boolean; kickoff: string | null; event: number | null }
 export interface WallpaperCatalogue {
   players: Record<string, any>[]
   teams: WallpaperTeam[]
   currentGameweek: number | null
-  nextGameweek: number | null
-  deadline: string | null
   season: string | null
-  nextFixtures: WallpaperFixture[]
   fetchedAt: string
 }
 
@@ -117,7 +113,7 @@ export const isWallpaperDesign = (value: unknown): value is WallpaperDesignId =>
 export const getWallpaperDesign = (id: WallpaperDesignId) => wallpaperDesigns.find(design => design.id === id) ?? wallpaperDesigns[0]!
 
 // ---- Colour ----
-export interface WallpaperColours { field: string; alt: string; ink: string; accent: string; muted: string; clock: string }
+export interface WallpaperColours { field: string; alt: string; ink: string; accent: string; muted: string; clock: string; lettering?: string }
 
 function rgb(hex: string) {
   const value = hex.replace('#', '')
@@ -138,6 +134,14 @@ export function luminance(hex: string) {
   return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
 }
 export const readableInk = (background: string, dark = '#0b0b0c', light = '#ffffff') => luminance(background) > 0.36 ? dark : light
+export const isWallpaperColour = (value: unknown): value is string => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)
+
+export function customWallpaperColours(design: WallpaperDesignId, field: string): WallpaperColours {
+  const ink = luminance(field) >= 0.179 ? '#000000' : '#ffffff'
+  const tint = mixColour(field, ink, 0.12)
+  const alt = design === 'poster' || design === 'halftone' ? ink : tint
+  return { field, alt, ink, accent: ink, muted: ink, clock: ink, lettering: ink }
+}
 
 const signature: Record<WallpaperDesignId, WallpaperColours> = {
   royal: { field: '#1c2bd4', alt: '#2c3ef0', ink: '#ffffff', accent: '#ffffff', muted: '#c9cffd', clock: '#ffffff' },
@@ -148,7 +152,9 @@ const signature: Record<WallpaperDesignId, WallpaperColours> = {
   split: { field: '#ff5b1d', alt: '#1d3ed6', ink: '#ffffff', accent: '#ffffff', muted: '#ffe1d2', clock: '#ffffff' },
 }
 
-export function getWallpaperColours(design: WallpaperDesignId, palette: WallpaperPalette, clubCode: number): WallpaperColours {
+export function getWallpaperColours(design: WallpaperDesignId, palette: WallpaperPalette, clubCode: number, background?: string): WallpaperColours {
+  if (palette === 'custom' && background) return customWallpaperColours(design, background)
+  if (palette === 'custom') return signature[design]
   if (palette === 'signature') return signature[design]
   const theme = getInstagramClubTheme(clubCode, 'club')
   const primary = theme.primary
@@ -174,14 +180,13 @@ export interface WallpaperPrefs {
   palettes: Partial<Record<WallpaperDesignId, WallpaperPalette>>
   stats: Partial<Record<WallpaperPosition, WallpaperStatKey[]>>
   texts: Partial<Record<WallpaperDesignId, string>>
+  backdrop: WallpaperDesignId | null
+  background?: string
   device: 'iphone' | 'android'
-  screen: 'lock' | 'home'
-  widgets: boolean
-  depth: boolean
 }
 export const wallpaperPrefsKey = 'fpl-wallpaper-prefs-v1'
 export const wallpaperLayoutsKey = 'fpl-wallpaper-layouts-v1'
-export const defaultWallpaperPrefs = (): WallpaperPrefs => ({ version: 1, playerCode: null, design: 'royal', palettes: {}, stats: {}, texts: {}, device: 'iphone', screen: 'lock', widgets: true, depth: true })
+export const defaultWallpaperPrefs = (): WallpaperPrefs => ({ version: 1, playerCode: null, design: 'royal', palettes: {}, stats: {}, texts: {}, backdrop: null, device: 'iphone' })
 
 export function cleanWallpaperText(value: string, maxLength: number) {
   return value.replace(/[^\p{L}\p{N} .'’-]/gu, '').slice(0, maxLength)
@@ -195,8 +200,10 @@ export function parseWallpaperPrefs(raw: string | null): WallpaperPrefs {
   if (!parsed || parsed.version !== 1) return prefs
   if (Number.isInteger(parsed.playerCode)) prefs.playerCode = parsed.playerCode
   if (isWallpaperDesign(parsed.design)) prefs.design = parsed.design
+  if (isWallpaperDesign(parsed.backdrop)) prefs.backdrop = parsed.backdrop
+  if (isWallpaperColour(parsed.background)) prefs.background = parsed.background
   for (const design of wallpaperDesigns) {
-    if (['signature', 'club'].includes(parsed.palettes?.[design.id])) prefs.palettes[design.id] = parsed.palettes[design.id]
+    if (['signature', 'club', 'custom'].includes(parsed.palettes?.[design.id])) prefs.palettes[design.id] = parsed.palettes[design.id]
     if (design.text && typeof parsed.texts?.[design.id] === 'string') prefs.texts[design.id] = cleanWallpaperText(parsed.texts[design.id], design.text.maxLength)
   }
   for (const position of ['GK', 'DEF', 'MID', 'FWD'] as const) {
@@ -204,9 +211,6 @@ export function parseWallpaperPrefs(raw: string | null): WallpaperPrefs {
     if (Array.isArray(stats) && stats.length === 5 && stats.every(key => wallpaperStatKeys.includes(key))) prefs.stats[position] = stats
   }
   if (['iphone', 'android'].includes(parsed.device)) prefs.device = parsed.device
-  if (['lock', 'home'].includes(parsed.screen)) prefs.screen = parsed.screen
-  if (typeof parsed.widgets === 'boolean') prefs.widgets = parsed.widgets
-  if (typeof parsed.depth === 'boolean') prefs.depth = parsed.depth
   return prefs
 }
 
@@ -216,9 +220,15 @@ export function parseWallpaperLayouts(raw: string | null): Record<string, Schedu
   if (!parsed || parsed.version !== 1 || !parsed.layouts || typeof parsed.layouts !== 'object') throw new Error('Invalid saved wallpaper layouts')
   const result: Record<string, SchedulerLayout> = {}
   for (const [key, layout] of Object.entries(parsed.layouts)) {
-    if (!/^wallpaper:(royal|poster|gallery|halftone|floodlit|split)$/.test(key)) continue
+    if (!/^wallpaper:(royal|poster|gallery|halftone|floodlit|split|player-only)$/.test(key)) continue
     const elements = parseLayoutElements(layout, wallpaperArtboard, true)
-    if (elements) result[key] = elements
+    if (!elements) continue
+    for (const [id, element] of Object.entries(elements)) {
+      const saved = (layout as SchedulerLayout)[id]!
+      if (typeof saved.opacity === 'number' && saved.opacity >= 0 && saved.opacity <= 1) element.opacity = saved.opacity
+      if (isWallpaperColour(saved.textColour)) element.textColour = saved.textColour
+    }
+    result[key] = elements
   }
   return result
 }
@@ -236,6 +246,7 @@ export const wallpaperFilename = (player: WallpaperPlayer, design: WallpaperDesi
 export interface WallpaperStatView { key: WallpaperStatKey; slot: number; label: string; lines: string[]; value: string }
 export interface WallpaperArtworkModel {
   player: WallpaperPlayer
+  backdrop?: WallpaperDesignId
   design: WallpaperDesignId
   colours: WallpaperColours
   stats: Record<number, WallpaperStatView>
