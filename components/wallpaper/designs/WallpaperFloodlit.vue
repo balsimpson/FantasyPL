@@ -4,6 +4,8 @@ import type { WallpaperArtworkModel } from '~/utils/wallpaper'
 import WallpaperFitText from '~/components/wallpaper/WallpaperFitText.vue'
 import WallpaperPortrait from '~/components/wallpaper/WallpaperPortrait.vue'
 import WallpaperClubLogo from '~/components/wallpaper/WallpaperClubLogo.vue'
+// Floodlit: a night match. Floodlight beams fall from the top corners onto the
+// player, the photo dissolves into the dark, and the number glows in the pool of light.
 const props = defineProps<{ model: WallpaperArtworkModel }>()
 const c = computed(() => props.model.colours)
 const el = (id: string, label: string, extra: Record<string, unknown> = {}) => ({ id, label, layout: props.model.layout, ...extra })
@@ -11,16 +13,16 @@ const heroLabel = computed(() => props.model.stats[0]?.key === 'total_points' ? 
 </script>
 
 <template>
-  <WallpaperPortrait :player="model.player" :layout="model.layout" :fade-height="40" class="absolute left-[60px] top-[620px] h-[960px] w-[960px]" />
+  <WallpaperPortrait :player="model.player" :layout="model.layout" :fade-height="48" class="absolute left-[90px] top-[560px] h-[900px] w-[900px]" />
 
-  <div v-if="model.stats[0]" v-scheduler-element="el('hero', 'Big number', { group: true })" class="absolute left-[90px] top-[1370px] flex w-[900px] flex-col items-center text-center">
-    <div v-scheduler-element="el('hero-value', 'Number')" class="tabular-nums">
-      <WallpaperFitText :text="model.stats[0].value" :width="860" :max-size="470" :min-size="180" family="'Archivo Black'" />
+  <div v-if="model.stats[0]" v-scheduler-element="el('hero', 'Big number', { group: true })" class="absolute left-[90px] top-[1300px] flex w-[900px] flex-col items-center text-center">
+    <div v-scheduler-element="el('hero-value', 'Number')" class="tabular-nums [text-shadow:0_0_60px_var(--wp-glow)]" :style="{ '--wp-glow': `${c.alt}aa` }">
+      <WallpaperFitText :text="model.stats[0].value" :width="820" :max-size="470" :min-size="180" family="'Archivo Black'" />
     </div>
-    <p v-scheduler-element="el('hero-label', 'Label')" class="wp-numbers mt-6 text-[70px] font-medium uppercase leading-none tracking-[0.5em] [margin-right:-0.5em]">{{ heroLabel }}</p>
+    <p v-scheduler-element="el('hero-label', 'Label')" class="wp-numbers mt-6 text-[64px] font-medium uppercase leading-none tracking-[0.5em] [margin-right:-0.5em]">{{ heroLabel }}</p>
   </div>
 
-  <div v-scheduler-element="el('stats', 'Split stats', { group: true })" class="absolute left-[140px] top-[1890px] grid w-[800px] grid-cols-[1fr_auto_1fr] items-center text-center">
+  <div v-scheduler-element="el('stats', 'Split stats', { group: true })" class="absolute left-[140px] top-[1880px] grid w-[800px] grid-cols-[1fr_auto_1fr] items-center text-center">
     <template v-for="(slot, index) in [1, 2]" :key="slot">
       <span v-if="index" aria-hidden="true" class="h-[150px] w-[3px]" :style="{ backgroundColor: c.muted }" />
       <div v-if="model.stats[slot]" v-scheduler-element="el(`stat-${slot}`, model.stats[slot]!.label, { group: true })">
@@ -30,5 +32,5 @@ const heroLabel = computed(() => props.model.stats[0]?.key === 'total_points' ? 
     </template>
   </div>
 
-  <WallpaperClubLogo :player="model.player" :layout="model.layout" class="absolute left-[496px] top-[2110px]" />
+  <WallpaperClubLogo :player="model.player" :layout="model.layout" class="absolute left-[496px] top-[2106px]" />
 </template>

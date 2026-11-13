@@ -8,6 +8,8 @@ const c = computed(() => props.model.colours)
 const numeralColour = computed(() => props.model.layout.numerals?.textColour ?? c.value.alt)
 const el = (id: string, label: string, extra: Record<string, unknown> = {}) => ({ id, label, layout: props.model.layout, ...extra })
 const id = useId()
+// Halftone: a risograph print. Dot-screened numerals with a slightly misregistered
+// second pass, a stacked stat column and a caption that explains the number.
 // Anton numerals are roughly half an em wide; this keeps 1–3 characters inside the field.
 const numeralSize = computed(() => Math.min(1080, Math.round(820 / (0.5 * Math.max(1, props.model.text.text.length)))))
 const caption = computed(() => props.model.text.custom || !props.model.player.positionRank ? '' : `No. ${props.model.player.positionRank} ${positionName(props.model.player.positionShort)} by FPL points`)
@@ -27,12 +29,12 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
         <mask :id="`${id}-solid-mask`"><rect width="780" height="1040" :fill="`url(#${id}-solid)`" /></mask>
       </defs>
       <g transform="skewX(-8) translate(120 0)">
+        <text x="16" y="994" :font-size="numeralSize" font-family="FPLDisplay" :fill="c.clock" opacity="0.12">{{ model.text.text }}</text>
         <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="`url(#${id}-dots)`">{{ model.text.text }}</text>
         <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="numeralColour" :mask="`url(#${id}-solid-mask)`">{{ model.text.text }}</text>
       </g>
     </svg>
   </div>
-  <p v-if="caption && model.text.text" v-scheduler-element="el('caption', 'Rank caption')" class="wp-numbers absolute left-[80px] top-[1300px] text-[30px] font-semibold uppercase tracking-[0.2em]" :style="{ color: `var(--wallpaper-text-colour, ${c.muted})` }">{{ caption }}</p>
 
   <div v-scheduler-element="el('stats', 'Stat column', { group: true })" class="absolute right-[64px] top-[620px] flex w-[300px] flex-col items-end text-right" :style="{ color: `var(--wallpaper-text-colour, ${c.accent})` }">
     <template v-for="(slot, index) in [0, 1, 2]" :key="slot">
@@ -49,4 +51,5 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
   <WallpaperPortrait :player="model.player" :layout="model.layout" class="absolute left-[-40px] top-[1250px] h-[1150px] w-[1150px]" />
 
   <WallpaperClubLogo :player="model.player" :layout="model.layout" class="absolute right-[64px] top-[1480px]" />
+  <p v-if="caption && model.text.text" v-scheduler-element="el('caption', 'Rank caption')" class="wp-numbers absolute right-[64px] top-[1600px] w-[300px] text-right text-[30px] font-semibold uppercase leading-[1.35] tracking-[0.18em]" :style="{ color: `var(--wallpaper-text-colour, ${c.muted})` }">{{ caption }}</p>
 </template>

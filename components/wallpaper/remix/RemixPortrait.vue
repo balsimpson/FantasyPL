@@ -16,7 +16,9 @@ const photoStyle = computed(() => {
   const style: Record<string, string> = {}
   if (shadow === 'offset') style.filter = `drop-shadow(${Math.round(v.x * 34)}px ${Math.round(v.y * 28)}px 0 ${c.alt})`
   if (shadow === 'soft') style.filter = `drop-shadow(${Math.round(v.x * 44)}px ${Math.round(v.y * 38)}px 24px ${c.deep}b3)`
-  if (spec.value.fade) style.maskImage = style.WebkitMaskImage = `linear-gradient(to top, transparent, black ${spec.value.fade}%)`
+  // A photo that stops above the bottom edge fades out, so the torso never ends in a hard line.
+  const fade = spec.value.y + spec.value.size < 2360 ? Math.max(spec.value.fade, 30) : spec.value.fade
+  if (fade) style.maskImage = style.WebkitMaskImage = `linear-gradient(to top, transparent, black ${fade}%)`
   return style
 })
 </script>

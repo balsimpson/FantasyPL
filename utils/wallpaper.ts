@@ -7,6 +7,9 @@ import type { RemixAspect, WallpaperRecipe } from './wallpaper-remix'
 export const WALLPAPER_WIDTH = 1080
 export const WALLPAPER_HEIGHT = 2400
 export const IPHONE_CROP = 30
+// Where the head sits in a PL headshot, as fractions of the square photo box
+// (centre x/y and ellipse radii, head plus neck). An estimate checked against renders.
+export const PORTRAIT_HEAD = { x: 0.5, y: 0.36, rx: 0.145, ry: 0.26 }
 export const wallpaperArtboard: ArtboardSpec = { width: WALLPAPER_WIDTH, height: WALLPAPER_HEIGHT, margin: 72 }
 
 export type WallpaperDesignId = 'royal' | 'poster' | 'gallery' | 'halftone' | 'floodlit' | 'split'

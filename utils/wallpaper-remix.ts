@@ -74,7 +74,7 @@ export const remixSkeletons: SkeletonSpec[] = [
     word: { x: -20, y: 290, length: 1120, maxSize: 600, minSize: 220, popOut: false, sources: ['surname', 'fpl', 'club'] },
     hero: { x: 72, y: 1440, width: 936, align: 'center', maxSize: 430, label: 'below' },
     stats: { x: 72, y: 1990, width: 936, align: 'center', arrangements: ['row', 'pair'] },
-    crest: { x: 72, y: 640 }, season: { x: 1008, y: 664, align: 'right' }, ticker: true,
+    crest: { x: 72, y: 870 }, season: { x: 1008, y: 894, align: 'right' }, ticker: true,
     glow: { x: 540, y: 900 }, backdrops: ['rings', 'glow', 'sunburst', 'arc', 'beams'], signature: ['rim', 'extrudeHero', 'tiles'],
   },
   {
@@ -139,11 +139,6 @@ export const remixSkeletons: SkeletonSpec[] = [
   },
 ]
 export const getRemixSkeleton = (id: SkeletonId) => remixSkeletons.find(item => item.id === id) ?? remixSkeletons[0]!
-
-// Portrait head line: PL headshots are head-and-shoulders crops, and the chin sits
-// at roughly 60% of the image height. Pop-out lettering passes in front of the body below it.
-// This is an estimate; check it against real renders.
-export const PORTRAIT_HEAD_LINE = 0.6
 
 // ---- Palettes ---------------------------------------------------------------
 
