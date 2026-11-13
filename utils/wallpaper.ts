@@ -1,6 +1,7 @@
 import { normalizeInstagramPlayer, type InstagramPlayer } from './instagram-templates'
 import { getInstagramClubTheme } from './instagram-designs'
 import { parseLayoutElements, type ArtboardSpec, type SchedulerLayout } from './scheduler-layout'
+import type { RemixAspect, WallpaperRecipe } from './wallpaper-remix'
 
 // One tall artboard serves both platforms. iPhone exports a centred 19.5:9 crop of it.
 export const WALLPAPER_WIDTH = 1080
@@ -10,6 +11,11 @@ export const wallpaperArtboard: ArtboardSpec = { width: WALLPAPER_WIDTH, height:
 
 export type WallpaperDesignId = 'royal' | 'poster' | 'gallery' | 'halftone' | 'floodlit' | 'split'
 export type WallpaperPalette = 'signature' | 'club' | 'custom'
+// Palette and text choices are kept per fixed design, plus one set for remixes.
+export type WallpaperStyleKey = WallpaperDesignId | 'remix'
+// Mirrors encodeRemix in wallpaper-remix.ts (kept here to avoid a runtime import cycle).
+export const isRemixCodeFormat = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-z]{1,7}(-[0-9a-z]{1,7}){3}$/.test(value)
+const remixLockValues = ['layout', 'palette', 'type', 'depth'] as const
 export type WallpaperPosition = 'GK' | 'DEF' | 'MID' | 'FWD'
 export type WallpaperStatKey = 'total_points' | 'event_points' | 'form' | 'points_per_game' | 'goals_scored' | 'assists'
   | 'clean_sheets' | 'saves' | 'bonus' | 'minutes' | 'now_cost' | 'selected_by_percent'
@@ -177,16 +183,20 @@ export interface WallpaperPrefs {
   version: 1
   playerCode: number | null
   design: WallpaperDesignId
-  palettes: Partial<Record<WallpaperDesignId, WallpaperPalette>>
+  palettes: Partial<Record<WallpaperStyleKey, WallpaperPalette>>
   stats: Partial<Record<WallpaperPosition, WallpaperStatKey[]>>
-  texts: Partial<Record<WallpaperDesignId, string>>
+  texts: Partial<Record<WallpaperStyleKey, string>>
   backdrop: WallpaperDesignId | null
+  // The active remix code, or null when a fixed design is shown.
+  remix: string | null
+  locks: RemixAspect[]
   background?: string
   device: 'iphone' | 'android'
 }
 export const wallpaperPrefsKey = 'fpl-wallpaper-prefs-v1'
 export const wallpaperLayoutsKey = 'fpl-wallpaper-layouts-v1'
-export const defaultWallpaperPrefs = (): WallpaperPrefs => ({ version: 1, playerCode: null, design: 'royal', palettes: {}, stats: {}, texts: {}, backdrop: null, device: 'iphone' })
+export const defaultWallpaperPrefs = (): WallpaperPrefs => ({ version: 1, playerCode: null, design: 'royal', palettes: {}, stats: {}, texts: {}, backdrop: null, remix: null, locks: [], device: 'iphone' })
+export const REMIX_TEXT_MAX = 10
 
 export function cleanWallpaperText(value: string, maxLength: number) {
   return value.replace(/[^\p{L}\p{N} .'’-]/gu, '').slice(0, maxLength)
@@ -206,6 +216,10 @@ export function parseWallpaperPrefs(raw: string | null): WallpaperPrefs {
     if (['signature', 'club', 'custom'].includes(parsed.palettes?.[design.id])) prefs.palettes[design.id] = parsed.palettes[design.id]
     if (design.text && typeof parsed.texts?.[design.id] === 'string') prefs.texts[design.id] = cleanWallpaperText(parsed.texts[design.id], design.text.maxLength)
   }
+  if (isRemixCodeFormat(parsed.remix)) prefs.remix = parsed.remix
+  if (Array.isArray(parsed.locks)) prefs.locks = remixLockValues.filter(lock => parsed.locks.includes(lock))
+  if (['signature', 'club', 'custom'].includes(parsed.palettes?.remix)) prefs.palettes.remix = parsed.palettes.remix
+  if (typeof parsed.texts?.remix === 'string') prefs.texts.remix = cleanWallpaperText(parsed.texts.remix, REMIX_TEXT_MAX)
   for (const position of ['GK', 'DEF', 'MID', 'FWD'] as const) {
     const stats = parsed.stats?.[position]
     if (Array.isArray(stats) && stats.length === 5 && stats.every(key => wallpaperStatKeys.includes(key))) prefs.stats[position] = stats
@@ -220,7 +234,7 @@ export function parseWallpaperLayouts(raw: string | null): Record<string, Schedu
   if (!parsed || parsed.version !== 1 || !parsed.layouts || typeof parsed.layouts !== 'object') throw new Error('Invalid saved wallpaper layouts')
   const result: Record<string, SchedulerLayout> = {}
   for (const [key, layout] of Object.entries(parsed.layouts)) {
-    if (!/^wallpaper:(royal|poster|gallery|halftone|floodlit|split|player-only)$/.test(key)) continue
+    if (!/^wallpaper:(royal|poster|gallery|halftone|floodlit|split|player-only|remix-[0-9a-z]{1,7}(-[0-9a-z]{1,7}){3})$/.test(key)) continue
     const elements = parseLayoutElements(layout, wallpaperArtboard, true)
     if (!elements) continue
     for (const [id, element] of Object.entries(elements)) {
@@ -239,7 +253,7 @@ export function wallpaperBackgroundText(design: WallpaperDesignId, player: Wallp
   return { text: player.lastName || player.name, custom: false }
 }
 
-export const wallpaperFilename = (player: WallpaperPlayer, design: WallpaperDesignId, device: string) =>
+export const wallpaperFilename = (player: WallpaperPlayer, design: string, device: string) =>
   `fpl-wallpaper-${player.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'player'}-${design}-${device}.png`
 
 // ---- Artwork model shared by every design ----
@@ -253,6 +267,8 @@ export interface WallpaperArtworkModel {
   text: { text: string; custom: boolean }
   season: string | null
   layout: SchedulerLayout
+  // Present when the artwork is a generated remix rather than a fixed design.
+  recipe?: WallpaperRecipe
 }
 
 export function wallpaperStatView(player: WallpaperPlayer, key: WallpaperStatKey, slot: number): WallpaperStatView {

@@ -4,6 +4,7 @@ import { useSchedulerCanvas } from '~/composables/useSchedulerCanvas'
 import { useWallpaperExport } from '~/composables/useWallpaperExport'
 import type { useWallpaperStudio } from '~/composables/useWallpaperStudio'
 import { isWallpaperColour, wallpaperArtboard, wallpaperFilename, type WallpaperDesignId, type WallpaperPalette } from '~/utils/wallpaper'
+import { describeRemix, finishPalette, remixAspectLabels, remixAspects, remixPaletteList } from '~/utils/wallpaper-remix'
 import { getDeviceGuides, getDeviceZones, overlaps } from '~/utils/wallpaper-devices'
 import WallpaperStage from '~/components/wallpaper/WallpaperStage.vue'
 import WallpaperPlayerPicker from '~/components/wallpaper/WallpaperPlayerPicker.vue'
@@ -13,16 +14,17 @@ import WallpaperInspector from '~/components/wallpaper/WallpaperInspector.vue'
 import WallpaperSaveModal from '~/components/wallpaper/WallpaperSaveModal.vue'
 
 const props = defineProps<{ studio: ReturnType<typeof useWallpaperStudio> }>()
-const { players, player, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, requestedMissing, setStat, resetStats, canResetTemplate, resetTemplate } = props.studio
+const { players, player, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, requestedMissing, setStat, resetStats, canResetTemplate, resetTemplate,
+  recipe, styleKey, canGoBack, previousRemix, toggleLock, leaveRemix } = props.studio
 
 const stage = useTemplateRef<InstanceType<typeof WallpaperStage>>('stage')
 const surface = computed(() => (stage.value?.surface as HTMLElement | null | undefined) ?? null)
 const fitTick = useState('wallpaper-fit-tick', () => 0)
-const revision = computed(() => JSON.stringify([prefs.value.design, prefs.value.backdrop, prefs.value.background, player.value?.code, stats.value, prefs.value.texts[prefs.value.design], palette.value, layouts.layout.value, prefs.value.device, fitTick.value]))
+const revision = computed(() => JSON.stringify([prefs.value.design, prefs.value.remix, prefs.value.backdrop, prefs.value.background, player.value?.code, stats.value, prefs.value.texts[styleKey.value], palette.value, layouts.layout.value, prefs.value.device, fitTick.value]))
 const artboard = computed(() => ({ ...wallpaperArtboard, guides: getDeviceGuides(prefs.value.device) }))
 const canvas = useSchedulerCanvas(() => stage.value?.getArtwork(), surface as unknown as Ref<HTMLElement | null>, computed(() => Boolean(model.value)), revision, layouts, { artboard })
 watch(canvas.dragging, value => { interacting.value = value })
-watch(() => [prefs.value.design, player.value?.code], () => { canvas.navigateGroup(''); canvas.select('') })
+watch(() => [prefs.value.design, prefs.value.remix, player.value?.code], () => { canvas.navigateGroup(''); canvas.select('') })
 
 const zones = computed(() => getDeviceZones(prefs.value.device))
 const clockWarning = computed(() => {
@@ -103,8 +105,34 @@ function setDesign(id: WallpaperDesignId) {
   canvas.finish()
   if (layouts.dirty.value) layouts.save()
   const palettes = palette.value === 'custom' ? { ...prefs.value.palettes, [id]: 'custom' as const } : prefs.value.palettes
+  leaveRemix()
   prefs.value = { ...prefs.value, design: id, backdrop: null, palettes }
   canvas.navigateGroup('')
+}
+function backDice() {
+  canvas.finish()
+  if (layouts.dirty.value) layouts.save()
+  previousRemix()
+  canvas.navigateGroup('')
+}
+const lockItems = computed(() => [
+  [{ label: 'Keep when remixing', type: 'label' as const }],
+  remixAspects.map(aspect => ({
+    label: remixAspectLabels[aspect],
+    type: 'checkbox' as const,
+    checked: prefs.value.locks.includes(aspect),
+    disabled: !recipe.value,
+    onUpdateChecked: () => toggleLock(aspect),
+    onSelect: (event: Event) => event.preventDefault(),
+  })),
+])
+const remixLabel = computed(() => recipe.value ? describeRemix(recipe.value) : '')
+// Remix swatches preview the palette set each colour mode draws from.
+const remixColourFor = (value: WallpaperPalette) => {
+  const current = player.value
+  if (!current) return { field: '#000000', alt: '#ffffff' }
+  const first = finishPalette(remixPaletteList(value, current.clubCode, prefs.value.background)[0]!)
+  return value === 'signature' && recipe.value && prefs.value.palettes.remix !== 'club' && prefs.value.palettes.remix !== 'custom' ? recipe.value.colours : first
 }
 function rollDice() {
   canvas.finish()
@@ -117,15 +145,15 @@ function setBackground(value: string) {
   prefs.value.background = value
   setPalette('custom')
 }
-const setPalette = (value: WallpaperPalette) => { prefs.value.palettes = { ...prefs.value.palettes, [prefs.value.design]: value } }
-const setText = (value: string) => { prefs.value.texts = { ...prefs.value.texts, [prefs.value.design]: value } }
+const setPalette = (value: WallpaperPalette) => { prefs.value.palettes = { ...prefs.value.palettes, [styleKey.value]: value } }
+const setText = (value: string) => { prefs.value.texts = { ...prefs.value.texts, [styleKey.value]: value } }
 const statsCustomised = computed(() => Boolean(player.value && prefs.value.stats[player.value.positionShort]))
 const saveOpen = ref(false)
 const exportRequest = computed(() => {
   const artwork = model.value
   if (!artwork) return null
   const device = prefs.value.device
-  return { artwork, device, filename: wallpaperFilename(artwork.player, artwork.design, device), fit: fitTick.value }
+  return { artwork, device, filename: wallpaperFilename(artwork.player, artwork.recipe ? `remix-${artwork.recipe.code}` : artwork.design, device), fit: fitTick.value }
 })
 const exporter = useWallpaperExport(() => stage.value?.getArtwork(), exportRequest, canvas.dragging, saveOpen)
 function save() {
@@ -154,9 +182,17 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
           <button v-for="item in (['iphone', 'android'] as const)" :key="item" type="button" role="radio" :aria-checked="prefs.device === item" class="h-8 px-3 text-xs font-semibold transition-colors" :class="segment(prefs.device === item)" @click="prefs.device = item">{{ item === 'iphone' ? 'iPhone' : 'Android' }}</button>
         </div>
         <div class="flex items-center gap-1">
-          <UTooltip text="Remix wallpaper">
-            <UButton icon="i-lucide-dices" color="primary" variant="soft" size="sm" aria-label="Remix wallpaper" :disabled="!player" @click="rollDice" />
+          <UTooltip text="Previous remix">
+            <UButton icon="i-lucide-undo-dot" color="neutral" variant="ghost" size="sm" aria-label="Previous remix" :disabled="!canGoBack" @click="backDice" />
           </UTooltip>
+          <div class="flex items-center bg-[#c8ff3d]/12">
+            <UTooltip text="Remix: build a new design">
+              <UButton icon="i-lucide-dices" label="Remix" color="primary" variant="ghost" size="sm" class="rounded-none font-semibold" aria-label="Remix wallpaper" :disabled="!player" @click="rollDice" />
+            </UTooltip>
+            <UDropdownMenu :items="lockItems" :content="{ align: 'end' }">
+              <UButton :icon="prefs.locks.length && recipe ? 'i-lucide-lock' : 'i-lucide-chevron-down'" color="primary" variant="ghost" size="sm" class="rounded-none border-l border-[#c8ff3d]/20" :aria-label="prefs.locks.length ? `Remix locks, ${prefs.locks.length} kept` : 'Remix locks'" />
+            </UDropdownMenu>
+          </div>
           <UButton label="Reset" icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" size="sm" aria-label="Reset template" :disabled="!canResetTemplate" @click="confirmReset = true" />
         </div>
       </div>
@@ -190,8 +226,8 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
       <div class="shrink-0 border-t border-white/10 bg-[#0d0e11] lg:hidden">
         <div v-if="sheet" class="max-h-[42dvh] overflow-y-auto overscroll-contain px-4 py-4">
           <WallpaperPlayerPicker v-if="sheet === 'player'" :players="players" :selected-code="player?.code" class="h-[36dvh]" @select="selectPlayer" />
-          <WallpaperDesignPanel v-else-if="sheet === 'design' && player" :design="prefs.design" :backdrop="prefs.backdrop" :palette="palette" :club-code="player.clubCode" :club="player.club" :model-for="modelFor" :background="prefs.background ?? model?.colours.field" row @update:background="setBackground" @update:design="setDesign" @update:palette="setPalette" />
-          <WallpaperStatsPanel v-else-if="sheet === 'stats' && player" :design="design" :player="player" :stats="stats" :text="prefs.texts[prefs.design] ?? ''" :customised="statsCustomised" @stat="setStat" @text="setText" @reset="resetStats" />
+          <WallpaperDesignPanel v-else-if="sheet === 'design' && player" :design="prefs.design" :backdrop="prefs.backdrop" :palette="palette" :club-code="player.clubCode" :club="player.club" :model-for="modelFor" :background="prefs.background ?? model?.colours.field" :remix="recipe && model ? { label: remixLabel, model } : null" :colour-for="recipe ? remixColourFor : undefined" row @update:background="setBackground" @update:design="setDesign" @update:palette="setPalette" />
+          <WallpaperStatsPanel v-else-if="sheet === 'stats' && player" :design="design" :player="player" :stats="stats" :text="prefs.texts[styleKey] ?? ''" :customised="statsCustomised" @stat="setStat" @text="setText" @reset="resetStats" />
         </div>
         <nav class="flex pb-[env(safe-area-inset-bottom)]" aria-label="Wallpaper settings">
           <button v-for="tab in tabs" :key="tab.id" type="button" class="flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors" :class="sheet === tab.id ? 'text-[#c8ff3d]' : 'text-stone-400'" :aria-expanded="sheet === tab.id" @click="toggleSheet(tab.id)">
@@ -204,9 +240,9 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
     <!-- Desktop: design settings -->
     <aside class="wp-rise hidden min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain lg:block" style="--wp-delay: 120ms">
       <div v-if="player" class="space-y-7 px-1">
-        <WallpaperDesignPanel :design="prefs.design" :backdrop="prefs.backdrop" :palette="palette" :club-code="player.clubCode" :club="player.club" :model-for="modelFor" :background="prefs.background ?? model?.colours.field" @update:background="setBackground" @update:design="setDesign" @update:palette="setPalette" />
+        <WallpaperDesignPanel :design="prefs.design" :backdrop="prefs.backdrop" :palette="palette" :club-code="player.clubCode" :club="player.club" :model-for="modelFor" :background="prefs.background ?? model?.colours.field" :remix="recipe && model ? { label: remixLabel, model } : null" :colour-for="recipe ? remixColourFor : undefined" @update:background="setBackground" @update:design="setDesign" @update:palette="setPalette" />
         <div class="border-t border-white/8 pt-6">
-          <WallpaperStatsPanel :design="design" :player="player" :stats="stats" :text="prefs.texts[prefs.design] ?? ''" :customised="statsCustomised" @stat="setStat" @text="setText" @reset="resetStats" />
+          <WallpaperStatsPanel :design="design" :player="player" :stats="stats" :text="prefs.texts[styleKey] ?? ''" :customised="statsCustomised" @stat="setStat" @text="setText" @reset="resetStats" />
         </div>
       </div>
     </aside>

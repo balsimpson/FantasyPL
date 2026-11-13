@@ -2,6 +2,7 @@
 import '~/assets/css/wallpaper-artwork.css'
 import { useWallpaperStudio } from '~/composables/useWallpaperStudio'
 import WallpaperStudio from '~/components/wallpaper/WallpaperStudio.vue'
+import WallpaperRemixSheet from '~/components/wallpaper/WallpaperRemixSheet.vue'
 
 const studio = useWallpaperStudio()
 const { status, error, refresh } = await studio.request
@@ -10,8 +11,8 @@ const canonical = useCanonicalUrl('/wallpaper')
 useHead({ link: [{ rel: 'canonical', href: canonical }] })
 useSeoMeta({
   title: 'FPL Player Wallpapers for iPhone and Android',
-  description: 'Make a phone wallpaper of your favourite Fantasy Premier League player with live season stats. Six poster designs, drag-and-drop layout, lock screen preview.',
-  robots: () => route.query.player || route.query.design ? 'noindex, follow' : 'index, follow',
+  description: 'Make a phone wallpaper of your favourite Fantasy Premier League player with live season stats. Six poster designs plus generated remixes, drag-and-drop layout, lock screen preview.',
+  robots: () => route.query.player || route.query.design || route.query.remix || route.query.sheet ? 'noindex, follow' : 'index, follow',
 })
 </script>
 
@@ -27,7 +28,8 @@ useSeoMeta({
       <USkeleton class="aspect-[9/19.5] h-[60dvh] rounded-[2.5rem]" />
     </div>
     <UApp v-else>
-      <WallpaperStudio :studio="studio" />
+      <WallpaperRemixSheet v-if="route.query.sheet" :studio="studio" />
+      <WallpaperStudio v-else :studio="studio" />
     </UApp>
 
     <section class="site-content-rail grid gap-8 border-t border-white/10 py-12 text-sm text-stone-300 sm:grid-cols-2" aria-labelledby="wallpaper-howto">

@@ -1,9 +1,10 @@
 import { useSchedulerLayouts } from '~/composables/useSchedulerLayouts'
 import {
-  defaultWallpaperPrefs, defaultWallpaperStats, getWallpaperColours, getWallpaperDesign, isWallpaperDesign, normalizeWallpaperPlayers, wallpaperDesigns,
+  REMIX_TEXT_MAX, defaultWallpaperPrefs, defaultWallpaperStats, getWallpaperColours, getWallpaperDesign, isRemixCodeFormat, isWallpaperDesign, normalizeWallpaperPlayers,
   parseWallpaperLayouts, parseWallpaperPrefs, wallpaperBackgroundText, wallpaperLayoutsKey, wallpaperPrefsKey, wallpaperStatView,
-  type WallpaperArtworkModel, type WallpaperCatalogue, type WallpaperDesignId, type WallpaperPalette, type WallpaperPlayer, type WallpaperPrefs, type WallpaperStatKey,
+  type WallpaperArtworkModel, type WallpaperCatalogue, type WallpaperDesign, type WallpaperDesignId, type WallpaperPalette, type WallpaperPlayer, type WallpaperPrefs, type WallpaperStatKey, type WallpaperStyleKey,
 } from '~/utils/wallpaper'
+import { describeRemix, generateRemix, recipeFromCode, remixStatSlots, remixWordText, type RemixAspect, type WallpaperRecipe } from '~/utils/wallpaper-remix'
 
 // A clock that ticks on each minute boundary, for the preview only.
 function useMinuteClock() {
@@ -31,14 +32,17 @@ export function useWallpaperStudio() {
   // The URL wins over saved choices so shared links open the same player and design.
   const queryCode = Number(route.query.player)
   const queryDesign = route.query.design
-  const prefs = ref<WallpaperPrefs>({ ...defaultWallpaperPrefs(), ...(Number.isInteger(queryCode) && queryCode > 0 ? { playerCode: queryCode } : {}), ...(isWallpaperDesign(queryDesign) ? { design: queryDesign } : {}) })
+  const queryRemix = isRemixCodeFormat(route.query.remix) ? route.query.remix : null
+  const prefs = ref<WallpaperPrefs>({ ...defaultWallpaperPrefs(), ...(Number.isInteger(queryCode) && queryCode > 0 ? { playerCode: queryCode } : {}), ...(isWallpaperDesign(queryDesign) ? { design: queryDesign } : {}), remix: queryRemix })
   const prefsError = ref('')
   const ready = ref(false)
   onMounted(() => {
     try {
       const stored = parseWallpaperPrefs(localStorage.getItem(wallpaperPrefsKey))
       const design = isWallpaperDesign(queryDesign) ? queryDesign : stored.design
-      prefs.value = { ...stored, playerCode: prefs.value.playerCode ?? stored.playerCode, design, backdrop: design === stored.design ? stored.backdrop : null }
+      // A link with a design (and no remix) opens that fixed design.
+      const remix = queryRemix ?? (isWallpaperDesign(queryDesign) ? null : stored.remix)
+      prefs.value = { ...stored, playerCode: prefs.value.playerCode ?? stored.playerCode, design, remix, backdrop: design === stored.design ? stored.backdrop : null }
     } catch {
       prefsError.value = 'Saved choices couldn’t load. Anything you change now is still kept.'
     }
@@ -56,30 +60,54 @@ export function useWallpaperStudio() {
 
   const requestedMissing = computed(() => Boolean(players.value.length && prefs.value.playerCode != null && !byCode.value.has(prefs.value.playerCode)))
   const player = computed<WallpaperPlayer | undefined>(() => (prefs.value.playerCode != null ? byCode.value.get(prefs.value.playerCode) : undefined) ?? featured.value)
-  const design = computed(() => getWallpaperDesign(prefs.value.design))
-  const palette = computed<WallpaperPalette>(() => prefs.value.palettes[prefs.value.design] ?? 'signature')
+  // ---- Remix ----
+  const remixContext = (withPlayer: WallpaperPlayer) => ({ player: withPlayer, palette: prefs.value.palettes.remix ?? 'signature', background: prefs.value.background })
+  const recipe = computed<WallpaperRecipe | null>(() => prefs.value.remix && player.value ? recipeFromCode(prefs.value.remix, remixContext(player.value)) : null)
+  const styleKey = computed<WallpaperStyleKey>(() => recipe.value ? 'remix' : prefs.value.design)
+  const remixDesign = computed<WallpaperDesign | null>(() => {
+    const current = recipe.value
+    if (!current) return null
+    const slots = remixStatSlots(current)
+    const allSlots = current.skeleton.hero ? [0, ...slots] : slots
+    const sourceLabel = { surname: 'Surname', rank: 'Position rank', fpl: 'FPL', club: 'Club code' }[current.wordSource]
+    return {
+      id: prefs.value.design,
+      name: 'Remix',
+      description: describeRemix(current),
+      slots: allSlots,
+      slotNames: Object.fromEntries(allSlots.map(slot => [slot, slot === 0 && current.skeleton.hero ? 'Big number' : 'Stat'])),
+      text: current.skeleton.word ? { label: 'Lettering', auto: sourceLabel, maxLength: REMIX_TEXT_MAX } : undefined,
+      dataIds: ['hero', 'stats'],
+    }
+  })
+  const design = computed(() => remixDesign.value ?? getWallpaperDesign(prefs.value.design))
+  const palette = computed<WallpaperPalette>(() => prefs.value.palettes[styleKey.value] ?? 'signature')
   const stats = computed<WallpaperStatKey[]>(() => player.value ? prefs.value.stats[player.value.positionShort] ?? defaultWallpaperStats[player.value.positionShort] : defaultWallpaperStats.MID)
 
-  watch(() => [player.value?.code, prefs.value.design] as const, ([code, designId]) => {
+  watch(() => [player.value?.code, prefs.value.design, prefs.value.remix] as const, ([code, designId, remixCode]) => {
     if (!ready.value || !code) return
-    if (String(route.query.player) === String(code) && route.query.design === designId) return
-    void router.replace({ query: { ...route.query, player: String(code), design: designId } })
+    const { design: _design, remix: _remix, ...rest } = route.query
+    const wantDesign = remixCode ? undefined : designId
+    const wantRemix = remixCode ?? undefined
+    if (String(route.query.player) === String(code) && route.query.design === wantDesign && route.query.remix === wantRemix) return
+    void router.replace({ query: { ...rest, player: String(code), ...(wantRemix ? { remix: wantRemix } : { design: wantDesign }) } })
   })
 
-  const layoutKey = computed(() => `wallpaper:${prefs.value.design}`)
+  const layoutKey = computed(() => prefs.value.remix ? `wallpaper:remix-${prefs.value.remix}` : `wallpaper:${prefs.value.design}`)
   const layouts = useSchedulerLayouts(layoutKey, { storageKey: wallpaperLayoutsKey, parse: parseWallpaperLayouts, savedNotice: 'Saved' })
   const canResetTemplate = computed(() => {
     const current = player.value
     if (!current) return false
     const defaults = defaultWallpaperStats[current.positionShort]
-    return Object.keys(layouts.layout.value).length > 0 || prefs.value.backdrop !== null || palette.value !== 'signature'
-      || Boolean(prefs.value.texts[prefs.value.design]) || stats.value.some((key, slot) => key !== defaults[slot])
+    return Object.keys(layouts.layout.value).length > 0 || (!recipe.value && prefs.value.backdrop !== null) || palette.value !== 'signature'
+      || Boolean(prefs.value.texts[styleKey.value]) || stats.value.some((key, slot) => key !== defaults[slot])
   })
 
   function resetTemplate() {
     const current = player.value
     if (!current || !canResetTemplate.value) return
-    const { design, backdrop, palettes, texts, stats } = prefs.value
+    const design = styleKey.value
+    const { backdrop, palettes, texts, stats } = prefs.value
     const position = current.positionShort
     function restoreAppearance(backdrop: WallpaperPrefs['backdrop'], palette?: WallpaperPalette, text?: string, stats?: WallpaperStatKey[]) {
       prefs.value = {
@@ -110,20 +138,54 @@ export function useWallpaperStudio() {
       layout: layouts.layouts.value[`wallpaper:${designId}`] ?? {},
     }
   }
+  // Builds the artwork model for a generated remix, with the selected stats and lettering.
+  function remixModelFor(withRecipe: WallpaperRecipe, withPlayer: WallpaperPlayer, layout = layouts.layouts.value[`wallpaper:remix-${withRecipe.code}`] ?? {}): WallpaperArtworkModel {
+    const keys = prefs.value.stats[withPlayer.positionShort] ?? defaultWallpaperStats[withPlayer.positionShort]
+    const custom = prefs.value.texts.remix?.trim()
+    return {
+      player: withPlayer,
+      design: prefs.value.design,
+      colours: withRecipe.colours,
+      stats: Object.fromEntries(keys.map((key, slot) => [slot, wallpaperStatView(withPlayer, key, slot)])),
+      text: custom ? { text: custom, custom: true } : { text: remixWordText(withRecipe, withPlayer), custom: false },
+      season: data.value?.season ?? null,
+      layout,
+      recipe: withRecipe,
+    }
+  }
+
   const model = computed(() => {
+    if (recipe.value && player.value) return remixModelFor(recipe.value, player.value, layouts.layout.value)
     const artwork = modelFor(prefs.value.design)
     return artwork && prefs.value.backdrop ? { ...artwork, backdrop: prefs.value.backdrop } : artwork
   })
 
+  // The dice generates a new remix. Locked aspects keep the current remix's seeds.
+  const history = ref<string[]>([])
   function remix() {
-    const current = prefs.value
-    const layouts = wallpaperDesigns.filter(design => design.id !== current.design)
-    const design = layouts[Math.floor(Math.random() * layouts.length)]!.id
-    const previousBackdrop = current.backdrop ?? current.design
-    const backdrops = wallpaperDesigns.filter(item => item.id !== design && item.id !== previousBackdrop)
-    const backdrop = backdrops[Math.floor(Math.random() * backdrops.length)]!.id
-    const palette = current.palettes[current.design] === 'custom' ? 'custom' : current.palettes[design] ?? 'signature'
-    prefs.value = { ...current, design, backdrop, palettes: { ...current.palettes, [design]: palette } }
+    const current = player.value
+    if (!current) return
+    const palettes = { ...prefs.value.palettes }
+    if (!prefs.value.remix && palettes[prefs.value.design] === 'custom') palettes.remix = 'custom'
+    prefs.value.palettes = palettes
+    const next = generateRemix({ ...remixContext(current), previous: recipe.value, locks: prefs.value.locks })
+    if (prefs.value.remix) history.value = [...history.value.slice(-29), prefs.value.remix]
+    prefs.value = { ...prefs.value, remix: next.code }
+  }
+  const canGoBack = computed(() => history.value.length > 0)
+  function previousRemix() {
+    const code = history.value.at(-1)
+    if (!code) return
+    history.value = history.value.slice(0, -1)
+    prefs.value = { ...prefs.value, remix: code }
+  }
+  function toggleLock(aspect: RemixAspect) {
+    const locks = prefs.value.locks
+    prefs.value.locks = locks.includes(aspect) ? locks.filter(item => item !== aspect) : [...locks, aspect]
+  }
+  function leaveRemix() {
+    if (prefs.value.remix) history.value = [...history.value.slice(-29), prefs.value.remix]
+    prefs.value = { ...prefs.value, remix: null }
   }
 
   // Layout edits save themselves shortly after a gesture ends.
@@ -154,5 +216,6 @@ export function useWallpaperStudio() {
     prefs.value.stats = rest
   }
 
-  return { request, data, players, player, featured, requestedMissing, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, setStat, resetStats, canResetTemplate, resetTemplate }
+  return { request, data, players, player, featured, requestedMissing, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, setStat, resetStats, canResetTemplate, resetTemplate,
+    recipe, styleKey, remixModelFor, remixContext, canGoBack, previousRemix, toggleLock, leaveRemix }
 }

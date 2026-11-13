@@ -127,6 +127,8 @@ export default defineNuxtConfig({
 		families: [
 			{ name: "Bodoni Moda", provider: "google", weights: [400, 500, 600, 700], styles: ["normal"] },
 			{ name: "Archivo Black", provider: "google", weights: [400], styles: ["normal"] },
+			{ name: "Unbounded", provider: "google", weights: [700, 800], styles: ["normal"] },
+			{ name: "Instrument Serif", provider: "google", weights: [400], styles: ["normal", "italic"] },
 		],
 	},
 	runtimeConfig: {
