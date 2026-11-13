@@ -3,14 +3,12 @@
     <template v-if="!homepage">
       <h2 class="text-base font-semibold text-white">Your team and friends</h2>
       <p class="mt-2 text-sm leading-6 text-stone-300">See your squad, gaps and suggested transfers. Open each manager once to save their team and compare season points here.</p>
-      <p :id="helpId" class="mb-4 mt-2 text-xs leading-5 text-stone-400">Find it in FPL → Points → your ID in the URL.</p>
     </template>
-    <form class="w-full" novalidate @submit.prevent="submitManagerId">
+    <form class="w-full" :class="homepage ? undefined : 'mt-4'" novalidate @submit.prevent="submitManagerId">
       <UFormField
         :label="homepage ? 'FPL Team ID' : 'Manager ID'"
-        :help="homepage ? 'Find your ID in the URL of your FPL Points page.' : undefined"
         :error="managerError || undefined"
-        :ui="{ root: 'w-full', label: 'text-xs font-medium text-stone-300', help: 'mt-2 text-xs text-stone-400', error: 'mt-2 text-sm text-error' }"
+        :ui="{ root: 'w-full', label: 'text-xs font-medium text-stone-300', error: 'mt-2 text-sm text-error' }"
       >
         <div class="flex w-full items-center gap-2">
           <UInput
@@ -19,7 +17,7 @@
             inputmode="numeric"
             autocomplete="off"
             :placeholder="homepage ? undefined : 'e.g. 123456'"
-            :aria-describedby="!homepage && !managerError ? helpId : undefined"
+            :aria-describedby="managerError ? undefined : helpId"
             class="h-11 min-w-0 flex-1"
             :ui="{
               root: 'h-11 w-full min-w-0 flex-1',
@@ -43,6 +41,10 @@
           />
         </div>
       </UFormField>
+      <p :id="helpId" class="mt-2 text-xs leading-5 text-stone-400">
+        <a href="https://fantasy.premierleague.com/en/my-team" target="_blank" rel="noopener" class="rounded-sm font-semibold text-lime-300 underline underline-offset-2 hover:text-lime-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300">Open Fantasy Premier League</a>
+        to sign in. Select <strong class="font-semibold text-stone-200">Points</strong> and copy the number after <code>/entry/</code> in the address bar.
+      </p>
     </form>
   </div>
 </template>

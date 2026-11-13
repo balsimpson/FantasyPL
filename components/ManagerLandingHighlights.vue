@@ -1,23 +1,10 @@
 <template>
-  <section v-if="article || trade" aria-labelledby="manager-highlights-title" class="grid min-w-0 gap-4">
+  <section v-if="article || pick" aria-labelledby="manager-highlights-title" class="grid min-w-0 gap-4">
     <h2 id="manager-highlights-title" class="text-xl font-bold tracking-tight text-white">Before your next deadline</h2>
-    <div class="grid gap-4" :class="article && trade ? 'lg:grid-cols-2' : undefined">
-      <article v-if="article" class="grid min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#141b18] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        <div class="flex items-center bg-[#10241c]">
-          <img :src="getArticlePreviewPath(article.slug)" alt="" width="1200" height="630" loading="lazy" decoding="async" class="aspect-[1200/630] w-full object-contain" />
-        </div>
-        <div class="min-w-0 p-4 sm:p-5">
-          <p class="text-xs font-semibold text-lime-300">FPL article</p>
-          <h3 class="mt-1 text-base font-bold leading-snug text-white">
-            <NuxtLink :to="`/blog/${article.slug}`" class="rounded-sm hover:text-lime-300 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300">{{ article.title }}</NuxtLink>
-          </h3>
-          <p v-if="article.excerpt" class="mt-2 text-sm leading-5 text-stone-300">{{ article.excerpt }}</p>
-        </div>
-      </article>
-
+    <div class="grid gap-4" :class="article && pick ? 'lg:grid-cols-2' : undefined">
       <article v-if="trade" class="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#141b18]">
         <header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
-          <h3 class="text-base font-bold text-white">Top recommended trade</h3>
+          <h3 class="text-base font-bold text-white">Recommended trade</h3>
           <p class="text-xs text-stone-400"><strong class="text-base font-bold tabular-nums text-lime-300">{{ pointsChange }}</strong> expected pts · GW {{ tradeGameweek }}</p>
         </header>
         <div class="relative grid grid-cols-2 divide-x divide-white/10 border-y border-white/10">
@@ -36,6 +23,43 @@
           <p v-if="trade.sampleNote" class="mt-1 text-xs leading-5 text-amber-200">{{ trade.sampleNote }}</p>
         </div>
       </article>
+
+      <article v-else-if="differential" class="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#141b18]">
+        <header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
+          <h3 class="text-base font-bold text-white">Differential pick</h3>
+          <p class="text-xs text-stone-400">Gameweek {{ gameweek }}</p>
+        </header>
+        <NuxtLink :to="getPlayerRoute(differential)" class="group grid min-h-40 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center border-y border-white/10 bg-linear-to-r from-lime-900/50 to-lime-950/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lime-300">
+          <div class="h-full min-h-40 self-end"><PlayerPortrait :player="differential" hover /></div>
+          <div class="min-w-0 px-3 py-4 sm:px-4">
+            <p class="text-xl font-bold tracking-tight text-white [overflow-wrap:anywhere] group-hover:text-lime-300 sm:text-2xl">{{ differential.web_name }}</p>
+            <p class="mt-1 text-sm tabular-nums text-stone-300">£{{ (Number(differential.now_cost) / 10).toFixed(1) }}m</p>
+            <dl class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              <div>
+                <dt class="text-xs text-stone-300">Ownership</dt>
+                <dd class="font-bold tabular-nums text-lime-300">{{ differential.selected_by_percent }}%</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-stone-300">FPL form</dt>
+                <dd class="font-bold tabular-nums text-white">{{ differential.form }}</dd>
+              </div>
+            </dl>
+          </div>
+        </NuxtLink>
+      </article>
+
+      <article v-if="article" class="grid min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#141b18] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+        <div class="flex items-center bg-[#10241c]">
+          <img :src="getArticlePreviewPath(article.slug)" alt="" width="1200" height="630" loading="lazy" decoding="async" class="aspect-[1200/630] w-full object-contain" />
+        </div>
+        <div class="min-w-0 p-4 sm:p-5">
+          <p class="text-xs font-semibold text-lime-300">FPL article<span v-if="article.gameweek"> · GW {{ article.gameweek }}<template v-if="article.season"> · {{ article.season }}</template></span></p>
+          <h3 class="mt-1 text-base font-bold leading-snug text-white">
+            <NuxtLink :to="`/blog/${article.slug}`" class="rounded-sm hover:text-lime-300 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300">{{ article.title }}</NuxtLink>
+          </h3>
+          <p v-if="article.excerpt" class="mt-2 text-sm leading-5 text-stone-300">{{ article.excerpt }}</p>
+        </div>
+      </article>
     </div>
   </section>
 </template>
@@ -45,19 +69,63 @@ import PlayerPortrait from "~/components/PlayerPortrait.vue";
 import { getPlayerRoute } from "~/composables/usePlayerRoute";
 import type { PublishedArticle } from "~/shared/articles";
 import { getArticlePreviewPath } from "~/utils/article-preview";
+import type { ShortlistPlayer } from "~/utils/homepage-shortlist";
 
-const props = defineProps<{ gameweek?: number }>();
+const props = defineProps<{ gameweek?: number; differentials: ShortlistPlayer[]; overviewReady: boolean }>();
 type TradePlayer = { id: number; web_name: string; code: number; now_cost: number; ep_next: string | number; first_name?: string; second_name?: string };
-type TradeIdea = { outgoing: TradePlayer; incoming: TradePlayer; expectedPointsGain: number; reason: string; sampleNote?: string };
+type TradeIdea = { id: string; outgoing: TradePlayer; incoming: TradePlayer; expectedPointsGain: number; reason: string; sampleNote?: string | null };
+type Pick = { key: string; trade: TradeIdea } | { key: string; differential: ShortlistPlayer };
 
 const { data: articles } = useLazyFetch<PublishedArticle[]>("/api/articles", { server: false, retry: 0 });
-const { data: trades } = useLazyFetch<{ snapshot: { gameweeks: number[]; ideas: TradeIdea[] } }>("/api/homepage-trades", { server: false, retry: 0 });
+const { data: trades, status: tradesStatus } = useLazyFetch<{ snapshot: { gameweeks: number[]; ideas: TradeIdea[] } }>("/api/homepage-trades", { server: false, retry: 0 });
 
-const article = computed(() => articles.value?.find((item) => item.gameweek === null) ?? articles.value?.[0]);
 const tradeGameweek = computed(() => trades.value?.snapshot.gameweeks[0]);
-const trade = computed(() => tradeGameweek.value && (!props.gameweek || props.gameweek === tradeGameweek.value)
-  ? trades.value?.snapshot.ideas[0] : undefined);
+const pickOptions = computed<Pick[]>(() => {
+  if (!props.overviewReady || tradesStatus.value === "idle" || tradesStatus.value === "pending") return [];
+
+  const currentTrades = tradeGameweek.value && (!props.gameweek || props.gameweek === tradeGameweek.value)
+    ? trades.value?.snapshot.ideas.slice(0, 4) ?? [] : [];
+  const differentials = props.gameweek ? props.differentials.filter((player) =>
+    player.status === "a" && (player.chance_of_playing_next_round ?? 100) === 100 && Number(player.now_cost) > 0,
+  ) : [];
+
+  const options: Pick[] = [];
+  for (let index = 0; index < Math.max(currentTrades.length, differentials.length); index++) {
+    const trade = currentTrades[index];
+    const differential = differentials[index];
+    if (trade) options.push({ key: `trade-${trade.id}`, trade });
+    if (differential) options.push({ key: `differential-${differential.id}`, differential });
+  }
+  return options;
+});
+
+const articleOptions = computed(() => articles.value ?? []);
+const article = useRotatingHighlight(articleOptions, (item) => item.slug, "article");
+const pick = useRotatingHighlight(pickOptions, (item) => item.key, "pick");
+const trade = computed(() => pick.value && "trade" in pick.value ? pick.value.trade : undefined);
+const differential = computed(() => pick.value && "differential" in pick.value ? pick.value.differential : undefined);
 const pointsChange = computed(() => trade.value?.expectedPointsGain.toLocaleString("en-GB", {
   signDisplay: "exceptZero", minimumFractionDigits: 1, maximumFractionDigits: 1,
 }));
+
+function useRotatingHighlight<T>(options: Ref<T[]>, getKey: (item: T) => string, name: string) {
+  const selectedKey = ref<string>();
+  onMounted(() => {
+    const storageKey = `fpl-insights:manager-highlight:${name}`;
+    watch(options, (items) => {
+      if (!items.length || items.some((item) => getKey(item) === selectedKey.value)) return;
+
+      let index = 0;
+      try {
+        const previous = localStorage.getItem(storageKey);
+        index = (items.findIndex((item) => getKey(item) === previous) + 1) % items.length;
+        localStorage.setItem(storageKey, getKey(items[index]!));
+      } catch {
+        index = Math.floor(Math.random() * items.length);
+      }
+      selectedKey.value = getKey(items[index]!);
+    }, { immediate: true });
+  });
+  return computed(() => options.value.find((item) => getKey(item) === selectedKey.value));
+}
 </script>
