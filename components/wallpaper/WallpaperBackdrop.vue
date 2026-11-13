@@ -17,13 +17,25 @@ const shade = computed(() => props.c.lettering ? (props.c.ink === '#000000' ? '#
           <stop offset="1" :stop-color="shade" stop-opacity="0.28" />
         </linearGradient>
       </defs>
-      <circle cx="1010" cy="900" r="560" fill="none" :stroke="c.alt" stroke-width="130" />
-      <circle cx="1010" cy="900" r="350" fill="none" :stroke="c.alt" stroke-width="54" opacity="0.75" />
-      <path d="M -40 1320 C 300 1180 700 1260 1120 1120" fill="none" :stroke="c.alt" stroke-width="34" opacity="0.6" />
+      <!-- A halo centred on the head: one heavy ring between two hairlines. -->
+      <circle cx="540" cy="880" r="430" fill="none" :stroke="c.alt" stroke-width="110" />
+      <circle cx="540" cy="880" r="300" fill="none" :stroke="c.alt" stroke-width="3" opacity="0.9" />
+      <circle cx="540" cy="880" r="560" fill="none" :stroke="c.alt" stroke-width="3" opacity="0.9" />
       <rect x="0" y="1400" width="1080" height="1000" :fill="`url(#${id}-shade)`" />
     </svg>
 
-    <div v-else-if="design === 'gallery'" class="absolute inset-0" aria-hidden="true" :style="{ backgroundImage: `radial-gradient(circle at 88% 34%, ${c.alt} 0 30%, transparent 30.2%), linear-gradient(170deg, ${c.field} 20%, ${c.alt} 100%)` }" />
+    <!-- A disc set behind the portrait's head, like a gallery spotlight. -->
+    <svg v-else-if="design === 'gallery'" class="absolute inset-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
+      <defs>
+        <linearGradient :id="`${id}-wash`" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0.3" :stop-color="c.field" />
+          <stop offset="1" :stop-color="c.alt" />
+        </linearGradient>
+      </defs>
+      <rect width="1080" height="2400" :fill="`url(#${id}-wash)`" />
+      <circle cx="830" cy="1590" r="440" :fill="c.alt" />
+      <circle cx="830" cy="1590" r="470" fill="none" :stroke="c.ink" stroke-width="2" opacity="0.35" />
+    </svg>
 
     <svg v-else-if="design === 'halftone'" class="absolute inset-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
       <defs>
@@ -39,14 +51,30 @@ const shade = computed(() => props.c.lettering ? (props.c.ink === '#000000' ? '#
       <rect width="1080" height="1100" :fill="`url(#${id}-fine)`" :mask="`url(#${id}-corner-mask)`" opacity="0.5" />
     </svg>
 
-    <div v-else-if="design === 'floodlit'" class="absolute inset-0" aria-hidden="true" :style="{ backgroundImage: `radial-gradient(ellipse 62% 30% at 50% 40%, ${c.alt}cc, transparent 72%), linear-gradient(115deg, transparent 38%, ${c.alt}33 46%, transparent 54%), linear-gradient(65deg, transparent 52%, ${c.alt}26 58%, transparent 64%)` }" />
+    <!-- Floodlight beams from both top corners meet on the player. -->
+    <svg v-else-if="design === 'floodlit'" class="absolute inset-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
+      <defs>
+        <linearGradient :id="`${id}-beam`" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" :stop-color="c.alt" stop-opacity="0.6" />
+          <stop offset="0.75" :stop-color="c.alt" stop-opacity="0" />
+        </linearGradient>
+        <radialGradient :id="`${id}-pool`" cx="0.5" cy="0.42" r="0.5">
+          <stop offset="0" :stop-color="c.alt" stop-opacity="0.75" />
+          <stop offset="0.6" :stop-color="c.alt" stop-opacity="0.12" />
+          <stop offset="1" :stop-color="c.alt" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <polygon points="-80,0 120,0 760,1900 300,1900" :fill="`url(#${id}-beam)`" />
+      <polygon points="960,0 1160,0 780,1900 320,1900" :fill="`url(#${id}-beam)`" />
+      <circle cx="0" cy="0" r="70" :fill="c.alt" opacity="0.5" />
+      <circle cx="1080" cy="0" r="70" :fill="c.alt" opacity="0.5" />
+      <ellipse cx="540" cy="1010" rx="620" ry="760" :fill="`url(#${id}-pool)`" />
+    </svg>
 
     <svg v-else-if="design === 'split'" class="absolute left-0 top-0" width="1080" height="2400" viewBox="0 0 1080 2400" aria-hidden="true">
-      <polygon points="0,0 470,0 0,760" fill="#000" opacity="0.12" />
-      <polygon points="700,0 1080,0 1080,1620 850,1700" :fill="c.alt" />
-      <polygon points="0,1380 420,1960 0,2180" :fill="c.alt" />
-      <polygon points="540,2400 1080,1880 1080,2400" :fill="c.alt" />
-      <polygon points="620,420 760,380 700,1180" :fill="c.alt" opacity="0.55" />
+      <!-- One diagonal divides the field; a thin parallel stripe echoes it. -->
+      <polygon points="1080,1060 1080,2400 0,2400 0,1760" :fill="c.alt" />
+      <polygon points="1080,980 1080,1010 0,1710 0,1680" :fill="c.alt" />
     </svg>
   </div>
 </template>

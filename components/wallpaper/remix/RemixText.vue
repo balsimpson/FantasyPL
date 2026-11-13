@@ -54,7 +54,7 @@ const echoes = computed(() => {
   if (!props.echo) return []
   const v = lightVector(props.echo.light)
   const step = Math.round(size.value * 0.055)
-  return [3, 2, 1].map(index => ({ index, x: v.x * step * index, y: v.y * step * index, opacity: 0.18 + 0.2 * (3 - index) }))
+  return [2, 1].map(index => ({ index, x: v.x * step * index * 1.4, y: v.y * step * index * 1.4, opacity: 0.22 + 0.2 * (2 - index) }))
 })
 
 const strokeWidth = computed(() => Math.max(3, Math.round(size.value * 0.014)))

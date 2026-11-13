@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { vSchedulerElement } from '~/utils/scheduler-element'
-import { luminance, mixColour, positionName, type WallpaperArtworkModel } from '~/utils/wallpaper'
-import { PORTRAIT_HEAD_LINE, lightVector, remixFonts, remixStatSlots, type WallpaperRecipe } from '~/utils/wallpaper-remix'
+import { PORTRAIT_HEAD, luminance, mixColour, positionName, type WallpaperArtworkModel } from '~/utils/wallpaper'
+import { lightVector, remixFonts, remixStatSlots, type WallpaperRecipe } from '~/utils/wallpaper-remix'
 import SchedulerArtworkAsset from '~/components/SchedulerArtworkAsset.vue'
 import RemixBackdrop from '~/components/wallpaper/remix/RemixBackdrop.vue'
 import RemixText from '~/components/wallpaper/remix/RemixText.vue'
@@ -39,8 +39,8 @@ const wordProps = computed(() => word.value ? {
   extrude: wordExtrude.value,
 } : null)
 
-// Pop-out: a second copy of the lettering sits in front of the photo and is masked
-// away above the head line, so the player appears to stand inside the word.
+// Pop-out: a second copy of the lettering sits in front of the photo with the head
+// masked out, so the head overlaps the word and the word crosses the body.
 const popOut = computed(() => Boolean(word.value && recipe.value.depth.popOut && !word.value.front && props.model.text.text))
 const frontStyle = computed(() => {
   const change = layout.value['player-name']
@@ -55,14 +55,19 @@ const frontStyle = computed(() => {
     opacity: change?.opacity,
   }
 })
-const split = computed(() => {
-  if (!word.value || !wordBox.value.height) return 1
+// The front copy gets a head-shaped hole, in the wrapper's own (unrotated) px.
+const frontMask = computed(() => {
+  if (!word.value) return {}
   const portrait = layout.value.portrait
-  const pScale = portrait?.scale ?? 1
-  const headLine = sk.value.portrait.y + (portrait?.y ?? 0) + sk.value.portrait.size * pScale * PORTRAIT_HEAD_LINE
   const change = layout.value['player-name']
-  const top = word.value.y + (change?.y ?? 0)
-  return (headLine - top) / (wordBox.value.height * (change?.scale ?? 1))
+  const scale = change?.scale ?? 1
+  const size = sk.value.portrait.size * (portrait?.scale ?? 1)
+  const left = sk.value.portrait.x + (portrait?.x ?? 0)
+  const top = sk.value.portrait.y + (portrait?.y ?? 0)
+  const x = (left + size * PORTRAIT_HEAD.x - word.value.x - (change?.x ?? 0)) / scale
+  const y = (top + size * PORTRAIT_HEAD.y - word.value.y - (change?.y ?? 0)) / scale
+  const mask = `radial-gradient(ellipse ${Math.round(size * PORTRAIT_HEAD.rx / scale)}px ${Math.round(size * PORTRAIT_HEAD.ry / scale)}px at ${Math.round(x)}px ${Math.round(y)}px, transparent 96%, #000 100%)`
+  return { maskImage: mask, WebkitMaskImage: mask }
 })
 
 // ---- Stats and accents ----
@@ -104,8 +109,8 @@ const badgeStyle = computed(() => {
   <RemixPortrait :player="model.player" :layout="layout" :recipe="recipe" />
 
   <!-- Pop-out copy in front of the body -->
-  <div v-if="popOut && wordProps" class="pointer-events-none absolute" :style="frontStyle" aria-hidden="true" data-remix-front>
-    <RemixText v-bind="wordProps" :colour="wordColour" :split="split" />
+  <div v-if="popOut && wordProps" class="pointer-events-none absolute" :style="{ ...frontStyle, ...frontMask }" aria-hidden="true" data-remix-front>
+    <RemixText v-bind="wordProps" :colour="wordColour" />
   </div>
 
   <!-- Lettering in front of the photo -->
