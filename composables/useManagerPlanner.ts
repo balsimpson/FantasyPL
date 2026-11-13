@@ -2,6 +2,8 @@ import { buildManagerWeekPlan, getPlannerFixtureRun, getPlannerGameweeks, summar
 
 export function useManagerPlanner(squad: Ref<Record<string, any> | null>) {
   const request = useFetch<Record<string, any>>('/api/managers/fixtures', { lazy: true, timeout: 15_000, retry: 0 });
+  const deadline = computed(() => request.data.value?.deadline ?? null);
+  const deadlineGameweek = computed(() => deadline.value ? request.data.value?.gameweeks?.[0] ?? null : null);
   const selectedGameweek = ref<number | null>(null);
   const preview = ref(true);
   const gameweeks = computed(() => getPlannerGameweeks(squad.value?.events ?? []));
@@ -19,7 +21,7 @@ export function useManagerPlanner(squad: Ref<Record<string, any> | null>) {
   watch(squad, () => { selectedGameweek.value = null; preview.value = true; });
   const selectGameweek = (week: number) => { selectedGameweek.value = week; preview.value = true; };
   return {
-    gameweeks, plans, rows, selectedPlan, previewActive, displaySquad, selectGameweek,
+    deadline, deadlineGameweek, gameweeks, plans, rows, selectedPlan, previewActive, displaySquad, selectGameweek,
     showPublished: () => { preview.value = false; },
     showPreview: () => { preview.value = true; },
     pending: request.pending, error: computed(() => request.error.value || (request.status.value === 'success' && !ready.value)),

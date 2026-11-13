@@ -28,10 +28,10 @@
       <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div class="flex min-w-0 items-center gap-2">
           <UIcon name="i-lucide-calendar-days" class="size-4 shrink-0 text-lime-200" aria-hidden="true" />
-          <h3 class="text-xs font-medium text-stone-300">FPL deadlines</h3>
+          <h3 class="text-xs font-medium text-stone-300">FPL calendar</h3>
         </div>
 
-        <CalendarSubscribeActions />
+        <CalendarSubscribeActions :initial-team="calendarTeam" />
       </div>
 
     </div>
@@ -39,7 +39,6 @@
 </template>
 
 <script setup>
-
 const props = defineProps({
   gameweek: {
     type: Number,
@@ -57,6 +56,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  calendarTeam: Object,
 });
 const emit = defineEmits(["expired"]);
 

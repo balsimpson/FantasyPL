@@ -3,7 +3,7 @@ const reminderMinutes = [24 * 60, 2 * 60, 15];
 function escapeCalendarText(value) {
   return String(value)
     .replace(/\\/g, "\\\\")
-    .replace(/\r?\n/g, "\\n")
+    .replace(/\r\n|\r|\n/g, "\\n")
     .replace(/,/g, "\\,")
     .replace(/;/g, "\\;");
 }
@@ -49,39 +49,67 @@ function makeAlarm(gameweek, minutes) {
   ];
 }
 
-export function createDeadlineCalendarFeed(events, siteUrl = "https://www.sportsync.in", now = new Date()) {
+/**
+ * @param {unknown} events
+ * @returns {{ id: number, deadline_time: string }[] | null}
+ */
+export function getCalendarGameweeks(events) {
   if (!Array.isArray(events)) return null;
-
   const publishedEvents = events
     .filter((gameweek) => Number.isInteger(gameweek?.id) && typeof gameweek.deadline_time === "string" && !Number.isNaN(new Date(gameweek.deadline_time).getTime()))
     .sort((left, right) => left.id - right.id);
 
-  if (!publishedEvents.length) return null;
+  return publishedEvents.length ? publishedEvents : null;
+}
 
+/** @param {{ id: number, deadline_time: string }[]} publishedEvents */
+export function getCalendarSeason(publishedEvents) {
   const firstGameweek = publishedEvents.find((gameweek) => gameweek.id === 1) || publishedEvents[0];
-  const season = new Date(firstGameweek.deadline_time).getUTCFullYear();
-  const stamp = toCalendarDate(now);
-  const upcomingEvents = publishedEvents.filter((gameweek) => new Date(gameweek.deadline_time).getTime() >= new Date(now).getTime());
-  const eventLines = upcomingEvents.flatMap((gameweek) => {
-    const start = new Date(gameweek.deadline_time);
-    const finish = new Date(start.getTime() + 15 * 60 * 1000);
-    const description = escapeCalendarText([
+  return new Date(firstGameweek.deadline_time).getUTCFullYear();
+}
+
+/**
+ * @param {{ id: number, deadline_time: string }[]} publishedEvents
+ * @param {string} siteUrl
+ */
+export function getDeadlineCalendarEvents(publishedEvents, siteUrl, now = new Date()) {
+  const season = getCalendarSeason(publishedEvents);
+  return publishedEvents.filter((gameweek) => Date.parse(gameweek.deadline_time) >= now.getTime()).map((gameweek) => ({
+    uid: `fpl-deadline-${season}-gw-${gameweek.id}@sportsync.in`,
+    start: new Date(gameweek.deadline_time).toISOString(),
+    durationMinutes: 15,
+    title: `Gameweek ${gameweek.id} deadline`,
+    description: [
       `Make your transfers and update your team before the Gameweek ${gameweek.id} deadline.`,
       "",
       `FPL Insights: ${siteUrl}`,
       "Official Fantasy Premier League: https://fantasy.premierleague.com/",
-    ].join("\n"));
+    ].join("\n"),
+    url: siteUrl,
+    deadlineGameweek: gameweek.id,
+  }));
+}
 
+/**
+ * @param {string} name
+ * @param {{ uid: string, start: string, durationMinutes?: number, title: string, description: string, url: string, deadlineGameweek?: number }[]} events
+ * @param {Date} now
+ */
+export function serializeCalendarFeed(name, events, now = new Date()) {
+  const stamp = toCalendarDate(now);
+  const eventLines = events.flatMap((event) => {
+    const start = new Date(event.start);
+    const end = event.durationMinutes ? new Date(start.getTime() + event.durationMinutes * 60 * 1000) : null;
     return [
       "BEGIN:VEVENT",
-      `UID:fpl-deadline-${season}-gw-${gameweek.id}@sportsync.in`,
+      `UID:${event.uid}`,
       `DTSTAMP:${stamp}`,
       `DTSTART:${toCalendarDate(start)}`,
-      `DTEND:${toCalendarDate(finish)}`,
-      `SUMMARY:${escapeCalendarText(`Gameweek ${gameweek.id} deadline`)}`,
-      `DESCRIPTION:${description}`,
-      `URL:${siteUrl}`,
-      ...reminderMinutes.flatMap((minutes) => makeAlarm(gameweek.id, minutes)),
+      ...(end ? [`DTEND:${toCalendarDate(end)}`] : []),
+      `SUMMARY:${escapeCalendarText(event.title)}`,
+      `DESCRIPTION:${escapeCalendarText(event.description)}`,
+      `URL:${event.url}`,
+      ...(event.deadlineGameweek ? reminderMinutes.flatMap((minutes) => makeAlarm(event.deadlineGameweek, minutes)) : []),
       "END:VEVENT",
     ];
   });
@@ -89,11 +117,16 @@ export function createDeadlineCalendarFeed(events, siteUrl = "https://www.sports
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//FPL Insights//FPL Deadlines//EN",
+    "PRODID:-//FPL Insights//FPL Calendar//EN",
     "CALSCALE:GREGORIAN",
-    "X-WR-CALNAME:FPL Deadlines",
+    `X-WR-CALNAME:${escapeCalendarText(name)}`,
     ...eventLines,
     "END:VCALENDAR",
     "",
   ].map(foldLine).join("\r\n");
+}
+
+export function createDeadlineCalendarFeed(events, siteUrl = "https://www.sportsync.in", now = new Date()) {
+  const gameweeks = getCalendarGameweeks(events);
+  return gameweeks ? serializeCalendarFeed("FPL Deadlines", getDeadlineCalendarEvents(gameweeks, siteUrl, now), now) : null;
 }

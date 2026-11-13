@@ -93,7 +93,8 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `layouts/default.vue`, `components/AppFooter.vue` | Shared public shell, sticky navigation, and footer; public pages inherit these by default, while admin uses its separate layout |
 | `components/PlayerSearchSurface.vue`, `composables/usePlayerSearchSurface.ts`, `composables/usePlayerSearchData.ts` | One layout-owned public player search, shared opening state and origin, and on-demand data that reuses loaded homepage/watchlist snapshots |
 | `assets/css/main.css` | Tailwind/Nuxt UI imports, Public Sans, and green palette |
-| `components/CalendarSubscribeActions.vue` | Shared deadline-calendar subscription and copy-link controls for the deadline panel and gameweek heading |
+| `components/CalendarSubscribeActions.vue`, `components/ManagerCalendarForm.vue`, `composables/useManagerCalendarSubscription.ts` | Shared team picker, preview, and calendar subscription controls for the deadline panel and gameweek heading |
+| `server/utils/manager-calendar.ts`, `server/routes/calendar/managers/[id]/team.ics.get.ts` | Manager-specific deadline and fixture subscriptions from public FPL picks. See [HOMEPAGE_UX_PLAN.md](HOMEPAGE_UX_PLAN.md#deadline-and-manager-lookup) |
 | `composables/usePlayerSearchAutoLoad.ts` | Scroll-based expansion of already-loaded search results, retaining a manual button fallback |
 | `stores/players.ts` | Shared bootstrap/player loading and state |
 | `composables/usePremiereLeague.ts` | Existing FPL fetching, lookup, and scoring helpers; preserve this exact filename |

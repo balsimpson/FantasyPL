@@ -27,6 +27,15 @@
 					<UButton to="/" icon="i-lucide-arrow-left" color="neutral" variant="ghost" size="sm" class="size-9 justify-center rounded-full border border-white/10 bg-white/[0.04] p-0 text-stone-300 hover:border-lime-300/30 hover:bg-lime-300/10 hover:text-lime-200 focus-visible:bg-lime-300/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300" aria-label="Back to home" />
 				</div>
 			</header>
+			<HomeDeadlinePanel
+				:key="id"
+				:deadline="planner.deadline.value"
+				:gameweek="planner.deadlineGameweek.value"
+				:loading="planner.pending.value"
+				:error="Boolean(planner.error.value)"
+				:calendar-team="{ id, teamName: managerData.name }"
+				@expired="planner.refresh"
+			/>
 			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<ManagerGameweekPlanner v-if="hasPicks" :published-gameweek="managerData.current_event"
 				:gameweeks="planner.gameweeks.value" :plans="planner.plans.value" :rows="planner.rows.value"
