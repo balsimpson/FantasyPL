@@ -26,6 +26,11 @@ const tileStyle = computed(() => {
   layers.push(`${(v.x * depth * 1.6).toFixed(1)}px ${(v.y * depth * 1.6 + 16).toFixed(1)}px 34px rgba(0,0,0,0.3)`, 'inset 0 2px 0 rgba(255,255,255,0.28)')
   return { backgroundColor: tileFace.value, boxShadow: layers.join(', ') }
 })
+function tileStyleFor(slot: number) {
+  return props.layout.stats?.flatDepth || props.layout[`stat-${slot}`]?.flatDepth
+    ? { backgroundColor: tileStyle.value.backgroundColor }
+    : tileStyle.value
+}
 const valueSize = computed(() => {
   if (arrangement.value === 'column') return wide.value ? 118 : 168
   return wide.value ? 88 : 116
@@ -48,7 +53,7 @@ const valueStyle = computed(() => ({ fontFamily: font.value.family, fontWeight: 
         v-scheduler-element="el(`stat-${stat.slot}`, stat.label, { group: true })"
         class="min-w-0"
         :class="[tiles ? 'px-4 py-7' : 'px-2', !tiles && index ? 'border-l-[4px]' : '']"
-        :style="{ ...tileStyle, borderColor: c.muted }"
+        :style="{ ...tileStyleFor(stat.slot), borderColor: c.muted }"
       >
         <template v-if="arrangement === 'pair'">
           <p v-scheduler-element="el(`stat-${stat.slot}-label`, `${stat.label} label`)" class="wp-numbers text-[34px] font-semibold uppercase tracking-[0.18em]" :style="{ color: `var(--wallpaper-text-colour, ${c.muted})` }">{{ stat.label }}</p>
@@ -67,7 +72,7 @@ const valueStyle = computed(() => ({ fontFamily: font.value.family, fontWeight: 
     <div v-else-if="arrangement === 'column'" class="flex flex-col" :class="[align, tiles ? 'gap-9' : 'gap-0']">
       <template v-for="(stat, index) in items" :key="stat.slot">
         <span v-if="index && !tiles" aria-hidden="true" class="my-7 block h-[5px] w-[80px]" :style="{ backgroundColor: c.accent }" />
-        <div v-scheduler-element="el(`stat-${stat.slot}`, stat.label, { group: true })" class="flex flex-col" :class="[align, tiles && 'w-full px-6 py-6']" :style="tileStyle">
+        <div v-scheduler-element="el(`stat-${stat.slot}`, stat.label, { group: true })" class="flex flex-col" :class="[align, tiles && 'w-full px-6 py-6']" :style="tileStyleFor(stat.slot)">
           <p v-scheduler-element="el(`stat-${stat.slot}-value`, `${stat.label} value`)" class="leading-[0.9] tabular-nums" :style="valueStyle">{{ stat.value }}</p>
           <p v-scheduler-element="el(`stat-${stat.slot}-label`, `${stat.label} label`)" class="wp-numbers mt-2 text-[40px] font-bold uppercase leading-[1.04] tracking-[0.1em]">
             <span v-for="line in labelLines(stat)" :key="line" class="block">{{ line }}</span>

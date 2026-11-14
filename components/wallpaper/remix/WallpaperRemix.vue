@@ -24,7 +24,7 @@ const word = computed(() => sk.value.word)
 const wordFont = computed(() => remixFonts[recipe.value.type.word])
 const wordBox = ref({ width: 0, height: 0, size: 0 })
 const wordColour = computed(() => layout.value['player-name']?.textColour ?? c.value.word)
-const wordExtrude = computed(() => recipe.value.depth.extrude === 'word'
+const wordExtrude = computed(() => recipe.value.depth.extrude === 'word' && !layout.value['player-name']?.flatDepth
   ? { style: recipe.value.depth.extrudeStyle, face: wordColour.value, deep: c.value.deep, field: c.value.field, light: recipe.value.depth.light }
   : null)
 const wordProps = computed(() => word.value ? {
@@ -41,7 +41,7 @@ const wordProps = computed(() => word.value ? {
 
 // Pop-out: a second copy of the lettering sits in front of the photo with the head
 // masked out, so the head overlaps the word and the word crosses the body.
-const popOut = computed(() => Boolean(word.value && recipe.value.depth.popOut && !word.value.front && props.model.text.text))
+const popOut = computed(() => Boolean(word.value && recipe.value.depth.popOut && !word.value.front && props.model.text.text && !layout.value['player-name']?.flatDepth))
 const frontStyle = computed(() => {
   const change = layout.value['player-name']
   const portraitZ = layout.value.portrait?.z ?? 10
@@ -85,6 +85,7 @@ const badgeStyle = computed(() => {
   const v = lightVector(recipe.value.depth.light)
   const dark = luminance(c.value.field) < 0.25
   const face = dark ? mixColour(c.value.field, '#ffffff', 0.22) : mixColour(c.value.field, '#ffffff', 0.6)
+  if (layout.value.brand?.flatDepth) return { background: face }
   const rim = Array.from({ length: 10 }, (_, index) => `${(v.x * (index + 1)).toFixed(1)}px ${(v.y * (index + 1)).toFixed(1)}px 0 ${mixColour(c.value.deep, face, 0.3)}`)
   return {
     background: `radial-gradient(circle at ${v.x > 0 ? 32 : v.x < 0 ? 68 : 50}% 26%, ${mixColour(face, '#ffffff', 0.5)}, ${face} 46%, ${mixColour(face, c.value.deep, 0.25)} 100%)`,

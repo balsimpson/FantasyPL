@@ -29,7 +29,7 @@ const caption = computed(() => props.model.text.custom || !props.model.player.po
         <mask :id="`${id}-solid-mask`"><rect width="780" height="1040" :fill="`url(#${id}-solid)`" /></mask>
       </defs>
       <g transform="skewX(-8) translate(120 0)">
-        <text x="16" y="994" :font-size="numeralSize" font-family="FPLDisplay" :fill="c.clock" opacity="0.12">{{ model.text.text }}</text>
+        <text v-if="!model.layout.numerals?.flatDepth" x="16" y="994" :font-size="numeralSize" font-family="FPLDisplay" :fill="c.clock" opacity="0.12">{{ model.text.text }}</text>
         <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="`url(#${id}-dots)`">{{ model.text.text }}</text>
         <text x="0" y="980" :font-size="numeralSize" font-family="FPLDisplay" :fill="numeralColour" :mask="`url(#${id}-solid-mask)`">{{ model.text.text }}</text>
       </g>

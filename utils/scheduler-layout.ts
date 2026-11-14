@@ -18,6 +18,7 @@ export interface SchedulerElementTransform {
   hidden?: boolean
   opacity?: number
   textColour?: string
+  flatDepth?: true
 }
 export type SchedulerLayout = Record<string, SchedulerElementTransform>
 export interface SchedulerBox { x: number; y: number; width: number; height: number }

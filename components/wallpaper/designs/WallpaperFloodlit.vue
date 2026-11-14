@@ -16,7 +16,7 @@ const heroLabel = computed(() => props.model.stats[0]?.key === 'total_points' ? 
   <WallpaperPortrait :player="model.player" :layout="model.layout" :fade-height="48" class="absolute left-[90px] top-[560px] h-[900px] w-[900px]" />
 
   <div v-if="model.stats[0]" v-scheduler-element="el('hero', 'Big number', { group: true })" class="absolute left-[90px] top-[1300px] flex w-[900px] flex-col items-center text-center">
-    <div v-scheduler-element="el('hero-value', 'Number')" class="tabular-nums [text-shadow:0_0_60px_var(--wp-glow)]" :style="{ '--wp-glow': `${c.alt}aa` }">
+    <div v-scheduler-element="el('hero-value', 'Number')" class="tabular-nums" :class="{ '[text-shadow:0_0_60px_var(--wp-glow)]': !model.layout.hero?.flatDepth && !model.layout['hero-value']?.flatDepth }" :style="{ '--wp-glow': `${c.alt}aa` }">
       <WallpaperFitText :text="model.stats[0].value" :width="820" :max-size="470" :min-size="180" family="'Archivo Black'" />
     </div>
     <p v-scheduler-element="el('hero-label', 'Label')" class="wp-numbers mt-6 text-[64px] font-medium uppercase leading-none tracking-[0.5em] [margin-right:-0.5em]">{{ heroLabel }}</p>

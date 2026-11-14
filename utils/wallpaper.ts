@@ -244,6 +244,7 @@ export function parseWallpaperLayouts(raw: string | null): Record<string, Schedu
       const saved = (layout as SchedulerLayout)[id]!
       if (typeof saved.opacity === 'number' && saved.opacity >= 0 && saved.opacity <= 1) element.opacity = saved.opacity
       if (isWallpaperColour(saved.textColour)) element.textColour = saved.textColour
+      if (saved.flatDepth === true) element.flatDepth = true
     }
     result[key] = elements
   }

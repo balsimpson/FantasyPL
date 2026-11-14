@@ -135,10 +135,10 @@ const stripes = computed(() => [
       </g>
 
       <!-- Rim light behind the head (layered and sculpted depth) -->
-      <ellipse v-if="recipe.depth.rim" :cx="head.x" :cy="head.y" :rx="head.r" :ry="head.r * 1.15" :fill="`url(#${id}-rim)`" />
+      <ellipse v-if="recipe.depth.rim && !layout.portrait?.flatDepth" :cx="head.x" :cy="head.y" :rx="head.r" :ry="head.r * 1.15" :fill="`url(#${id}-rim)`" />
 
       <!-- Perspective floor (sculpted) -->
-      <g v-if="recipe.depth.floor" :mask="`url(#${id}-floor-mask)`" :stroke="c.ink" stroke-opacity="0.22" stroke-width="3">
+      <g v-if="recipe.depth.floor && !layout.backdrop?.flatDepth" :mask="`url(#${id}-floor-mask)`" :stroke="c.ink" stroke-opacity="0.22" stroke-width="3">
         <line v-for="(line, index) in floor.radials" :key="`r${index}`" :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2" />
         <line v-for="(y, index) in floor.cross" :key="`c${index}`" x1="0" x2="1080" :y1="y" :y2="y" />
       </g>

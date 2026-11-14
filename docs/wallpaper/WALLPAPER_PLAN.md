@@ -227,7 +227,7 @@ Each phase lists its files, and each ends with the checks in §9. Nothing is com
 - `utils/wallpaper.ts`: types, stat keys, labels, formatting and design metadata.
 - `utils/wallpaper-devices.ts`: artboard spec (`1080 × 2400`, margin 64), iPhone crop, and the safe-zone constants from Phase 0.
 - `composables/useWallpaperDraft.ts`: the active draft, per-design layouts via the generalised `useSchedulerLayouts`, and local persistence (§6.3).
-- Pending, error and missing-player states. The page stays useful without JS: it server-renders the picker shell and a default featured wallpaper.
+- Pending, error and missing-player states. The page server-renders the picker shell and a featured wallpaper. A fresh visit to `/wallpaper` picks from the top three FPL points scorers in each position and has an equal chance of opening a generated remix or a fixed template. Shared links keep their selected player and design.
 
 ### Phase 3: Templates
 
@@ -252,7 +252,7 @@ Each phase lists its files, and each ends with the checks in §9. Nothing is com
 - `composables/useWallpaperStudio.ts`: updates the clock at minute boundaries.
 - A clock-overlap warning: if a data-bearing element intersects the active clock zone, a quiet inline note appears in the status slot.
 
-### Phase 6: Export, save and share
+### Phase 6: PNG download
 
 - `composables/useArtworkImage.ts`: generalise `useManagerTeamImage` (keeping a thin wrapper so the manager page is unchanged) to accept `{ width, height, pixelRatio, crop? }`.
 - The export flow:
@@ -261,10 +261,7 @@ Each phase lists its files, and each ends with the checks in §9. Nothing is com
   3. Capture `[data-wallpaper-artwork]` at 1080 × 2400 (Android), or capture and crop to 1080 × 2340 (iPhone).
   4. Check the draft revision (as `useInstagramExport` does), so a changed draft never exports stale art.
 - Prepare one PNG in the browser after edits settle. Save reuses the prepared file for the current artwork and device, and can start preparation immediately after a change. Embed the same TrueType and WOFF2 fonts used in the editor.
-- Actions:
-  - **Download PNG** (filename `fpl-wallpaper-<player-slug>-<design>-<device>.png`).
-  - **Share** (`navigator.canShare({ files })`) when supported.
-  - On iOS, show a short "Save to Photos, then set as wallpaper" hint after sharing. Don't claim the page can set the wallpaper directly.
+- **Save** starts the PNG download directly using `fpl-wallpaper-<player-slug>-<design>-<device>.png`. While the PNG renders, Save shows a loading indicator. If the artwork changes before the download starts, press Save again to download the current version.
 - **Sharper (1.5×)** stays off until it is verified on a physical iPhone (R5).
 - Busy, progress and error states use fixed slots, and object URLs are revoked on change and on dispose.
 
@@ -368,6 +365,7 @@ Added 13 November 2026. The dice no longer swaps a layout and a backdrop. It bui
 - **Four aspects, four seeds.** Layout (skeleton, backdrop shape, stat arrangement, lettering source, accents), colours (curated or club-derived palette, grain finish), type (font pairing, lettering treatment, skew) and depth. A remix code is the four seeds in base 36 (`?remix=a-b-c-d`), so a link reproduces it exactly. The lock menu next to the dice keeps any aspect while the rest rerolls; Previous steps back through this session's remixes.
 - **Skeletons** (`remixSkeletons`): Centre stage, Headline, Vertical name, Editorial, Print column, Monument, Off-centre, Split field. Data stays between y ≈ 600 and 2200, clear of the clock; only atmosphere goes behind it.
 - **Depth modes.** Flat; Layered (pop-out lettering in front of the body, cast shadow, rim light, outline echo); Sculpted (extruded lettering or hero number, long shadow, 3D stat tiles, perspective floor, embossed crest). One sculpted object at a time.
+- **Element depth.** Select an element with a depth effect, then choose **Depth → Flat** or **Original**. The edit uses the same undo and browser autosave as other layout changes and applies to the PNG.
 - **Rules and scoring.** Ink is forced to ≥ 4.5:1 and accents to ≥ 3:1 on the whole field gradient; invisible lettering is rejected; backdrops are matched to light or dark fields; long names in wide faces are penalised; the last result's layout, palette and type are avoided. Each roll first picks a layout and depth mode, then scores ~24 candidates.
 - **Export safety.** Depth is stacked text/box shadows, CSS masks, one `drop-shadow` filter and SVG; no CSS 3D transforms or blend modes. Check the PNG export on a physical iPhone, especially the cast-shadow filter and pop-out mask.
 - **Pop-out lettering** is a second copy in front of the photo with a head-shaped hole (`PORTRAIT_HEAD` in `utils/wallpaper.ts`: centre 0.5/0.36, radii 0.145/0.26 of the photo box). Checked on Haaland, Saka and De Cuyper renders; recheck for unusual crops. Photos that stop above the bottom edge fade out (≥ 30%) so the torso never ends in a hard line.

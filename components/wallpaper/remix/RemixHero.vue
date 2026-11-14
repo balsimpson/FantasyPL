@@ -13,10 +13,11 @@ const font = computed(() => remixFonts[props.recipe.type.hero])
 const beside = computed(() => spec.value.label === 'beside')
 const el = (id: string, label: string, extra: Record<string, unknown> = {}) => ({ id, label, layout: props.layout, ...extra })
 const valueColour = computed(() => props.layout['hero-value']?.textColour ?? c.value.ink)
-const extrude = computed(() => props.recipe.depth.extrude === 'hero'
+const flat = computed(() => props.layout.hero?.flatDepth || props.layout['hero-value']?.flatDepth)
+const extrude = computed(() => props.recipe.depth.extrude === 'hero' && !flat.value
   ? { style: props.recipe.depth.extrudeStyle, face: valueColour.value, deep: c.value.deep, field: c.value.field, light: props.recipe.depth.light }
   : null)
-const echo = computed(() => props.recipe.depth.echo ? { colour: c.value.accent, light: props.recipe.depth.light } : null)
+const echo = computed(() => props.recipe.depth.echo && !flat.value ? { colour: c.value.accent, light: props.recipe.depth.light } : null)
 const label = computed(() => props.stat.key === 'total_points' ? ['FPL', 'Points'] : props.stat.lines)
 const justify = computed(() => ({ left: 'items-start text-left', center: 'items-center text-center', right: 'items-end text-right' })[spec.value.align])
 </script>

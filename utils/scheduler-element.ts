@@ -29,7 +29,7 @@ function apply(element: HTMLElement, { value }: { value: ElementBinding }) {
     const contrast = change?.contrast ?? value.contrast ?? 'none'
     element.classList.toggle('[-webkit-text-stroke:4px_#071829]', contrast === 'outline')
     element.classList.toggle('[paint-order:stroke_fill]', contrast === 'outline')
-    element.classList.toggle('[text-shadow:0_3px_8px_#000,0_0_3px_#000]', contrast === 'shadow')
+    element.classList.toggle('[text-shadow:0_3px_8px_#000,0_0_3px_#000]', contrast === 'shadow' && !change?.flatDepth)
     element.classList.toggle('mix-blend-exclusion', contrast === 'exclusion')
   }
 }

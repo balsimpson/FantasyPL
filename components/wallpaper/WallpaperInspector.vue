@@ -2,16 +2,32 @@
 import type { useSchedulerCanvas } from '~/composables/useSchedulerCanvas'
 import type { useSchedulerLayouts } from '~/composables/useSchedulerLayouts'
 import { schedulerTextContrasts, type SchedulerElementTransform, type SchedulerTextContrast } from '~/utils/scheduler-layout'
-import { isWallpaperColour } from '~/utils/wallpaper'
+import { isWallpaperColour, type WallpaperArtworkModel } from '~/utils/wallpaper'
 
-const props = defineProps<{ canvas: ReturnType<typeof useSchedulerCanvas>; editor: ReturnType<typeof useSchedulerLayouts>; artwork: () => HTMLElement | null | undefined; ink: string }>()
+const props = defineProps<{ canvas: ReturnType<typeof useSchedulerCanvas>; editor: ReturnType<typeof useSchedulerLayouts>; artwork: () => HTMLElement | null | undefined; model: WallpaperArtworkModel }>()
 const { selected, selectedId, transform, breadcrumbs, scopeId } = props.canvas
 const textItem = computed(() => ['player-name', 'hero', 'stats', 'footer-stats', 'caption', 'season', 'numerals'].includes(selectedId.value) || /^(hero|stat)-/.test(selectedId.value))
 const contrastItem = computed(() => selectedId.value === 'player-name')
+const hasDepth = computed(() => {
+  const id = selectedId.value
+  const { recipe, design } = props.model
+  if (id === 'player-name' && transform.value.contrast === 'shadow') return true
+  if (!recipe) return (design === 'floodlit' && (id === 'hero' || id === 'hero-value')) || (design === 'halftone' && id === 'numerals')
+  const { depth, skeleton } = recipe
+  switch (id) {
+    case 'portrait': return depth.shadow !== 'none' || depth.rim
+    case 'player-name': return depth.extrude === 'word' || (depth.popOut && !skeleton.word?.front)
+    case 'hero':
+    case 'hero-value': return depth.extrude === 'hero' || depth.echo
+    case 'brand': return depth.emboss
+    case 'backdrop': return depth.floor
+    default: return depth.tiles && recipe.arrangement !== 'lines' && (id === 'stats' || /^stat-\d+$/.test(id))
+  }
+})
 const percent = computed(() => Math.round(transform.value.scale * 100))
 const alignment = computed(() => transform.value.align ?? (selected.value?.textAlign === 'end' || selected.value?.textAlign === 'right' ? 'right' : selected.value?.textAlign === 'center' ? 'center' : 'left'))
 const opacity = computed(() => Math.round((transform.value.opacity ?? 1) * 100))
-const colourInputValue = ref(props.ink)
+const colourInputValue = ref(props.model.colours.ink)
 
 function updateLayer(change: Partial<SchedulerElementTransform>) {
   const id = selectedId.value
@@ -26,7 +42,7 @@ function syncColour(open: boolean) {
   const style = sample ? getComputedStyle(sample) : undefined
   const colour = selectedId.value === 'numerals' ? style?.fill : style?.color
   const channels = colour?.match(/^rgba?\((\d+), (\d+), (\d+)/)
-  colourInputValue.value = transform.value.textColour ?? (channels ? `#${channels.slice(1).map(value => Number(value).toString(16).padStart(2, '0')).join('')}` : props.ink)
+  colourInputValue.value = transform.value.textColour ?? (channels ? `#${channels.slice(1).map(value => Number(value).toString(16).padStart(2, '0')).join('')}` : props.model.colours.ink)
 }
 
 function changeColour(colour?: string) {
@@ -51,7 +67,11 @@ function setNumber(axis: 'x' | 'y', value: string | number) {
   else props.canvas.moveTo(undefined, number)
 }
 function setContrast(contrast: SchedulerTextContrast) {
-  updateLayer({ contrast })
+  updateLayer(contrast === 'shadow' ? { contrast, flatDepth: undefined } : { contrast })
+}
+function setFlatDepth(flat: boolean) {
+  if (flat === Boolean(transform.value.flatDepth)) return
+  updateLayer({ flatDepth: flat ? true : undefined })
 }
 function hide() {
   updateLayer({ hidden: true })
@@ -131,6 +151,15 @@ function hide() {
           <span class="flex justify-between">Opacity <span class="tabular-nums">{{ opacity }}%</span></span>
           <input type="range" min="0" max="100" aria-label="Opacity" :value="opacity" class="w-full accent-primary" @change="setOpacity">
         </label>
+      </template>
+    </UPopover>
+    <UPopover v-if="hasDepth || transform.flatDepth" :ui="{ content: 'space-y-2 bg-[#16181c] p-3' }">
+      <UButton icon="i-lucide-box" :color="transform.flatDepth ? 'primary' : 'neutral'" variant="ghost" size="sm" aria-label="Depth" title="Depth" />
+      <template #content>
+        <div class="flex gap-1" role="group" aria-label="Depth">
+          <UButton label="Original" size="sm" :variant="transform.flatDepth ? 'ghost' : 'solid'" :color="transform.flatDepth ? 'neutral' : 'primary'" :aria-pressed="!transform.flatDepth" @click="setFlatDepth(false)" />
+          <UButton label="Flat" size="sm" :variant="transform.flatDepth ? 'solid' : 'ghost'" :color="transform.flatDepth ? 'primary' : 'neutral'" :aria-pressed="Boolean(transform.flatDepth)" @click="setFlatDepth(true)" />
+        </div>
       </template>
     </UPopover>
     <UButton icon="i-lucide-bring-to-front" color="neutral" variant="ghost" size="sm" aria-label="Bring to front" title="Bring to front" @click="canvas.layer(1)" />

@@ -1,5 +1,5 @@
 import type { ComputedRef, Ref } from 'vue'
-import { IPHONE_CROP, WALLPAPER_HEIGHT, WALLPAPER_WIDTH } from '~/utils/wallpaper'
+import { IPHONE_CROP, WALLPAPER_HEIGHT, WALLPAPER_WIDTH, type WallpaperArtworkModel } from '~/utils/wallpaper'
 import type { WallpaperDevice } from '~/utils/wallpaper-devices'
 
 // 1.2× keeps text crisp on recent phones while staying well inside mobile canvas limits.
@@ -8,6 +8,7 @@ const PREPARE_DELAY = 400
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 interface WallpaperExportRequest {
+  artwork: WallpaperArtworkModel
   device: WallpaperDevice
   filename: string
 }
@@ -16,16 +17,13 @@ export function useWallpaperExport(
   getElement: () => HTMLElement | null | undefined,
   request: ComputedRef<WallpaperExportRequest | null>,
   dragging: Ref<boolean>,
-  open: Ref<boolean>,
 ) {
   const phase = ref('')
   const error = ref('')
-  const prepared = shallowRef<{ request: WallpaperExportRequest; file: File; url: string }>()
+  const prepared = shallowRef<{ request: WallpaperExportRequest; url: string }>()
   const current = computed(() => prepared.value?.request === request.value ? prepared.value : undefined)
-  const imageUrl = computed(() => current.value?.url ?? '')
-  const busy = computed(() => Boolean(request.value && !current.value && !error.value))
-  const sharing = ref(false)
-  const canShare = computed(() => Boolean(import.meta.client && current.value && typeof navigator.share === 'function' && navigator.canShare?.({ files: [current.value.file] })))
+  const downloadRequest = shallowRef<WallpaperExportRequest | null>(null)
+  const busy = computed(() => downloadRequest.value !== null)
   let timer: ReturnType<typeof setTimeout> | undefined
   let active: WallpaperExportRequest | null = null
   let queued = false
@@ -40,7 +38,6 @@ export function useWallpaperExport(
     clearTimeout(timer)
     const target = request.value
     if (disposed || !target || dragging.value) return
-    error.value = ''
     if (current.value || active === target) return
     if (active) {
       queued = true
@@ -76,11 +73,12 @@ export function useWallpaperExport(
       const blob = await new Promise<Blob | null>(resolve => output.toBlob(resolve, 'image/png'))
       if (!isCurrent()) return
       if (!blob) throw new Error('The image could not be created. Please try again.')
-      const file = new File([blob], target.filename, { type: 'image/png' })
-      prepared.value = { request: target, file, url: URL.createObjectURL(file) }
+      prepared.value = { request: target, url: URL.createObjectURL(blob) }
+      if (downloadRequest.value === target) downloadPrepared()
     } catch (cause) {
-      if (isCurrent()) error.value = cause instanceof Error && cause.message ? cause.message : 'The wallpaper could not be created. Please try again.'
+      if (isCurrent() && downloadRequest.value === target) error.value = cause instanceof Error && cause.message ? cause.message : 'The wallpaper could not be created. Please try again.'
     } finally {
+      if (downloadRequest.value === target) downloadRequest.value = null
       active = null
       phase.value = ''
       if (queued) {
@@ -94,7 +92,7 @@ export function useWallpaperExport(
     clearTimeout(timer)
     queued = false
     if (!request.value || dragging.value || current.value) return
-    if (open.value) void prepare()
+    if (downloadRequest.value === request.value) void prepare()
     else timer = setTimeout(prepare, PREPARE_DELAY)
   }
 
@@ -102,29 +100,36 @@ export function useWallpaperExport(
   watch([request, dragging], ([target], [previous]) => {
     if (target !== previous) {
       clear()
-      error.value = ''
+      if (downloadRequest.value) {
+        // Text can finish fitting after Save is clicked. Keep that download pending.
+        if (target && previous?.artwork === target.artwork && previous.device === target.device) {
+          downloadRequest.value = target
+        } else {
+          downloadRequest.value = null
+          error.value = 'The wallpaper changed while saving. Press Save to download the current version.'
+        }
+      }
     }
     schedule()
   }, { flush: 'post' })
-  watch(open, value => { if (value) void prepare() }, { flush: 'post' })
-
-  function download() {
-    if (!current.value) return
+  function downloadPrepared() {
+    const artwork = current.value
+    if (!artwork) return
     const link = document.createElement('a')
-    link.href = current.value.url
-    link.download = current.value.file.name
+    link.href = artwork.url
+    link.download = artwork.request.filename
     link.click()
   }
 
-  async function share() {
-    if (!current.value || !canShare.value || sharing.value) return
-    const artwork = current.value
-    sharing.value = true
+  function download() {
+    if (!request.value || dragging.value || busy.value) return
     error.value = ''
-    try { await navigator.share({ files: [artwork.file] }) }
-    catch (cause) {
-      if (current.value === artwork && (cause as { name?: string })?.name !== 'AbortError') error.value = 'Sharing didn’t complete. You can download the PNG instead.'
-    } finally { sharing.value = false }
+    if (current.value) {
+      downloadPrepared()
+      return
+    }
+    downloadRequest.value = request.value
+    void prepare()
   }
 
   onScopeDispose(() => {
@@ -132,5 +137,5 @@ export function useWallpaperExport(
     clearTimeout(timer)
     clear()
   })
-  return { busy, phase, error, imageUrl, canShare, sharing, prepare, download, share }
+  return { busy, phase, error, download }
 }

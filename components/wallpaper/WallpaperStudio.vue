@@ -11,7 +11,6 @@ import WallpaperPlayerPicker from '~/components/wallpaper/WallpaperPlayerPicker.
 import WallpaperDesignPanel from '~/components/wallpaper/WallpaperDesignPanel.vue'
 import WallpaperStatsPanel from '~/components/wallpaper/WallpaperStatsPanel.vue'
 import WallpaperInspector from '~/components/wallpaper/WallpaperInspector.vue'
-import WallpaperSaveModal from '~/components/wallpaper/WallpaperSaveModal.vue'
 
 const props = defineProps<{ studio: ReturnType<typeof useWallpaperStudio> }>()
 const { players, player, prefs, prefsError, design, palette, stats, model, modelFor, layouts, interacting, now, remix, requestedMissing, setStat, resetStats, canResetTemplate, resetTemplate,
@@ -33,8 +32,6 @@ const clockWarning = computed(() => {
   const covered = canvas.elements.value.find(item => !item.parentId && design.value.dataIds.includes(item.id) && !layouts.layout.value[item.id]?.hidden && overlaps(item, clock))
   return covered ? `The clock covers the ${covered.label.toLowerCase()}` : ''
 })
-const status = computed(() => layouts.storageError.value || prefsError.value || clockWarning.value || (layouts.dirty.value ? 'Saving…' : layouts.notice.value))
-const statusTone = computed(() => layouts.storageError.value || prefsError.value ? 'text-red-300' : clockWarning.value ? 'text-amber-300' : 'text-stone-400')
 
 const confirmReset = ref(false)
 const hiddenItems = computed(() => canvas.elements.value.filter(item => layouts.layout.value[item.id]?.hidden))
@@ -148,18 +145,23 @@ function setBackground(value: string) {
 const setPalette = (value: WallpaperPalette) => { prefs.value.palettes = { ...prefs.value.palettes, [styleKey.value]: value } }
 const setText = (value: string) => { prefs.value.texts = { ...prefs.value.texts, [styleKey.value]: value } }
 const statsCustomised = computed(() => Boolean(player.value && prefs.value.stats[player.value.positionShort]))
-const saveOpen = ref(false)
 const exportRequest = computed(() => {
   const artwork = model.value
   if (!artwork) return null
   const device = prefs.value.device
   return { artwork, device, filename: wallpaperFilename(artwork.player, artwork.recipe ? `remix-${artwork.recipe.code}` : artwork.design, device), fit: fitTick.value }
 })
-const exporter = useWallpaperExport(() => stage.value?.getArtwork(), exportRequest, canvas.dragging, saveOpen)
+const exporter = useWallpaperExport(() => stage.value?.getArtwork(), exportRequest, canvas.dragging)
+const toast = useToast()
+watch(exporter.error, message => {
+  if (message) toast.add({ title: 'Couldn’t download wallpaper', description: message, color: 'error' })
+})
+const status = computed(() => (exporter.busy.value && exporter.phase.value) || layouts.storageError.value || prefsError.value || clockWarning.value || (layouts.dirty.value ? 'Saving…' : layouts.notice.value))
+const statusTone = computed(() => layouts.storageError.value || prefsError.value ? 'text-red-300' : clockWarning.value && status.value === clockWarning.value ? 'text-amber-300' : 'text-stone-400')
 function save() {
   if (!player.value) return
   canvas.select('')
-  saveOpen.value = true
+  exporter.download()
 }
 
 const segment = (active: boolean) => active ? 'bg-white text-black' : 'text-stone-300 hover:text-white'
@@ -201,7 +203,7 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
 
       <div class="relative min-h-0 flex-1 px-4 py-3 lg:px-0 lg:py-4">
         <WallpaperStage v-if="model" ref="stage" :model="model" :canvas="canvas" :layout="layouts.layout.value" :device="prefs.device" :zones="zones" :now="now">
-          <WallpaperInspector :key="canvas.selectedId.value" :canvas="canvas" :editor="layouts" :artwork="() => stage?.getArtwork()" :ink="model.colours.ink" />
+          <WallpaperInspector :key="canvas.selectedId.value" :canvas="canvas" :editor="layouts" :artwork="() => stage?.getArtwork()" :model="model" />
         </WallpaperStage>
       </div>
 
@@ -217,7 +219,7 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
             <UIcon v-if="clockWarning && status === clockWarning" name="i-lucide-triangle-alert" class="mr-1 size-3.5 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ status }}</span>
           </p>
-          <UButton label="Save" icon="i-lucide-download" color="primary" class="ml-1 h-9 rounded-full px-4 font-semibold" :disabled="!player" @click="save" />
+          <UButton label="Save" icon="i-lucide-download" color="primary" class="ml-1 h-9 rounded-full px-4 font-semibold" :loading="exporter.busy.value" :disabled="!player || canvas.dragging.value" @click="save" />
         </div>
       </div>
       <p class="h-5 shrink-0 truncate px-4 text-center text-[11px] sm:hidden" :class="statusTone" role="status" aria-live="polite">{{ status }}</p>
@@ -246,8 +248,6 @@ const toolButton = 'size-9 justify-center rounded-full text-stone-300 hover:bg-w
         </div>
       </div>
     </aside>
-
-    <WallpaperSaveModal v-model:open="saveOpen" :device="prefs.device" :busy="exporter.busy.value" :phase="exporter.phase.value" :error="exporter.error.value" :image-url="exporter.imageUrl.value" :can-share="exporter.canShare.value" :sharing="exporter.sharing.value" :player-name="player?.name ?? 'Player'" @download="exporter.download()" @share="exporter.share()" @retry="exporter.prepare()" />
 
     <UModal v-model:open="confirmReset" :title="`Reset ${design.name}?`" description="Restores the template’s colours, backdrop, text, and layers, and the recommended stats for this position. You can undo this." :ui="{ content: 'rounded-none sm:max-w-sm border-t-2 border-t-[#c8ff3d] bg-[#101216]', footer: 'justify-end gap-2' }">
       <template #footer>

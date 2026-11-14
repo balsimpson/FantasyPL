@@ -1,10 +1,10 @@
 import { useSchedulerLayouts } from '~/composables/useSchedulerLayouts'
 import {
   REMIX_TEXT_MAX, defaultWallpaperPrefs, defaultWallpaperStats, getWallpaperColours, getWallpaperDesign, isRemixCodeFormat, isWallpaperDesign, normalizeWallpaperPlayers,
-  parseWallpaperLayouts, parseWallpaperPrefs, wallpaperBackgroundText, wallpaperLayoutsKey, wallpaperPrefsKey, wallpaperStatView,
+  parseWallpaperLayouts, parseWallpaperPrefs, wallpaperBackgroundText, wallpaperDesigns, wallpaperLayoutsKey, wallpaperPrefsKey, wallpaperStatView,
   type WallpaperArtworkModel, type WallpaperCatalogue, type WallpaperDesign, type WallpaperDesignId, type WallpaperPalette, type WallpaperPlayer, type WallpaperPrefs, type WallpaperStatKey, type WallpaperStyleKey,
 } from '~/utils/wallpaper'
-import { describeRemix, generateRemix, recipeFromCode, remixStatSlots, remixWordText, type RemixAspect, type WallpaperRecipe } from '~/utils/wallpaper-remix'
+import { describeRemix, generateRemix, randomSeed, recipeFromCode, remixStatSlots, remixWordText, type RemixAspect, type WallpaperRecipe } from '~/utils/wallpaper-remix'
 
 // A clock that ticks on each minute boundary, for the preview only.
 function useMinuteClock() {
@@ -31,18 +31,37 @@ export function useWallpaperStudio() {
 
   // The URL wins over saved choices so shared links open the same player and design.
   const queryCode = Number(route.query.player)
-  const queryDesign = route.query.design
+  const queryDesign = isWallpaperDesign(route.query.design) ? route.query.design : undefined
   const queryRemix = isRemixCodeFormat(route.query.remix) ? route.query.remix : null
-  const prefs = ref<WallpaperPrefs>({ ...defaultWallpaperPrefs(), ...(Number.isInteger(queryCode) && queryCode > 0 ? { playerCode: queryCode } : {}), ...(isWallpaperDesign(queryDesign) ? { design: queryDesign } : {}), remix: queryRemix })
+  const prefs = ref<WallpaperPrefs>({ ...defaultWallpaperPrefs(), ...(Number.isInteger(queryCode) && queryCode > 0 ? { playerCode: queryCode } : {}), ...(queryDesign ? { design: queryDesign } : {}), remix: queryRemix })
+  const freshVisit = route.query.player == null && route.query.design == null && route.query.remix == null && route.query.sheet == null
+  let openingSelection: Pick<WallpaperPrefs, 'playerCode' | 'design' | 'remix'> | undefined
+  if (freshVisit) {
+    const rollOpening = () => ({ player: Math.random(), style: Math.random(), remix: randomSeed() })
+    const openingRoll = useState('wallpaper-opening-roll', rollOpening)
+    const roll = import.meta.client && !useNuxtApp().isHydrating ? rollOpening() : openingRoll.value
+    // Apply the same selection on the server and during hydration, or after a successful retry.
+    watch(players, catalogue => {
+      if (openingSelection || !catalogue.length) return
+      const shortlist = catalogue.filter(candidate => candidate.positionRank != null && candidate.positionRank <= 3 && (candidate.values.total_points ?? 0) > 0)
+      const current = shortlist[Math.floor(roll.player * shortlist.length)] ?? featured.value!
+      const style = Math.floor(roll.style * wallpaperDesigns.length * 2)
+      const design = wallpaperDesigns[style % wallpaperDesigns.length]!.id
+      const remix = style >= wallpaperDesigns.length ? generateRemix({ player: current, palette: 'signature', seed: roll.remix }).code : null
+      openingSelection = { playerCode: current.code, design, remix }
+      prefs.value = { ...prefs.value, ...openingSelection, backdrop: null }
+    }, { immediate: true, flush: 'sync' })
+  }
   const prefsError = ref('')
   const ready = ref(false)
   onMounted(() => {
     try {
       const stored = parseWallpaperPrefs(localStorage.getItem(wallpaperPrefsKey))
-      const design = isWallpaperDesign(queryDesign) ? queryDesign : stored.design
+      const design = freshVisit ? prefs.value.design : queryDesign ?? stored.design
       // A link with a design (and no remix) opens that fixed design.
-      const remix = queryRemix ?? (isWallpaperDesign(queryDesign) ? null : stored.remix)
-      prefs.value = { ...stored, playerCode: prefs.value.playerCode ?? stored.playerCode, design, remix, backdrop: design === stored.design ? stored.backdrop : null }
+      const remix = freshVisit ? prefs.value.remix : queryRemix ?? (queryDesign ? null : stored.remix)
+      const playerCode = freshVisit ? prefs.value.playerCode : prefs.value.playerCode ?? stored.playerCode
+      prefs.value = { ...stored, playerCode, design, remix, backdrop: !freshVisit && design === stored.design ? stored.backdrop : null }
     } catch {
       prefsError.value = 'Saved choices couldn’t load. Anything you change now is still kept.'
     }
@@ -86,6 +105,8 @@ export function useWallpaperStudio() {
 
   watch(() => [player.value?.code, prefs.value.design, prefs.value.remix] as const, ([code, designId, remixCode]) => {
     if (!ready.value || !code) return
+    // Keep the landing URL clean until the visitor changes the player or design.
+    if (openingSelection && route.query.player == null && code === openingSelection.playerCode && designId === openingSelection.design && remixCode === openingSelection.remix) return
     const { design: _design, remix: _remix, ...rest } = route.query
     const wantDesign = remixCode ? undefined : designId
     const wantRemix = remixCode ?? undefined
