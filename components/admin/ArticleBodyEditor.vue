@@ -1,25 +1,30 @@
 <script setup lang="ts">
 import type { EditorToolbarItem } from '@nuxt/ui'
 import type { Editor } from '@tiptap/core'
-import type { ArticleNode } from '~/shared/articles'
-import { articleVisualExtensions } from '~/utils/article-editor-extensions'
+import { articleAtomTypes, type ArticleNode } from '~/shared/articles'
+import type { ArticleImage } from '~/shared/article-images'
+import { parseInlineMarkdown } from '~/shared/article-revision'
+import { articleVisualExtensions, assistRangeKey } from '~/utils/article-editor-extensions'
+
 const body = defineModel<ArticleNode>({ required: true })
-const props = defineProps<{ preview?: boolean; articleId: string }>()
+const props = defineProps<{ preview?: boolean; locked?: boolean; articleId: string; title?: string }>()
+const emit = defineEmits<{ notice: [message: string]; error: [message: string] }>()
+
+const root = ref<HTMLElement | null>(null)
+const editorComponent = ref<{ editor?: Editor } | null>(null)
+const assist = ref<InstanceType<typeof import('./ArticleSelectionAssist.vue').default> | null>(null)
 const selection = ref<{ from: number; to: number; text: string } | null>(null)
-const instruction = ref('')
+const assistPosition = ref({ top: 0, left: 0, width: 360 })
 const editing = ref(false)
-const editError = ref('')
-const editNotice = ref('')
-const linkPickerOpen = ref(false)
-const linkSearch = ref('')
+const pointerSelecting = ref(false)
 const linkTargets = ref<{ kind: 'article' | 'player'; title: string; url: string }[]>([])
 const linkTargetsLoading = ref(false)
 const linkTargetsError = ref('')
+const imagePicker = ref<{ open: boolean; mode: 'insert' | 'replace' | 'details'; pos: number | null; initial: ArticleImage | null }>({ open: false, mode: 'insert', pos: null, initial: null })
 let currentEditor: Editor | undefined
-const matchingLinkTargets = computed(() => {
-  const query = linkSearch.value.trim().toLocaleLowerCase()
-  return linkTargets.value.filter(target => !query || target.title.toLocaleLowerCase().includes(query)).slice(0, 12)
-})
+const atomTypes = new Set<string>(articleAtomTypes)
+const showAssist = computed(() => !props.preview && !!selection.value && !pointerSelecting.value)
+
 const items: EditorToolbarItem[][] = [
   [{ kind: 'undo', icon: 'i-lucide-undo-2', 'aria-label': 'Undo', tooltip: { text: 'Undo' } }, { kind: 'redo', icon: 'i-lucide-redo-2', 'aria-label': 'Redo', tooltip: { text: 'Redo' } }],
   [{ kind: 'heading', level: 2, icon: 'i-lucide-heading-2', 'aria-label': 'Heading 2', tooltip: { text: 'Heading 2' } }, { kind: 'heading', level: 3, icon: 'i-lucide-heading-3', 'aria-label': 'Heading 3', tooltip: { text: 'Heading 3' } }],
@@ -27,24 +32,66 @@ const items: EditorToolbarItem[][] = [
   [{ kind: 'bulletList', icon: 'i-lucide-list', 'aria-label': 'Bullet list', tooltip: { text: 'Bullet list' } }, { kind: 'orderedList', icon: 'i-lucide-list-ordered', 'aria-label': 'Numbered list', tooltip: { text: 'Numbered list' } }, { kind: 'blockquote', icon: 'i-lucide-text-quote', 'aria-label': 'Quote', tooltip: { text: 'Quote' } }],
 ]
 
-function updateSelection({ editor }: { editor: Editor }) {
-  currentEditor = editor
-  const { from, to, empty } = editor.state.selection
-  if (empty) {
-    selection.value = null
-    return
-  }
-  let hasVisual = false
-  editor.state.doc.nodesBetween(from, to, node => {
-    if (['playerCard', 'fixtureRun', 'comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable'].includes(node.type.name)) hasVisual = true
-  })
-  const text = editor.state.doc.textBetween(from, to, '\n').trim()
-  selection.value = text && text.length <= 3000 && !hasVisual ? { from, to, text } : null
+function setHighlight(range: { from: number; to: number } | null) {
+  const editor = currentEditor
+  if (!editor || editor.isDestroyed) return
+  editor.view.dispatch(editor.state.tr.setMeta(assistRangeKey, range).setMeta('addToHistory', false))
 }
 
-async function openLinkPicker() {
-  linkPickerOpen.value = !linkPickerOpen.value
-  if (!linkPickerOpen.value || linkTargets.value.length || linkTargetsLoading.value) return
+function placeAssist() {
+  const editor = currentEditor
+  const target = selection.value
+  if (!editor || !target || !root.value) return
+  const rootRect = root.value.getBoundingClientRect()
+  const start = editor.view.coordsAtPos(target.from)
+  const end = editor.view.coordsAtPos(target.to)
+  const width = Math.min(380, rootRect.width)
+  const left = Math.min(Math.max(start.left - rootRect.left, 0), Math.max(rootRect.width - width, 0))
+  assistPosition.value = { top: Math.max(end.bottom, start.bottom) - rootRect.top + 10, left, width }
+}
+
+function closeAssist() {
+  if (editing.value) return
+  selection.value = null
+  setHighlight(null)
+  assist.value?.reset()
+}
+
+function updateSelection({ editor }: { editor: Editor }) {
+  currentEditor = editor
+  if (editing.value) return
+  const { from, to, empty } = editor.state.selection
+  if (empty || props.preview) { if (selection.value) closeAssist(); return }
+  let hasAtom = false
+  editor.state.doc.nodesBetween(from, to, node => { if (atomTypes.has(node.type.name)) hasAtom = true })
+  const text = editor.state.doc.textBetween(from, to, '\n').trim()
+  if (!text || text.length > 3000 || hasAtom) { if (selection.value) closeAssist(); return }
+  const changed = selection.value?.from !== from || selection.value?.to !== to
+  selection.value = { from, to, text }
+  if (changed) assist.value?.reset()
+  setHighlight({ from, to })
+  nextTick(placeAssist)
+}
+
+function attachEditor(editor: Editor) {
+  currentEditor = editor
+  editor.setEditable(!props.preview && !props.locked)
+  const dom = editor.view.dom
+  dom.addEventListener('pointerdown', () => { pointerSelecting.value = true })
+  dom.addEventListener('article-image-action', ((event: CustomEvent<{ action: 'replace' | 'details'; pos: number }>) => {
+    const node = editor.state.doc.nodeAt(event.detail.pos)
+    if (node?.type.name !== 'image') return
+    imagePicker.value = { open: true, mode: event.detail.action, pos: event.detail.pos, initial: { ...node.attrs } as ArticleImage }
+  }) as EventListener)
+}
+function endPointerSelection() {
+  if (!pointerSelecting.value) return
+  pointerSelecting.value = false
+  if (selection.value) nextTick(placeAssist)
+}
+
+async function loadLinkTargets() {
+  if (linkTargets.value.length || linkTargetsLoading.value) return
   linkTargetsLoading.value = true
   linkTargetsError.value = ''
   try { linkTargets.value = await $fetch('/api/admin/articles/link-targets') }
@@ -57,66 +104,116 @@ function insertInternalLink(target: { title: string; url: string }) {
   const selected = selection.value
   if (!editor || !selected) return
   editor.chain().focus().setTextSelection({ from: selected.from, to: selected.to }).setLink({ href: target.url }).run()
-  linkPickerOpen.value = false
-  linkSearch.value = ''
-  editNotice.value = `Linked to ${target.title}. This change will save automatically.`
+  closeAssist()
+  emit('notice', `Linked to ${target.title}.`)
 }
 
-async function applyEdit() {
+async function requestEdit(instruction: string) {
   const target = selection.value
   const editor = currentEditor
-  if (!target || !editor || !instruction.value.trim() || editing.value) return
+  if (!target || !editor || editing.value || !props.articleId) return
   editing.value = true
-  editError.value = ''
-  editNotice.value = ''
+  assist.value?.begin()
+  editor.setEditable(false)
   try {
+    const doc = editor.state.doc
+    const context = doc.textBetween(Math.max(0, target.from - 800), Math.min(doc.content.size, target.to + 800), '\n')
     const result = await $fetch<{ replacementText: string }>(`/api/admin/articles/${props.articleId}/edit`, {
       method: 'POST',
-      body: { selectedText: target.text, instruction: instruction.value.trim() },
+      body: { selectedText: target.text, instruction, title: props.title || '', context },
     })
-    const currentText = editor.state.doc.textBetween(target.from, target.to, '\n').trim()
-    if (currentText !== target.text) throw new Error('The selected text changed while the edit was running. Select it again and retry.')
-    editor.chain().focus().insertContentAt({ from: target.from, to: target.to }, result.replacementText).run()
-    instruction.value = ''
-    selection.value = null
-    editNotice.value = 'This change will save automatically.'
+    assist.value?.finish({ text: result.replacementText.trim() })
   } catch (cause: any) {
-    editError.value = cause.data?.statusMessage || cause.message || 'The selected text could not be edited. Your article is unchanged.'
-  } finally { editing.value = false }
+    assist.value?.finish({ error: cause.data?.statusMessage || cause.message || 'The highlighted text could not be edited. Your article is unchanged.' })
+  } finally {
+    editing.value = false
+    editor.setEditable(!props.preview && !props.locked)
+  }
 }
+
+function applySuggestion(text: string) {
+  const target = selection.value
+  const editor = currentEditor
+  if (!target || !editor) return
+  if (editor.state.doc.textBetween(target.from, target.to, '\n').trim() !== target.text) {
+    assist.value?.finish({ error: 'The highlighted text changed. Highlight it again and retry.' })
+    return
+  }
+  const sameBlock = editor.state.doc.resolve(target.from).sameParent(editor.state.doc.resolve(target.to))
+  const content = sameBlock
+    ? parseInlineMarkdown(text.replace(/\s*\n{2,}\s*/g, ' '))
+    : text.split(/\n{2,}/).filter(part => part.trim()).map(part => ({ type: 'paragraph', content: parseInlineMarkdown(part.trim()) }))
+  if (!content.length) return
+  editor.chain().focus().insertContentAt({ from: target.from, to: target.to }, content).run()
+  closeAssist()
+  emit('notice', 'Text replaced. Undo with ⌘Z / Ctrl+Z.')
+}
+
+function openImagePicker() {
+  imagePicker.value = { open: true, mode: 'insert', pos: null, initial: null }
+}
+
+function placeImage(image: ArticleImage) {
+  const editor = currentEditor
+  if (!editor) return
+  const { mode, pos } = imagePicker.value
+  if (mode !== 'insert' && pos !== null && editor.state.doc.nodeAt(pos)?.type.name === 'image') {
+    editor.chain().focus().command(({ tr }) => { tr.setNodeMarkup(pos, undefined, { ...image }); return true }).run()
+    emit('notice', mode === 'details' ? 'Caption updated.' : 'Photo replaced.')
+    return
+  }
+  // Insert after the block that holds the cursor, so a photo never splits a paragraph.
+  const { $from } = editor.state.selection
+  const at = $from.depth > 0 ? $from.after(1) : editor.state.selection.from
+  editor.chain().focus().insertContentAt(at, { type: 'image', attrs: { ...image } }).run()
+  emit('notice', 'Photo added.')
+}
+
+// UEditor only reads `editable` on creation, so keep it in sync here.
+watch(() => editorComponent.value?.editor, (editor, previous) => { if (editor && editor !== previous) attachEditor(editor) }, { immediate: true })
+watch(() => [props.preview, props.locked], () => {
+  if (props.preview || props.locked) closeAssist()
+  if (currentEditor && !editing.value) currentEditor.setEditable(!props.preview && !props.locked)
+})
+onMounted(() => {
+  window.addEventListener('pointerup', endPointerSelection)
+  window.addEventListener('resize', placeAssist)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerup', endPointerSelection)
+  window.removeEventListener('resize', placeAssist)
+})
 </script>
 
 <template>
-  <UEditor v-slot="{ editor }" v-model="body" :editable="!preview && !editing" :on-selection-update="updateSelection" :extensions="articleVisualExtensions" :image="false" :mention="false" :starter-kit="{ heading: { levels: [2, 3] }, codeBlock: false, code: false }" :editor-props="{ attributes: { 'aria-label': preview ? 'Article preview' : 'Article body', role: preview ? 'document' : 'textbox', 'aria-multiline': preview ? undefined : 'true' } }" class="w-full" :ui="{ base: 'min-h-96 px-0 py-6 text-base break-words sm:px-0', content: 'min-w-0' }">
-    <div v-if="!preview && selection" class="mb-4 space-y-3 border-y border-default py-4" aria-label="Edit selected text">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0"><p class="text-sm font-medium text-highlighted">Edit selected text</p><p class="mt-1 max-w-3xl truncate text-xs text-muted">“{{ selection.text }}”</p></div>
-        <span v-if="editing" role="status" class="flex items-center gap-2 text-xs text-muted"><UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" /> Applying your edit…</span>
+  <div ref="root" class="relative">
+    <UEditor v-slot="{ editor }" v-model="body" :editable="!preview && !locked" ref="editorComponent" :on-selection-update="updateSelection" :extensions="articleVisualExtensions" :image="false" :mention="false" :starter-kit="{ heading: { levels: [2, 3] }, codeBlock: false, code: false }" :editor-props="{ attributes: { 'aria-label': preview ? 'Article preview' : 'Article body', role: preview ? 'document' : 'textbox', 'aria-multiline': preview ? undefined : 'true' } }" class="w-full" :ui="{ base: 'min-h-96 px-0 py-6 text-base break-words sm:px-0', content: 'min-w-0' }">
+      <div class="sticky top-0 z-10 flex h-12 items-center gap-2 border-y border-default bg-default" :class="preview ? 'invisible' : ''" :aria-hidden="preview">
+        <UEditorToolbar :editor="editor" :items="items" aria-label="Article formatting" class="min-w-0 flex-1 flex-nowrap overflow-x-auto" />
+        <UButton label="Photo" icon="i-lucide-image-plus" color="neutral" variant="ghost" size="sm" class="shrink-0" :disabled="preview || locked" @click="openImagePicker" />
       </div>
-      <UTextarea v-model="instruction" aria-label="Edit instruction" placeholder="Describe the change you want" :rows="2" :maxlength="500" class="w-full" :disabled="editing" @keydown.meta.enter.prevent="applyEdit" @keydown.ctrl.enter.prevent="applyEdit" />
-      <div class="flex flex-wrap items-center gap-3">
-        <UButton label="Apply edit" icon="i-lucide-wand-sparkles" :loading="editing" :disabled="editing || !instruction.trim() || !articleId" @click="applyEdit" />
-        <UButton label="Clear selection" color="neutral" variant="ghost" :disabled="editing" @click="selection = null; instruction = ''" />
-        <span class="text-xs text-muted">{{ articleId ? 'Only the selected text will change.' : 'Save the draft before editing selected text.' }}</span>
-      </div>
-      <p v-if="editError" role="alert" class="text-sm text-error">{{ editError }}</p>
-      <p v-else-if="editNotice" role="status" class="text-sm text-success">{{ editNotice }}</p>
-      <div class="flex flex-wrap items-center gap-3">
-        <UButton :label="linkPickerOpen ? 'Close internal links' : 'Add internal link'" icon="i-lucide-link-2" color="neutral" variant="outline" size="sm" @click="openLinkPicker" />
-        <span class="text-xs text-muted">Select words first, then choose an article or player profile.</span>
-      </div>
-      <div v-if="linkPickerOpen" class="space-y-3 rounded-lg border border-default p-3">
-        <UInput v-model="linkSearch" aria-label="Search internal links" placeholder="Search articles or players" class="w-full" />
-        <p v-if="linkTargetsLoading" role="status" class="text-sm text-muted">Loading internal links…</p>
-        <p v-else-if="linkTargetsError" role="alert" class="text-sm text-error">{{ linkTargetsError }}</p>
-        <p v-else-if="!matchingLinkTargets.length" class="text-sm text-muted">No matching pages.</p>
-        <div v-else class="max-h-64 overflow-y-auto">
-          <UButton v-for="target in matchingLinkTargets" :key="target.url" :label="`${target.title} · ${target.kind === 'article' ? 'Article' : 'Player profile'}`" color="neutral" variant="ghost" class="w-full justify-start" @click="insertInternalLink(target)" />
-        </div>
-      </div>
-    </div>
-    <p v-else-if="!preview && editNotice" role="status" class="mb-4 border-y border-default py-3 text-sm text-success">{{ editNotice }}</p>
-    <UEditorToolbar v-if="!preview" :editor="editor" :items="items" aria-label="Article formatting" class="sticky top-0 z-10 flex-wrap border-y border-default bg-default py-2" />
-    <div v-else class="h-11" aria-hidden="true" />
-  </UEditor>
+    </UEditor>
+    <AdminArticleSelectionAssist
+      v-if="showAssist && selection"
+      ref="assist"
+      :text="selection.text"
+      :top="assistPosition.top"
+      :left="assistPosition.left"
+      :width="assistPosition.width"
+      :can-edit="!!articleId"
+      :link-targets="linkTargets"
+      :link-targets-loading="linkTargetsLoading"
+      :link-targets-error="linkTargetsError"
+      @close="closeAssist"
+      @request="requestEdit"
+      @apply="applySuggestion"
+      @link="insertInternalLink"
+      @load-links="loadLinkTargets"
+    />
+    <AdminArticleImagePicker v-model:open="imagePicker.open" :mode="imagePicker.mode" :initial="imagePicker.initial" @select="placeImage" />
+  </div>
 </template>
+
+<style>
+.article-assist-range { background: color-mix(in oklab, var(--ui-primary) 28%, transparent); border-radius: 2px; }
+</style>

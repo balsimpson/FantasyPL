@@ -2,7 +2,8 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { generationDocument } from './articleJobValidators'
-import { buildArticleEvidence, generatedArticle, generatedArticleSchema, generatedEvergreenArticle, generatedEvergreenArticleSchema } from '../shared/article-generation'
+import { buildArticleEvidence, generatedArticle, generatedArticleSchema, generatedEvergreenArticle, generatedEvergreenArticleSchema, withEvergreenImages } from '../shared/article-generation'
+import { imagePlanGuidance } from '../shared/article-images'
 import { defaultPromptRecords, isArticleTemplate } from '../shared/article-prompts'
 import type { ArticleTemplate } from '../shared/articles'
 import { getPlayerRoute } from '../composables/usePlayerRoute'
@@ -100,13 +101,14 @@ export const writeArticle = internalAction({
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST', signal: AbortSignal.timeout(120_000),
         headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 6000, temperature: 0.7, provider: { require_parameters: true }, messages: [{ role: 'system', content: `${promptInstructions}\n\n${internalLinkGuidance}` }, { role: 'user', content: JSON.stringify(evergreen ? { topic: job.topic, template: job.template, allowedLinks } : { topic: job.topic, template: job.template, evidence, allowedLinks }) }], response_format: { type: 'json_schema', json_schema: { name: 'fpl_article', strict: true, schema: evergreen ? generatedEvergreenArticleSchema : generatedArticleSchema } } }),
+        body: JSON.stringify({ model, max_tokens: 6000, temperature: 0.7, provider: { require_parameters: true }, messages: [{ role: 'system', content: `${promptInstructions}\n\n${internalLinkGuidance}${evergreen ? `\n\n${imagePlanGuidance}` : ''}` }, { role: 'user', content: JSON.stringify(evergreen ? { topic: job.topic, template: job.template, allowedLinks } : { topic: job.topic, template: job.template, evidence, allowedLinks }) }], response_format: { type: 'json_schema', json_schema: { name: 'fpl_article', strict: true, schema: evergreen ? generatedEvergreenArticleSchema : generatedArticleSchema } } }),
       })
       if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'OpenRouter denied access. Check the configured API key.' : response.status === 402 ? 'OpenRouter has no available credit for this request.' : response.status === 429 ? 'OpenRouter is busy. Try generating again later.' : 'OpenRouter could not generate the article. The existing draft was preserved.')
       const completion = await response.json()
       const choice = completion.choices?.[0]
       if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') throw new Error('OpenRouter returned an incomplete article. The existing draft was preserved.')
-      resultJson = JSON.stringify(evergreen ? generatedEvergreenArticle(JSON.parse(choice.message.content), allowedLinks) : generatedArticle(JSON.parse(choice.message.content), evidence!, job.template as ArticleTemplate, allowedLinks))
+      const parsed = JSON.parse(choice.message.content)
+      resultJson = JSON.stringify(evergreen ? await withEvergreenImages(generatedEvergreenArticle(parsed, allowedLinks), parsed) : generatedArticle(parsed, evidence!, job.template as ArticleTemplate, allowedLinks))
     } catch (cause) {
       // Provider bodies and credentials never enter saved job errors.
       error = cause instanceof Error && !/fetch|JSON|Unexpected|abort|timeout/i.test(cause.message) ? cause.message.slice(0, 500) : 'Generation could not complete. The existing draft was preserved. Please try again.'

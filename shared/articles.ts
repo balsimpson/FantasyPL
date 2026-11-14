@@ -1,4 +1,5 @@
 import { validatePlayerSnapshot } from './article-visuals'
+import { validateArticleImage } from './article-images'
 
 export const articleTemplates = [
   { value: 'transfers', label: 'Transfer trends', sections: ['The transfer picture', 'Form, minutes and fixtures', 'What to consider'] },
@@ -53,6 +54,8 @@ export function articleSlug(title: string) {
   return title.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 160).replace(/-$/, '')
 }
 
+export const articleAtomTypes = ['playerCard', 'fixtureRun', 'comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable', 'image'] as const
+
 export function articleText(node: ArticleNode): string {
   return node.text ?? (node.content || []).map(articleText).join(' ')
 }
@@ -89,12 +92,17 @@ export function validateArticleDraft(value: unknown): ArticleDraft {
   if (JSON.stringify(input.body ?? null).length > 200_000) throw new Error('This article is too long to save. Shorten it and try again.')
   let count = 0
   const visualTypes = new Set(['playerCard', 'fixtureRun', 'comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable'])
-  const blockTypes = new Set(['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'listItem', 'horizontalRule', 'hardBreak', 'text', ...visualTypes])
+  const blockTypes = new Set(['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList', 'listItem', 'horizontalRule', 'hardBreak', 'text', 'image', ...visualTypes])
   function node(value: unknown, depth: number): ArticleNode {
     if (++count > 8000 || depth > 20 || !value || typeof value !== 'object') throw new Error('The article structure is invalid.')
     const item = value as ArticleNode
     if (typeof item.type !== 'string' || (depth === 0 ? item.type !== 'doc' : !blockTypes.has(item.type))) throw new Error('The article contains unsupported content.')
     const clean: ArticleNode = { type: item.type }
+    if (item.type === 'image') {
+      if (depth !== 1 || item.content !== undefined || item.marks !== undefined) throw new Error('Images must sit between paragraphs.')
+      clean.attrs = { ...validateArticleImage(item.attrs) }
+      return clean
+    }
     if (visualTypes.has(item.type)) {
       if (item.content !== undefined || item.marks !== undefined) throw new Error('Visual blocks cannot contain text or formatting.')
       if (item.type === 'playerCard' || item.type === 'fixtureRun') clean.attrs = { player: validatePlayerSnapshot(item.attrs?.player) }

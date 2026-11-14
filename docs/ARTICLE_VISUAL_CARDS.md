@@ -19,6 +19,12 @@ This guide owns the article visual catalog and the rules for choosing cards in g
 | Team fixture table (`teamFixtureTable`) | Compare upcoming schedules across clubs. | Uses official fixtures grouped by gameweek, with club crests where available. Preserves blanks and doubles. Shows difficulty values. Difficulty is not a scoring or clean-sheet probability. |
 | Gameweek recap | Summarize completed gameweek returns. | Requires saved event-specific points and player identity for that completed gameweek. Season points are not a substitute. Do not generate this card until the evidence builder captures a completed game's results and the snapshot stores its gameweek and capture time. |
 
+## Photos
+
+| Block | Use it for | Rules |
+| --- | --- | --- |
+| Photo (`image`) | Break up guides and give a section a sense of place. | Only free-licence Wikimedia Commons files (CC0, CC BY, CC BY-SA, public domain) with author and licence credited, or photos the owner uploads to Convex storage. Validated in `shared/article-images.ts`. Alt text describes the photo actually found, not the one requested. Captions must not make claims about the people or match pictured, and photos never carry statistics. Evergreen generation asks for two or three photo searches of photographable football scenes, never named players or crests. |
+
 ## Selection rules for article generation
 
 - Add a card only when it supports the section beside it. Avoid repeating the same numbers in prose. Keep automatic source, capture-time, ranking, and selection notes out of body copy; the cards and article metadata carry those details, and source links stay in the article's source list.

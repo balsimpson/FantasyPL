@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ArticleNode } from '~/shared/articles'
 import type { ArticlePlayerSnapshot } from '~/shared/article-visuals'
+import type { ArticleImage } from '~/shared/article-images'
 defineProps<{ node: ArticleNode }>()
 const children = (node: ArticleNode) => node.content || []
 const linkHref = (node: ArticleNode) => node.marks?.find(mark => mark.type === 'link')?.attrs?.href as string | undefined
@@ -26,6 +27,7 @@ const textClasses = (node: ArticleNode) => ({
   <li v-else-if="node.type === 'listItem'"><ArticlesArticleBodyNode v-for="(child, index) in children(node)" :key="index" :node="child" /></li>
   <hr v-else-if="node.type === 'horizontalRule'" class="my-9 border-white/15">
   <br v-else-if="node.type === 'hardBreak'">
+  <ArticlesArticleImage v-else-if="node.type === 'image'" :image="node.attrs as unknown as ArticleImage" />
   <ArticlesPlayerVisual v-else-if="node.type === 'playerCard' || node.type === 'fixtureRun'" :player="node.attrs?.player" :fixtures-only="node.type === 'fixtureRun'" class="my-8" />
   <ArticlesInsightCard v-else-if="['comparisonCard', 'transferWatch', 'budgetShortlist', 'teamFixtureTable'].includes(node.type)" :type="node.type" :players="node.attrs?.players as ArticlePlayerSnapshot[]" :criteria="node.attrs?.criteria as string" />
 </template>

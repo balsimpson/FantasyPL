@@ -14,7 +14,7 @@ export default defineEventHandler(async event => {
   }
   const { client, secret, api } = articleDatabase()
   try {
-    const replacementText = await client.action(api.articleEdits.editSelection, { secret, selectedText: body.selectedText, instruction: body.instruction })
+    const replacementText = await client.action(api.articleEdits.editSelection, { secret, selectedText: body.selectedText, instruction: body.instruction, title: typeof body.title === 'string' ? body.title.slice(0, 200) : undefined, context: typeof body.context === 'string' ? body.context.slice(0, 4000) : undefined })
     return { replacementText }
   } catch (error) { throw articleStorageError(error) }
 })

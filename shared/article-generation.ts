@@ -1,5 +1,6 @@
 import { articleSlug, emptyArticle, validateArticleDraft, type ArticleDraft, type ArticleNode, type ArticleTemplate } from './articles'
 import { validatePlayerSnapshot, type ArticlePlayerSnapshot } from './article-visuals'
+import { findPlannedImages, imagePlanSchema, insertSectionImages, validateImagePlans } from './article-images'
 
 type Row = Record<string, any>
 export interface ArticleEvidence {
@@ -113,9 +114,9 @@ export const generatedArticleSchema = {
 }
 
 export const generatedEvergreenArticleSchema = {
-  type: 'object', additionalProperties: false, required: ['title', 'excerpt', 'sections', 'internalLinks'],
+  type: 'object', additionalProperties: false, required: ['title', 'excerpt', 'sections', 'internalLinks', 'images'],
   properties: {
-    title: { type: 'string' }, excerpt: { type: 'string' },
+    title: { type: 'string' }, excerpt: { type: 'string' }, images: imagePlanSchema,
     internalLinks: { type: 'array', maxItems: 6, items: { type: 'object', additionalProperties: false, required: ['anchor', 'targetUrl'], properties: { anchor: { type: 'string' }, targetUrl: { type: 'string' } } } },
     sections: { type: 'array', minItems: 3, maxItems: 5, items: {
       type: 'object', additionalProperties: false, required: ['heading', 'paragraphs'],
@@ -237,4 +238,13 @@ export function generatedArticle(value: unknown, evidence: ArticleEvidence, temp
   }
   addInternalLinks(content, result.internalLinks || [], allowedTargets)
   return validateArticleDraft({ ...emptyArticle(), title, slug: articleSlug(title), excerpt, template, season: evidence.season, gameweek: evidence.gameweek, body: { type: 'doc', content } })
+}
+
+/** Add free-licence photos to an evergreen draft. Search failures never discard the written article. */
+export async function withEvergreenImages(draft: ArticleDraft, value: unknown, fetcher: typeof fetch = fetch): Promise<ArticleDraft> {
+  const sectionCount = (draft.body.content || []).filter(node => node.type === 'heading' && node.attrs?.level === 2).length
+  const plans = validateImagePlans((value as { images?: unknown } | null)?.images, sectionCount)
+  const placed = await findPlannedImages(plans, sectionCount, 2, fetcher)
+  if (!placed.length) return draft
+  return validateArticleDraft({ ...draft, body: insertSectionImages(draft.body, placed) })
 }

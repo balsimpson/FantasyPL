@@ -14,7 +14,12 @@ const selectedRevision = ref('')
 const viewedRevision = ref<ArticleDraft | null>(null)
 const revisionError = ref('')
 const appliedJob = ref('')
-const preview = ref(true)
+const preview = ref(false)
+const revising = ref(false)
+const assistantStatus = ref('')
+const assistantTone = ref<'muted' | 'success' | 'error'>('muted')
+const undoDraft = ref<ArticleDraft | null>(null)
+let revisedFingerprint = ''
 const discardOpen = ref(false)
 const nextRoute = ref('')
 const publishing = ref(false)
@@ -81,12 +86,12 @@ const toolbarState = computed<AdminArticleToolbar>(() => ({
   saveDisabled: loading.value || !!loadError.value || saving.value || !dirty.value,
   saving: saving.value,
   generating: generation.starting.value,
-  generatingDisabled: loading.value || !!loadError.value || saving.value || generation.active.value || draft.value.title.trim().length < 8,
+  generatingDisabled: revising.value || loading.value || !!loadError.value || saving.value || generation.active.value || draft.value.title.trim().length < 8,
   editLabel: viewedRevision.value ? 'Restore version' : preview.value ? 'Edit article' : 'Preview article',
   editIcon: viewedRevision.value ? 'i-lucide-history' : preview.value ? 'i-lucide-pencil' : 'i-lucide-eye',
-  editDisabled: loading.value || !!loadError.value || dirty.value || saving.value,
+  editDisabled: revising.value || loading.value || !!loadError.value || dirty.value || saving.value,
   publishing: publishing.value,
-  publishDisabled: loading.value || !!loadError.value || conflict.value || saving.value,
+  publishDisabled: revising.value || loading.value || !!loadError.value || conflict.value || saving.value,
   publishLabel: status.value === 'published' ? 'Publish update' : 'Publish',
   onSave: () => { void saveDraft() },
   onGenerate: () => { void generateDraft() },
@@ -196,6 +201,43 @@ watch(() => generation.job.value, job => {
     appliedJob.value = job.jobId
   }
 })
+function setAssistantStatus(message: string, tone: 'muted' | 'success' | 'error' = 'muted') {
+  assistantStatus.value = message
+  assistantTone.value = tone
+}
+async function reviseArticle(instruction: string) {
+  if (revising.value || preview.value || viewedRevision.value || loading.value || loadError.value || conflict.value) return
+  if (!articleId.value || version.value === 0) {
+    if (!await save()) { setAssistantStatus('Save the draft first. Add a title of at least a few words.', 'error'); return }
+    if (route.params.id === 'new') {
+      leavingAfterSave = true
+      await navigateTo(`/admin/articles/${articleId.value}`, { replace: true })
+    }
+  }
+  const before = structuredClone(toRaw(draft.value))
+  const fingerprint = JSON.stringify(draft.value)
+  revising.value = true
+  setAssistantStatus(/photo|image|picture/i.test(instruction) ? 'Revising the article and finding photos…' : 'Revising the article…')
+  try {
+    const result = await $fetch<{ draft: ArticleDraft; summary: string }>(`/api/admin/articles/${articleId.value}/revise`, { method: 'POST', body: { instruction, draft: before } })
+    // The editor is locked while revising; this guards against any change that slipped through.
+    if (JSON.stringify(draft.value) !== fingerprint) throw new Error('The article changed while the revision was running. Your edits are kept; try again.')
+    draft.value = { ...draft.value, title: result.draft.title, excerpt: result.draft.excerpt, body: result.draft.body }
+    revisedFingerprint = JSON.stringify(draft.value)
+    undoDraft.value = before
+    setAssistantStatus(result.summary, 'success')
+  } catch (cause: any) {
+    setAssistantStatus(cause.data?.statusMessage || cause.message || 'The revision did not finish. Your article is unchanged.', 'error')
+  } finally { revising.value = false }
+}
+function undoRevision() {
+  if (!undoDraft.value || revising.value) return
+  draft.value = structuredClone(toRaw(undoDraft.value))
+  undoDraft.value = null
+  setAssistantStatus('Revision undone.')
+}
+// Undo only applies to the revision as returned; once you edit it, use version history instead.
+watch(draft, current => { if (undoDraft.value && JSON.stringify(current) !== revisedFingerprint) undoDraft.value = null }, { deep: true })
 function confirmLeave(to: { fullPath: string }) {
   if (leavingAfterSave || (!dirty.value && !saving.value)) return
   nextRoute.value = to.fullPath
@@ -256,24 +298,25 @@ watch(publishedUrl, url => { if (url) toast.add({ title: 'Article published', de
           <div class="h-6">
             <UBadge v-if="preview" :label="viewedRevision ? (selectedRevision === 'generated' ? 'Generated draft' : `Version ${selectedRevision}`) : 'Private preview'" color="neutral" variant="subtle" />
           </div>
-          <UFormField label="Article title" name="title" class="mt-3 w-full">
-            <h1 v-if="preview" class="min-h-24 break-words text-3xl font-semibold tracking-tight text-highlighted sm:text-4xl">{{ previewDraft.title || 'Untitled article' }}</h1>
-            <UTextarea v-else v-model="draft.title" aria-label="Article title" :rows="2" autoresize :maxrows="5" :maxlength="200" variant="none" class="w-full" :ui="{ base: 'min-h-24 w-full rounded-none px-0 py-2 text-3xl font-semibold leading-tight tracking-tight text-highlighted sm:text-4xl md:text-4xl bg-transparent focus-visible:ring-0' }" />
+          <UFormField label="Article title" name="title" class="mt-3 w-full" :ui="{ label: 'sr-only' }">
+            <h1 v-if="preview" class="min-h-24 break-words py-2 text-3xl font-semibold leading-tight tracking-tight text-highlighted sm:text-4xl">{{ previewDraft.title || 'Untitled article' }}</h1>
+            <UTextarea v-else v-model="draft.title" aria-label="Article title" placeholder="Article title" :disabled="revising" :rows="2" autoresize :maxrows="5" :maxlength="200" variant="none" class="w-full" :ui="{ base: 'min-h-24 w-full rounded-none px-0 py-2 text-3xl font-semibold leading-tight tracking-tight text-highlighted sm:text-4xl md:text-4xl bg-transparent focus-visible:ring-0' }" />
           </UFormField>
-          <UFormField label="Summary" name="excerpt" class="mt-5 w-full" :help="preview ? undefined : 'A short introduction for the article list and search description.'">
+          <UFormField label="Summary" name="excerpt" class="mt-5 w-full" :ui="{ label: 'sr-only' }">
             <p v-if="preview" class="min-h-16 break-words text-lg leading-8 text-muted">{{ previewDraft.excerpt }}</p>
-            <UTextarea v-else v-model="draft.excerpt" :rows="2" autoresize :maxlength="600" class="w-full" />
+            <UTextarea v-else v-model="draft.excerpt" placeholder="A short summary for the article list and search results" :disabled="revising" :rows="2" autoresize :maxlength="600" variant="none" class="w-full" :ui="{ base: 'min-h-16 w-full rounded-none px-0 py-0 text-lg sm:text-lg md:text-lg leading-8 text-muted bg-transparent focus-visible:ring-0' }" />
           </UFormField>
           <p class="my-6 min-h-6 text-sm text-muted">{{ user?.name }}<template v-if="previewDraft.gameweek"> · Gameweek {{ previewDraft.gameweek }}</template><template v-if="previewDraft.season"> · {{ previewDraft.season }}</template></p>
-          <h2 class="mt-8 mb-3 min-h-5 text-sm font-medium text-highlighted" :class="preview ? 'invisible' : ''" :aria-hidden="preview">Article body</h2>
+          <h2 class="sr-only">Article body</h2>
           <ClientOnly>
-            <AdminArticleBodyEditor :model-value="preview ? previewDraft.body : draft.body" :preview="preview" :article-id="articleId" @update:model-value="updateArticleBody" />
+            <AdminArticleBodyEditor :model-value="preview ? previewDraft.body : draft.body" :preview="preview" :locked="revising" :article-id="articleId" :title="draft.title" @update:model-value="updateArticleBody" @notice="setAssistantStatus($event, 'success')" @error="setAssistantStatus($event, 'error')" />
             <template #fallback><div class="min-h-96 py-6 text-muted">Loading editor…</div></template>
           </ClientOnly>
           <div class="flex flex-wrap justify-between gap-2 border-t border-default pt-4 text-xs text-muted">
             <span>{{ previewWordCount }} {{ previewWordCount === 1 ? 'word' : 'words' }}</span>
             <span v-if="savedAt">{{ viewedRevision ? `Version ${selectedRevision}` : `Saved at ${savedTime} IST · Revision ${version}` }}</span>
           </div>
+          <AdminArticleChatComposer :busy="revising" :disabled="preview || !!viewedRevision" :disabled-reason="viewedRevision ? 'Restore this version to edit it' : 'Switch to editing to ask for changes'" :status="assistantStatus || 'Highlight text to edit it, or ask for changes to the whole article below.'" :status-tone="assistantStatus ? assistantTone : 'muted'" :can-undo="!!undoDraft && !revising" @send="reviseArticle" @undo="undoRevision" />
         </section>
         <USlideover v-model:open="detailsOpen" :side="detailsSide" title="Article details" description="Article settings, sources and saved versions." :dismissible="true">
           <template #body>

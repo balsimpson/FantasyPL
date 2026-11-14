@@ -9,6 +9,7 @@
  */
 
 import type * as articleEdits from "../articleEdits.js";
+import type * as articleImages from "../articleImages.js";
 import type * as articleJobValidators from "../articleJobValidators.js";
 import type * as articleJobs from "../articleJobs.js";
 import type * as articlePromptValidators from "../articlePromptValidators.js";
@@ -36,6 +37,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   articleEdits: typeof articleEdits;
+  articleImages: typeof articleImages;
   articleJobValidators: typeof articleJobValidators;
   articleJobs: typeof articleJobs;
   articlePromptValidators: typeof articlePromptValidators;
