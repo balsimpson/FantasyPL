@@ -111,7 +111,7 @@ export async function getManagerCalendar(id: string, origin: string, titleParts?
       const lastPoints = lastFinishedWeek && lastFinishedWeek === pointsWeek ? player.event_points : lastPointsByPlayer?.[player.id];
       const cost = Number.isInteger(player.now_cost) && player.now_cost > 0 ? player.now_cost / 10 : undefined;
       const form = typeof player.form === "string" && player.form.trim() && Number.isFinite(Number(player.form)) ? player.form : undefined;
-      return [{ name: player.web_name || plannerPlayerName(player), role, position: pick.position, points, gwPoints, lastPoints, cost, form }];
+      return [{ name: player.web_name || plannerPlayerName(player), team: player.team, role, position: pick.position, points, gwPoints, lastPoints, cost, form }];
     });
     if (!starters.length) return [];
 
@@ -125,7 +125,9 @@ export async function getManagerCalendar(id: string, origin: string, titleParts?
       gwPoints: lead.gwPoints === undefined ? undefined : `${lead.gwPoints} GW pts`,
       lastPoints: Number.isInteger(lead.lastPoints) ? `${lead.lastPoints} pts (GW${lastFinishedWeek})` : undefined,
       cost: lead.cost === undefined ? undefined : `£${lead.cost.toFixed(1)}m`,
-      fixture: `${home.name} vs ${away.name}`,
+      fixture: lead.team === fixture.team_h
+        ? `${home.name} vs ${away.name}`
+        : `${away.name} vs ${home.name}`,
       gameweek: `GW${fixture.event}`,
     };
 
