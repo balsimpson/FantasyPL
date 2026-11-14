@@ -1,6 +1,7 @@
 import type { InstagramPlayer, InstagramStatKey } from '~/utils/instagram-templates'
 
-export type InstagramDesignId = 'editorial' | 'matchday' | 'scout' | 'studio' | 'club' | 'contrast' | 'night' | 'profile' | 'analyst' | 'hero'
+// 'daily' is rendered by the server cron and is intentionally absent from the editor gallery.
+export type InstagramDesignId = 'editorial' | 'matchday' | 'scout' | 'studio' | 'club' | 'contrast' | 'night' | 'profile' | 'analyst' | 'hero' | 'daily'
 export type InstagramPalette = 'club' | 'complementary'
 export type InstagramStatSignal = 'positive' | 'negative'
 

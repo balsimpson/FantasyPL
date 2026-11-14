@@ -18,6 +18,9 @@ The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, 
 | `components/SchedulerHistoryPostCard.vue`, `utils/instagram-caption.ts` | Saved-post cards, full captions, safe hashtag styling, status icons and card menus |
 | `composables/useInstagramExport.ts` | Asset readiness, PNG capture, download and explicit scheduling |
 | `server/api/scheduler/retry-x.post.ts`, `server/api/scheduler/retry-instagram.post.ts` | Authorized manual retry of a rejected scheduler submission; X retries can edit the caption |
+| `server/api/cron/daily-post.get.ts`, `server/utils/scheduler-daily.ts` | Secret-authenticated daily cron: pick selection, caption generation, upload and paired Buffer reservation |
+| `server/utils/scheduler-artwork.ts`, `server/assets/fonts/`, `server/assets/resvg.wasm` | Server-side 1080 × 1080 artwork renderer (satori + resvg wasm) and its bundled fonts |
+| `server/utils/scheduler-caption.ts` | Shared caption instructions and OpenAI call for the editor and the daily cron |
 | `utils/instagram-templates.ts` | Content formats, normalized player data, stat labels and formatting |
 | `utils/instagram-designs.ts` | Design IDs, stable club palettes and transfer calculations |
 | `components/SchedulerPostPreview.vue` | Responsive display of the fixed-size artwork |
@@ -36,6 +39,19 @@ The scheduler is a separate workflow. Do not include it in homepage, SEO, blog, 
 Read the current export composable and server handlers before changing external integrations. The editor uploads one PNG to Cloudinary, then `/api/send-buffer-post` reserves separate Instagram and X posts in one Convex mutation. Internal actions submit them to Buffer and record each result; `/api/scheduler/status` reports task progress while the page is open. Each post uses its channel's next available queue slot. `/api/buffer-status` checks both connections. Buffer call budget: channel lookups (`server/utils/buffer.ts`) are cached on the server for one hour, and a missing channel is rechecked after five minutes. A Buffer 429 makes the server stop sending Buffer requests for fifteen minutes; cached channel data still serves during that window. Opening the editor adds no Buffer requests once the channel cache is warm. Opening History adds one import request at most every ten minutes per session. Do not add a request that bypasses this cache. The legacy Instagram builder retains its single-channel submission. The Buffer key must be set as `BUFFER_API_KEY` in the Convex deployment environment as well as the Nuxt server environment. If more than one X channel is connected, set `BUFFER_X_CHANNEL_ID` in the Nuxt server environment. Do not replace this with an older integration described in chat history. Never print credentials or put server secrets in public configuration.
 
 Scheduler history, status, caption generation and submissions require the existing admin session at the server. State-changing requests also require the same origin. The legacy Instagram builder submits through the protected Buffer handler; do not expose an automation webhook in browser configuration. Local protections require an authorized release and verification before they apply to the hosted site.
+
+## Daily automation
+
+`/api/cron/daily-post` is the only scheduler path that runs without an admin session. It requires `Authorization: Bearer <CRON_SECRET>` and fails closed when the variable is missing. `vercel.json` runs it at 11:00 UTC (16:30 IST) so the post fills the next Buffer queue slot, around 18:30 IST. Change both times together.
+
+- It picks one player, or two for a comparison every third IST day, from the existing `utils/scheduler-picks.ts` pools. It excludes every player already queued or published on either channel before choosing, and rotates the same six story angles used by the editor.
+- It renders artwork with satori and `@resvg/resvg-wasm` at 1080 × 1080 (`server/utils/scheduler-artwork.ts`), using the bundled Anton and Oswald fonts in `server/assets/fonts/`. No browser is needed, so do not move this work back into a page.
+- Captions use the shared instructions in `server/utils/scheduler-caption.ts`; the editor and cron must not diverge. A provider failure falls back to a factual caption built from the selected stats rather than skipping the day.
+- A real run uploads one PNG to Cloudinary and calls the same paired reservation as the editor. Convex submits each channel to Buffer. `requestId` is `daily-YYYY-MM-DD` in IST, so a repeated run on the same day does not duplicate the post.
+- `?preview=1` returns the PNG and `?dry=1` returns the draft and captions without uploading or scheduling. Use these for checks; never use a real run as a smoke test.
+- The daily design id is `daily`. It is intentionally absent from the editor gallery. Keep it out of gallery changes unless the owner asks for a manual version.
+
+14 November 2026: both layouts, `?preview`, `?dry` and a production build passed locally. Hosted cron execution, the Vercel `CRON_SECRET`, Cloudinary upload and Buffer confirmation remain unverified; do not claim a live post until History shows it.
 
 ## Design direction
 

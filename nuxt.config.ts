@@ -109,6 +109,7 @@ export default defineNuxtConfig({
 		"/player/**": { isr: 600 },
 		"/admin/**": { headers: { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store" } },
 		"/api/admin/**": { headers: { "Cache-Control": "private, no-store" } },
+		"/api/cron/**": { headers: { "Cache-Control": "no-store" } },
 	},
 	site: {
 		url: getPublicSiteOrigin(process.env.NUXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL),
