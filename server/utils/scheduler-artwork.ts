@@ -139,6 +139,12 @@ function nameSize(name: string, max: number, min: number) {
   return min
 }
 
+// Long registry names (for example Brazilian full names) would take three lines
+// and swamp the card, so use the FPL short name for those.
+function displayName(player: InstagramDraft['players'][number]) {
+  return player.fullName.length > 20 ? player.name : player.fullName
+}
+
 function header(gameweek: number | null) {
   return box({ position: 'absolute', top: 46, left: 56, right: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, [
     line({ fontFamily: 'Oswald', fontSize: 25, letterSpacing: 5, color: MUTED }, 'FPL INSIGHTS'),
@@ -194,14 +200,15 @@ function spotlight(draft: InstagramDraft, photo: string | null) {
   const player = draft.players[0]!
   const theme = getInstagramClubTheme(player.clubCode, draft.palette)
   const stats = draft.stats.slice(0, 4)
-  const size = nameSize(player.fullName, 118, 82)
+  const label = displayName(player)
+  const size = nameSize(label, 118, 82)
 
   return box({ width: 1080, height: 1080, position: 'relative', flexDirection: 'column', backgroundColor: BG, color: INK, fontFamily: 'Oswald', overflow: 'hidden' }, [
     ...background(theme.primary),
     header(draft.gameweek),
     box({ position: 'absolute', left: 56, top: 150, width: 620, flexDirection: 'column' }, [
       storyChip(draft.story?.label || 'Player spotlight', { marginBottom: 22 }),
-      line({ fontFamily: 'Anton', fontSize: size, lineHeight: 0.97, letterSpacing: -1, color: INK }, player.fullName.toUpperCase()),
+      line({ fontFamily: 'Anton', fontSize: size, lineHeight: 0.97, letterSpacing: -1, color: INK }, label.toUpperCase()),
       line({ fontSize: 26, color: MUTED, marginTop: 16 }, `${player.club} · ${player.position}`),
     ]),
     box({ position: 'absolute', left: 56, bottom: 108, width: 640, flexDirection: 'column' }, [
@@ -222,21 +229,24 @@ function comparison(draft: InstagramDraft, photos: (string | null)[]) {
   const theme = getInstagramClubTheme(draft.players[0]!.clubCode, draft.palette)
   const stats = draft.stats.slice(0, 3)
 
-  const column = (player: InstagramDraft['players'][number], photo: string | null, side: 'left' | 'right') => box({
-    position: 'absolute', top: 196, [side]: 56, width: 452, height: 730, flexDirection: 'column', justifyContent: 'space-between',
-  }, [
-    box({ flexDirection: 'column' }, [
-      line({ fontFamily: 'Anton', fontSize: nameSize(player.fullName, 64, 46), lineHeight: 0.98, letterSpacing: -0.5, color: INK }, player.fullName.toUpperCase()),
-      line({ fontSize: 21, color: MUTED, marginTop: 10 }, `${player.club} · ${player.position}`),
-      box({ flexDirection: 'row', marginTop: 22 }, stats.map(key => box({ width: 150, flexDirection: 'column' }, [
-        line({ fontSize: 14, letterSpacing: 1, color: FAINT }, instagramStatLabel(key).toUpperCase()),
-        line({ fontFamily: 'Anton', fontSize: 32, color: INK, marginTop: 4 }, formatInstagramStat(player, key)),
-      ]))),
-    ]),
-    box({ width: 452, height: 452, alignItems: side === 'left' ? 'flex-start' : 'flex-end', justifyContent: 'flex-end' }, [
-      portrait(player, photo, 452, theme.primary),
-    ]),
-  ])
+  const column = (player: InstagramDraft['players'][number], photo: string | null, side: 'left' | 'right') => {
+    const label = displayName(player)
+    return box({
+      position: 'absolute', top: 196, [side]: 56, width: 452, height: 730, flexDirection: 'column', justifyContent: 'space-between',
+    }, [
+      box({ flexDirection: 'column' }, [
+        line({ fontFamily: 'Anton', fontSize: nameSize(label, 64, 46), lineHeight: 0.98, letterSpacing: -0.5, color: INK }, label.toUpperCase()),
+        line({ fontSize: 21, color: MUTED, marginTop: 10 }, `${player.club} · ${player.position}`),
+        box({ flexDirection: 'row', marginTop: 22 }, stats.map(key => box({ width: 150, flexDirection: 'column' }, [
+          line({ fontSize: 14, letterSpacing: 1, color: FAINT }, instagramStatLabel(key).toUpperCase()),
+          line({ fontFamily: 'Anton', fontSize: 32, color: INK, marginTop: 4 }, formatInstagramStat(player, key)),
+        ]))),
+      ]),
+      box({ width: 452, height: 452, alignItems: side === 'left' ? 'flex-start' : 'flex-end', justifyContent: 'flex-end' }, [
+        portrait(player, photo, 452, theme.primary),
+      ]),
+    ])
+  }
 
   return box({ width: 1080, height: 1080, position: 'relative', flexDirection: 'column', backgroundColor: BG, color: INK, fontFamily: 'Oswald', overflow: 'hidden' }, [
     ...background(theme.primary),

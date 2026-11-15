@@ -99,11 +99,12 @@ export async function buildDailyDraft(event: Parameters<typeof getCachedFplBoots
   const story = count > 1
     ? { ...selected[0]!.story, evidence: selected.map(candidate => `${candidate.player.name}: ${candidate.story.evidence}`).join(' · '), scope: undefined }
     : selected[0]!.story
+  const label = (player: InstagramDraft['players'][number]) => player.fullName.length > 20 ? player.name : player.fullName
   const draft: InstagramDraft = {
     design: 'daily',
     palette: 'club',
     template: count > 1 ? 'comparison' : 'spotlight',
-    headline: count > 1 ? `${selected[0]!.player.name} vs ${selected[1]!.player.name}` : selected[0]!.player.fullName,
+    headline: count > 1 ? `${label(selected[0]!.player)} vs ${label(selected[1]!.player)}` : label(selected[0]!.player),
     players: selected.map(candidate => candidate.player),
     season,
     stats,
@@ -114,7 +115,7 @@ export async function buildDailyDraft(event: Parameters<typeof getCachedFplBoots
   return { dateKey, angle, draft }
 }
 
-const captionTask = (platform: SchedulerCaptionPlatform) => `Write one ${platform === 'x' ? 'X' : 'Instagram'} caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.`
+const captionTask = (platform: SchedulerCaptionPlatform) => `Write one ${platform === 'x' ? 'X' : 'Instagram'} caption for this FPL post. Follow the supplied story captionFocus and lead with its evidence when present. Use only supplied facts and the selected stats. The facts array gives preformatted price, ownership and points; prefer it over raw numeric fields. Transfer rankings are among eligible scheduler players, not all FPL players. Do not infer injuries, starting lineups, reasons for transfers, future returns or transfer periods. Do not claim or imply rank gains or price changes beyond the supplied price. Total points, goals, assists and minutes are season totals; transfers are gameweek totals, never 24-hour totals. Include #FPL. Return caption text only.`
 
 function fallbackCaption(platform: SchedulerCaptionPlatform, draft: InstagramDraft) {
   const facts = draft.players.map(player => {
@@ -137,10 +138,24 @@ function fallbackCaption(platform: SchedulerCaptionPlatform, draft: InstagramDra
  * factual caption so the daily slot is not silently skipped.
  */
 export async function generateDailyCaptions(draft: InstagramDraft): Promise<DailyCaptions> {
-  const prompt = { task: captionTask('instagram'), ...draft }
+  const facts = draft.players.map(player => ({
+    name: player.fullName,
+    club: player.club,
+    position: player.position,
+    price: player.stats.now_cost == null ? null : `£${(player.stats.now_cost / 10).toFixed(1)}m`,
+    ownership: player.stats.selected_by_percent == null ? null : `${player.stats.selected_by_percent.toFixed(1)}%`,
+    form: player.stats.form,
+    totalPoints: player.stats.total_points,
+    gameweekPoints: player.stats.event_points,
+    pointsPerGame: player.stats.points_per_game,
+    minutes: player.stats.minutes,
+    gameweekTransfersIn: player.stats.transfers_in_event,
+    gameweekTransfersOut: player.stats.transfers_out_event,
+  }))
+  const prompt = { task: captionTask('instagram'), facts, ...draft }
   const [instagram, x] = await Promise.all([
     generateSchedulerCaption('instagram', prompt),
-    generateSchedulerCaption('x', { task: captionTask('x'), ...draft }),
+    generateSchedulerCaption('x', { task: captionTask('x'), facts, ...draft }),
   ])
   const usable = (result: Awaited<ReturnType<typeof generateSchedulerCaption>>) => result.success && typeof result.output === 'string' && result.output.trim() ? result.output.trim() : null
   const instagramText = usable(instagram)
