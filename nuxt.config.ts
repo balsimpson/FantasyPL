@@ -40,7 +40,14 @@ export default defineNuxtConfig({
 	auth: { loadStrategy: "client-only" },
 	// Keep the trimmed data inline; this Nitro version generates an invalid root ISR payload path.
 	experimental: { payloadExtraction: false },
-	nitro: { vercel: { functions: { runtime: "nodejs24.x", maxDuration: 60 } } },
+	nitro: {
+		vercel: {
+			functions: { runtime: "nodejs24.x", maxDuration: 60 },
+			config: {
+				crons: [{ path: "/api/cron/daily-post", schedule: "0 11 * * *" }],
+			},
+		},
+	},
 	vite: {
 		optimizeDeps: {
 			include: [
