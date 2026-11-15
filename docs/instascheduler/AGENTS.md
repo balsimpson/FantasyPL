@@ -48,7 +48,8 @@ Scheduler history, status, caption generation and submissions require the existi
 - It renders artwork with satori and `@resvg/resvg-wasm` at 1080 × 1080 (`server/utils/scheduler-artwork.ts`), using the bundled Anton and Oswald fonts in `server/assets/fonts/`. No browser is needed, so do not move this work back into a page.
 - Captions use the shared instructions in `server/utils/scheduler-caption.ts`; the editor and cron must not diverge. A provider failure falls back to a factual caption built from the selected stats rather than skipping the day.
 - A real run uploads one PNG to Cloudinary and calls the same paired reservation as the editor. Convex submits each channel to Buffer. `requestId` is `daily-YYYY-MM-DD` in IST, so a repeated run on the same day does not duplicate the post.
-- `?preview=1` returns the PNG and `?dry=1` returns the draft and captions without uploading or scheduling. Use these for checks; never use a real run as a smoke test.
+- `?preview=1` returns the PNG and `?dry=1` returns the draft and captions without uploading or scheduling. Both also accept a signed-in admin session, so the owner can check a deployment without the cron secret. Use these for checks; never use a real run as a smoke test.
+- The function uses a 60-second maximum duration in `nuxt.config.ts`; the full path (two captions, image render, upload, reservation) can exceed the Hobby default.
 - The daily design id is `daily`. It is intentionally absent from the editor gallery. Keep it out of gallery changes unless the owner asks for a manual version.
 
 14 November 2026: both layouts, `?preview`, `?dry` and a production build passed locally. Hosted cron execution, the Vercel `CRON_SECRET`, Cloudinary upload and Buffer confirmation remain unverified; do not claim a live post until History shows it.
