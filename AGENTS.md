@@ -85,6 +85,7 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `components/ManagerUpcomingFixtures.vue` | Full-width selected-gameweek fixture disclosure below the week controls, with tough published-XI matchups first and access to the five-week matrix |
 | `components/ManagerSquadPick.vue`, `components/ManagerBenchPick.vue`, `components/ManagerPlayerFixture.vue`, `components/ManagerLineupComparison.vue` | Overlapping player pairs, aligned bench cards, per-player fixture strips and head-to-head comparisons |
 | `components/ManagerPlayerNameplate.vue` | Shared pitch/changed-player identity panel with a bold name, price/points row and integrated fixture footer; `PlayerCardPick.vue` supplies an optional nameplate slot |
+| `components/ManagerTransferRecommendations.vue`, `composables/useManagerTransferRecommendations.ts`, `shared/manager-transfer-plan.ts`, `server/utils/manager-recommendations.ts`, `server/api/managers/[id]/recommendations.get.ts` | Transfer options linked to the selected suggested XI, availability repairs, chip scenarios and independent-transfer ranking; rules and verification are in `DESIGN.md` |
 | `components/ManagerLeaguesPanel.vue` | Header trophy action and leagues slideover |
 | `components/ManagerSquadPerformance.vue`, `composables/useManagerSquadPerformance.ts` | Unified XI price, actual manager points and published-versus-suggested lineup metrics, with gameweek-matched FPL estimates and historical points-per-game fallback |
 | `composables/useManagerPlanner.ts`, `composables/useManagerPlannerDisplay.ts`, `composables/useManagerComparisonMetrics.ts`, `utils/manager-planner.ts` | Planner loading/preview state, stable lineup variants, signed comparisons, fixture summaries and deterministic legal-XI selection; method and limitations are in `DESIGN.md` |
@@ -114,6 +115,8 @@ This project uses root-level Nuxt directories. Follow that structure instead of 
 | `nuxt.config.ts` | Modules, global metadata, and runtime configuration |
 
 Available scripts are `npm run dev`, `npm run build`, `npm run preview`, and `npm run generate`. `postinstall` runs Nuxt preparation. There are currently no dedicated test, lint, or typecheck scripts in `package.json`; use the installed TypeScript compiler directly when a TypeScript check is needed, and do not treat the `/test` route as a test suite. Do not add a test framework for a documentation-only change.
+
+Manager transfer checks run with `node --test tests/manager-recommendations.test.cjs`. They cover the ranking utilities, the handler with mocked providers, and request/cache races; they do not call paid services.
 
 Repeatable checks for shared FPL data validation and admin authorization are a follow-up, not existing coverage. When that work is requested, inspect current contracts, add focused non-destructive checks, document actual commands here, and keep provider-backed and authenticated verification separate.
 

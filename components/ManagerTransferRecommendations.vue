@@ -1,7 +1,7 @@
 <template>
 	<section aria-labelledby="manager-recommendations-title" aria-roledescription="carousel" class="min-w-0 space-y-3">
 		<header class="flex h-9 items-center justify-between gap-3">
-			<h2 id="manager-recommendations-title" class="text-xl font-bold tracking-tight text-white">Recommendations</h2>
+			<h2 id="manager-recommendations-title" class="text-xl font-bold tracking-tight text-white">Transfer options<span v-if="result?.targetGameweek" class="ml-2 text-sm font-normal text-stone-400">GW {{ result.targetGameweek }}</span></h2>
 			<div v-if="result && result.suggestions.length" class="flex items-center gap-2">
 				<span aria-live="polite" aria-atomic="true" class="min-w-8 text-center text-xs tabular-nums text-stone-400">{{ activeSlide + 1 }} / {{ result.suggestions.length }}</span>
 				<div v-if="result.suggestions.length > 1" class="flex items-center gap-1">
@@ -22,6 +22,25 @@
 				</div>
 			</div>
 		</header>
+
+		<UFormField label="Chip plan for this gameweek" description="Choose a plan to compare. This does not play a chip in FPL. Check that the chip is available before using it." class="w-full">
+			<USelect v-model="chip" :items="chipPlans" class="w-full" :ui="{ base: 'w-full' }" />
+		</UFormField>
+		<p class="text-sm leading-6 text-stone-300">{{ managerTransferGuidance[chip] }}</p>
+		<div v-if="result" class="space-y-2 text-xs leading-5 text-stone-400" aria-live="polite">
+			<p>{{ result.squadNote }} {{ chipHistoryText }}</p>
+			<p v-if="result.lineupNote">{{ result.lineupNote }}</p>
+			<p>{{ result.transferNote }}</p>
+			<ul v-if="result.attention?.length" aria-label="Players with availability flags" class="space-y-2">
+				<li v-for="player in result.attention" :key="player.id">
+					<span class="font-semibold text-amber-200">{{ player.name }}</span> · {{ player.role }} · {{ player.news }}. {{ player.message }}
+				</li>
+			</ul>
+			<div v-if="result.rankingUnavailable" class="flex flex-wrap items-center gap-2">
+				<p>Optional performance comparisons could not finish.</p>
+				<UButton color="neutral" variant="outline" size="sm" :loading="loading" @click="loadRecommendations">Retry comparisons</UButton>
+			</div>
+		</div>
 
 		<div class="h-[40rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
 			<p v-if="loading && !result" class="flex h-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#101216] px-4 text-sm text-stone-300" role="status" aria-live="polite">
@@ -58,13 +77,14 @@
 					>
 						<div class="grid h-full min-w-0 grid-rows-[18rem_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)] lg:grid-rows-1">
 							<div class="relative grid h-full min-w-0 grid-cols-2 border-b border-white/10 lg:border-b-0 lg:border-r">
-								<ManagerRecommendationPlayer label="" align="left" :player="suggestion.outgoing" />
+								<ManagerRecommendationPlayer label="Consider selling" align="left" :player="suggestion.outgoing" />
 								<ManagerRecommendationPlayer label="Recommended player" align="right" :player="suggestion.incoming" />
 								<span class="pointer-events-none absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-[#101216] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-stone-200" aria-hidden="true">vs</span>
 							</div>
 
 							<div class="flex h-full min-h-0 min-w-0 flex-col p-3 sm:p-4">
 								<div class="min-h-0 min-w-0 flex-1 overflow-auto">
+									<p class="mb-2 text-sm leading-5 text-white">{{ suggestion.reason }}</p>
 									<p v-if="suggestion.fixtureReason" class="mb-3 text-xs leading-5 text-stone-300">{{ suggestion.fixtureReason }}</p>
 									<table class="w-full min-w-[15.5rem] table-fixed text-left font-sans text-sm font-semibold leading-5 tabular-nums">
 										<caption class="sr-only">Current, recommended, and difference in player performance measures</caption>
@@ -139,10 +159,16 @@
 <script setup>
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 import { CAROUSEL_SINGLE_COLUMNS } from "~/utils/carousel-layout";
-const props = defineProps({ managerId: { type: [String, Number], required: true } });
-const loading = ref(true);
-const errorMessage = ref("");
-const result = ref(null);
+import { managerTransferPlans, managerTransferGuidance } from '~/shared/manager-transfer-plan';
+const props = defineProps({ managerId: { type: [String, Number], required: true }, planningGameweek: { type: Number, default: null } });
+const chip = ref('none');
+const chipPlans = [...managerTransferPlans];
+const { loading, errorMessage, result, loadRecommendations } = useManagerTransferRecommendations(toRef(props, 'managerId'), toRef(props, 'planningGameweek'), chip);
+const chipHistoryText = computed(() => {
+	if (!result.value || result.value.chipHistory == null) return 'Public chip history is unavailable; you can still compare a chip plan.';
+	if (!result.value.chipHistory.length) return 'No chips are recorded as used in the public history.';
+	return `Recorded chips: ${result.value.chipHistory.map((entry) => `${chipPlans.find((plan) => plan.value === entry.name)?.label ?? entry.name} · GW ${entry.event}`).join(', ')}.`;
+});
 const recommendationTrack = ref(null);
 const activeSlide = ref(0);
 const toFiniteNumber = (value) => {
@@ -168,17 +194,6 @@ const getBankImpact = (netCost) => {
 const visibleSuggestions = computed(() => {
 	return (result.value?.suggestions ?? []).map((suggestion) => ({ ...suggestion, bankImpact: getBankImpact(suggestion.netCost) }));
 });
-const cacheKey = computed(() => `manager-recommendations:${props.managerId}`);
-const readCachedRecommendations = () => {
-	try {
-		const cached = JSON.parse(localStorage.getItem(cacheKey.value) || "null");
-		return /^[a-f0-9]{64}$/.test(cached?.fingerprint)
-			&& cached.response?.fingerprint === cached.fingerprint
-			&& Array.isArray(cached.response?.suggestions) ? cached : null;
-	} catch {
-		return null;
-	}
-};
 const scrollToSlide = (index) => {
 	const track = recommendationTrack.value;
 	const lastSlide = visibleSuggestions.value.length - 1;
@@ -199,39 +214,10 @@ const updateActiveSlide = () => {
 			? index : nearest, 0);
 };
 
-const loadRecommendations = async () => {
-	loading.value = true;
-	errorMessage.value = "";
+watch(result, async () => {
 	activeSlide.value = 0;
-	const cached = readCachedRecommendations();
-	if (cached) result.value = cached.response;
-	try {
-		const latest = await $fetch(`/api/managers/${props.managerId}/recommendations`, {
-			retry: 0,
-			cache: "no-store",
-			query: cached ? { cachedFingerprint: cached.fingerprint } : undefined,
-		});
-		if (latest.unchanged && cached) return;
-		result.value = latest;
-		if (typeof latest.fingerprint === "string" && Array.isArray(latest.suggestions)) {
-			try {
-				localStorage.setItem(cacheKey.value, JSON.stringify({ fingerprint: latest.fingerprint, response: latest }));
-			} catch {
-				// Recommendations remain usable when browser storage is full or unavailable.
-			}
-		}
-	} catch (error) {
-		if (!cached) errorMessage.value = error?.data?.statusMessage || "We couldn't compare transfer options just now. Try again shortly.";
-	} finally {
-		loading.value = false;
-	}
-};
-
-let automaticRequestStarted = false;
-onMounted(() => {
-	if (automaticRequestStarted) return;
-	automaticRequestStarted = true;
-	void loadRecommendations();
+	await nextTick();
+	scrollToSlide(0);
 });
 
 const formatStat = (value) => value === null || value === undefined ? "Unavailable" : Number(value).toFixed(1);

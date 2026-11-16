@@ -57,7 +57,7 @@
 					<UButton v-if="squadError" icon="i-lucide-refresh-cw" color="primary" variant="soft" @click="refreshSquad">Try again</UButton>
 				</section>
 			</div>
-			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" />
+			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" :planning-gameweek="planner.selectedPlan.value?.gameweek ?? planner.gameweeks.value[0] ?? null" />
 		</template>
 
 		<section v-else class="space-y-6 py-4" role="status">

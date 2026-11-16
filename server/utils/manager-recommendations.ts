@@ -1,4 +1,13 @@
 import { isManagerPlayerAvailable } from "../../utils/manager-availability";
+import { buildManagerWeekPlan, getPlannerFixtureRun, summarizePlannerRun } from "../../utils/manager-planner";
+import type { ManagerTransferChip } from "../../shared/manager-transfer-plan";
+
+type TransferContext = {
+	chip?: ManagerTransferChip;
+	targetGameweek?: number;
+	gameweeks?: number[];
+	fixtures?: PlayerRecord[];
+};
 
 type PlayerRecord = Record<string, any>;
 type ManagerTransferOption = {
@@ -10,6 +19,9 @@ type ManagerTransferOption = {
 	bankAfter: number;
 	currentGameweek: number;
 	nextGameweek: number | null;
+	reason: string;
+	priority: number;
+	kind: "availability" | "performance";
 };
 
 const positionLabels: Record<number, string> = {
@@ -49,6 +61,7 @@ function summarizePlayer(player: PlayerRecord, teams: Map<number, PlayerRecord>,
 		form: toNumber(player.form),
 		availability: String(player.status ?? "unknown"),
 		chanceOfPlaying: toNumber(player.chance_of_playing_next_round),
+		news: String(player.news ?? ""),
 		expectedPoints: expectedPoints,
 	};
 }
@@ -82,6 +95,7 @@ export function buildManagerSellingPrices(
 	transfers: PlayerRecord[],
 	freeHitGameweeks: Set<number>,
 	managerId: number,
+	unknownChipGameweeks = new Set<number>(),
 ) {
 	const players = new Map<number, PlayerRecord>(elements.map((player) => [Number(player.id), player]));
 	const ownedIds = new Set(picks.map((pick) => Number(pick.element)));
@@ -93,7 +107,13 @@ export function buildManagerSellingPrices(
 		if (entryId !== null && entryId !== managerId) continue;
 		const event = toNumber(transfer.event);
 		if (event !== null && freeHitGameweeks.has(event)) continue;
-		if (event === null && freeHitGameweeks.size > 0) {
+		if (event !== null && unknownChipGameweeks.has(event)) {
+			for (const value of [transfer.element_in, transfer.element_out]) {
+				if (ownedIds.has(Number(value))) unresolvedIds.add(Number(value));
+			}
+			continue;
+		}
+		if (event === null && (freeHitGameweeks.size > 0 || unknownChipGameweeks.size > 0)) {
 			for (const value of [transfer.element_in, transfer.element_out]) {
 				const playerId = toNumber(value);
 				if (playerId !== null && ownedIds.has(playerId)) unresolvedIds.add(playerId);
@@ -153,6 +173,7 @@ export function buildManagerTransferOptions(
 	bank: number,
 	currentGameweek: number,
 	nextGameweek: number | null,
+	context: TransferContext = {},
 ) {
 	if (!picks.length || !Number.isFinite(bank) || bank < 0) return [];
 
@@ -172,9 +193,42 @@ export function buildManagerTransferOptions(
 		teamCounts.set(teamId, (teamCounts.get(teamId) ?? 0) + 1);
 	}
 
+	const targetGameweek = context.targetGameweek ?? nextGameweek;
+	const chip = context.chip ?? 'none';
+	const singleWeek = chip === 'freehit' || chip === 'bboost';
+	const gameweeks = singleWeek && targetGameweek ? [targetGameweek] : context.gameweeks ?? [];
+	const runFor = (player: PlayerRecord) => context.fixtures && gameweeks.length
+		? getPlannerFixtureRun(Number(player.team), context.fixtures, teamRows, gameweeks) : null;
+	const plannerPicks: PlayerRecord[] = roster.map(({ pick, player }) => ({ ...pick, element: player, element_type: positionLabels[Number(player!.element_type)] }));
+	const plan = context.fixtures && targetGameweek
+		? buildManagerWeekPlan({ picks: plannerPicks, startingXI: plannerPicks.filter((pick) => Number(pick.position) <= 11), teams: teamRows }, context.fixtures, targetGameweek) : null;
+	const retainedIds = new Set<number>(plan?.canPreview ? plan.squad.startingXI.map((pick: PlayerRecord) => Number(pick.element.id)) : []);
+	const keepSuggestedXI = chip === 'none' || chip === '3xc';
+	const estimateGameweek = targetGameweek === nextGameweek ? nextGameweek : null;
+	const evidenceScore = (player: PlayerRecord) => {
+		const measures = [toNumber(player.form), toNumber(player.points_per_game)].filter((value): value is number => value !== null);
+		const performance = measures.length ? measures.reduce((sum, value) => sum + value, 0) / measures.length : 0;
+		const run = runFor(player);
+		// Relative evidence only: balance recent form with PPG and the scheduled run.
+		// An unknown difficulty contributes a neutral fixture weight.
+		const fixtures = run ? run.flatMap((week) => week.matches).reduce((sum, match) => sum + 1 + (3 - (match.difficulty ?? 3)) * 0.15, 0) / run.length : 1;
+		return performance * fixtures;
+	};
 	const options: ManagerTransferOption[] = [];
 	for (const { pick, player: outgoing, sellingPrice } of roster) {
 		if (!outgoing || sellingPrice === null) continue;
+		const flagged = !isManagerPlayerAvailable(outgoing);
+		// When the legal XI cannot be computed, only suggest availability repairs.
+		if (keepSuggestedXI && (retainedIds.has(Number(outgoing.id)) || (!plan?.canPreview && !flagged))) continue;
+		const outgoingRun = runFor(outgoing);
+		const outgoingSummary = outgoingRun ? summarizePlannerRun(outgoingRun) : null;
+		const bench = Number(pick.position) > 11;
+		const priority = flagged ? (outgoing.status === 'd' ? 2 : 3) : 0;
+		const role = bench ? 'Published bench' : 'Published XI';
+		const reason = flagged
+			? `${role}: ${String(outgoing.news || 'FPL availability is not confirmed')}. ${chip === 'bboost' ? 'Bench Boost needs all 15 players available.' : 'Review a fit replacement; check the latest team news before transferring.'}`
+			: keepSuggestedXI ? `Outside the suggested GW ${targetGameweek} XI. Compare this upgrade with keeping your current bench cover.`
+			: `${role}: compare this option for your ${chip === 'wildcard' ? 'Wildcard fixture run' : chip === 'freehit' ? 'one-week Free Hit' : 'Bench Boost'}.`;
 		const budget = bank + sellingPrice;
 		const alternatives = elements
 			.filter((candidate) => {
@@ -186,11 +240,31 @@ export function buildManagerTransferOptions(
 				if (Number(candidate.element_type) !== Number(outgoing.element_type)) return false;
 				if (!isManagerPlayerAvailable(candidate) || candidate.can_select === false || candidate.can_transact === false || minutes === null || minutes < 90) return false;
 				if (candidateTeam === null || cost === null || cost > budget) return false;
-				if (!isPerformanceUpgrade(outgoing, candidate, nextGameweek)) return false;
+				const candidateRun = runFor(candidate);
+				if (candidateRun && !candidateRun[0]?.matches.length) return false;
+				const hasPlayingEvidence = (toNumber(candidate.form) ?? 0) > 0 || (estimateGameweek !== null && (toNumber(candidate.ep_next) ?? 0) > 0);
+				if (!hasPlayingEvidence) return false;
+				// Injury repairs must not beat the injured player's historical points per game.
+				if (!flagged && !isPerformanceUpgrade(outgoing, candidate, estimateGameweek)) {
+					const summary = candidateRun ? summarizePlannerRun(candidateRun) : null;
+					const betterFixtures = summary && outgoingSummary && (summary.matches > outgoingSummary.matches
+						|| (summary.averageDifficulty !== null && outgoingSummary.averageDifficulty !== null && summary.averageDifficulty < outgoingSummary.averageDifficulty));
+					if (!betterFixtures || (toNumber(candidate.form) ?? 0) < (toNumber(outgoing.form) ?? 0)) return false;
+				}
 				const countAfterSale = (teamCounts.get(candidateTeam) ?? 0) - (candidateTeam === Number(outgoing.team) ? 1 : 0);
 				return countAfterSale < 3;
 			})
-			.sort((a, b) => compareAlternatives(a, b, nextGameweek))
+			.sort((a, b) => {
+				const aRun = runFor(a), bRun = runFor(b);
+				const aSummary = aRun ? summarizePlannerRun(aRun) : null, bSummary = bRun ? summarizePlannerRun(bRun) : null;
+				// FPL's one-week estimate already accounts for the schedule; do not multiply it by match count.
+				if (singleWeek && estimateGameweek !== null) {
+					const delta = (toNumber(b.ep_next) ?? -1) - (toNumber(a.ep_next) ?? -1);
+					if (delta) return delta;
+				}
+				if (singleWeek && aSummary && bSummary && aSummary.matches !== bSummary.matches) return bSummary.matches - aSummary.matches;
+				return evidenceScore(b) - evidenceScore(a) || compareAlternatives(a, b, estimateGameweek);
+			})
 			.slice(0, 2);
 
 		for (const incoming of alternatives) {
@@ -200,12 +274,13 @@ export function buildManagerTransferOptions(
 			options.push({
 				id: `swap_${Number(pick.element)}_${Number(incoming.id)}`,
 				questionId,
-				outgoing: summarizePlayer(outgoing, teams, sellingPrice, nextGameweek),
-				incoming: summarizePlayer(incoming, teams, incomingPrice, nextGameweek),
+				outgoing: { ...summarizePlayer(outgoing, teams, sellingPrice, estimateGameweek), squadRole: role },
+				incoming: summarizePlayer(incoming, teams, incomingPrice, estimateGameweek),
 				netCost: roundToTenth((incomingPrice - sellingPrice) / 10),
 				bankAfter: roundToTenth((bank + sellingPrice - incomingPrice) / 10),
 				currentGameweek,
 				nextGameweek,
+				reason, priority, kind: flagged ? "availability" : "performance",
 			});
 		}
 	}
@@ -218,24 +293,21 @@ export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(
 		const answer = answers?.[option.questionId];
 		const score = toNumber(answer?.score);
 		const confidence = toNumber(answer?.confidence);
-		if (answer?.type !== "score" || score === null || score < 0 || score > 4) return [];
-		if (score < 2.5) return [];
+		const validScore = answer?.type === "score" && score !== null && score >= 0 && score <= 4;
+		if (option.kind !== 'availability' && (!validScore || score! < 2.5)) return [];
 		return [{
 			...option,
-			score: roundToTenth(score),
+			score: validScore ? roundToTenth(score!) : null,
 			confidence: confidence !== null && confidence >= 0 && confidence <= 1 ? Math.round(confidence * 100) : null,
 		}];
-	}).sort((a, b) => b.score - a.score || (b.confidence ?? -1) - (a.confidence ?? -1));
+	}).sort((a, b) => b.priority - a.priority || (b.score ?? -1) - (a.score ?? -1) || (b.confidence ?? -1) - (a.confidence ?? -1));
 
 	const usedOutgoing = new Set<number>();
-	const usedIncoming = new Set<number>();
 	const suggestions = [];
 	for (const suggestion of ranked) {
 		const outgoingId = Number(suggestion.outgoing.id);
-		const incomingId = Number(suggestion.incoming.id);
-		if (usedOutgoing.has(outgoingId) || usedIncoming.has(incomingId)) continue;
+		if (usedOutgoing.has(outgoingId)) continue;
 		usedOutgoing.add(outgoingId);
-		usedIncoming.add(incomingId);
 		suggestions.push(suggestion);
 	}
 	return suggestions;
