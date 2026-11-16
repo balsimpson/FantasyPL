@@ -31,23 +31,23 @@
 				:key="id"
 				:deadline="planner.deadline.value"
 				:gameweek="planner.deadlineGameweek.value"
-				:loading="planner.pending.value"
+				:loading="isSquadLoading"
 				:error="Boolean(planner.error.value)"
 				:calendar-team="{ id, teamName: managerData.name }"
-				@expired="planner.refresh"
+				@expired="refresh"
 			/>
 			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<ManagerGameweekPlanner v-if="hasPicks" :published-gameweek="managerData.current_event"
-				:gameweeks="planner.gameweeks.value" :plans="planner.displayPlans.value" :rows="planner.rows.value"
-				:selected-plan="planner.displayPlan.value"
-				:pending="planner.pending.value" :error="planner.error.value"
-				@select="planner.selectGameweek" @retry="planner.refresh" />
+				:gameweeks="planner.gameweeks.value" :plans="planner.plans.value" :rows="planner.rows.value"
+				:selected-plan="planner.selectedPlan.value"
+				:pending="isSquadLoading" :error="planner.error.value"
+				@select="planner.selectGameweek" @retry="refreshSquad" />
 
 				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="planner.displaySquad.value"
-					:planning-gameweek="planner.previewActive.value ? planner.displayPlan.value?.gameweek : null"
-					:fixture-gameweek="planner.displayPlan.value?.gameweek" :fixture-rows="planner.displayRows.value"
+					:planning-gameweek="planner.previewActive.value ? planner.selectedPlan.value?.gameweek : null"
+					:fixture-gameweek="planner.selectedPlan.value?.gameweek" :fixture-rows="planner.displayRows.value"
 					:published-gameweek="managerData.current_event" :gameweek-points="managerData.summary_event_points" :season-points="managerData.summary_overall_points"
-					:preview-transfers="planner.transferPreview.value?.transfers" :transfer-status="transferStatus" :published-squad="squadState" :plans="planner.displayPlans.value" @preview="planner.showPreview" @published="planner.showPublished" />
+					:published-squad="squadState" :plans="planner.plans.value" @preview="planner.showPreview" @published="planner.showPublished" />
 				<section v-else-if="isSquadLoading" class="space-y-4 lg:col-start-1 lg:row-start-1" role="status" aria-label="Loading squad">
 					<USkeleton class="h-10 w-48" /><USkeleton class="h-[36rem] w-full rounded-2xl" />
 				</section>
@@ -57,7 +57,7 @@
 					<UButton v-if="squadError" icon="i-lucide-refresh-cw" color="primary" variant="soft" @click="refreshSquad">Try again</UButton>
 				</section>
 			</div>
-			<ManagerTransferRecommendations v-if="hasPicks" :key="`${id}-${managerData.current_event}`" :manager-id="id" :planning-gameweek="planner.displayPlan.value?.gameweek ?? planner.gameweeks.value[0] ?? null" :applied-transfers="planner.transferPreview.value?.transfers" @result="updateTransferResult" />
+			<ManagerTransferRecommendations v-if="planner.selectedRecommendations.value" :result="planner.selectedRecommendations.value" />
 		</template>
 
 		<section v-else class="space-y-6 py-4" role="status">
@@ -132,15 +132,8 @@ const getRankMovement = (league) => {
 	};
 };
 
-const { managerData, squadState, pending, error, isSquadLoading, squadError, refresh, refreshSquad } = useManagerPage(id);
-const transferResult = ref(null);
-const transferStatus = ref('pending');
-const planner = useManagerPlanner(squadState, transferResult);
-const updateTransferResult = (result, status) => {
-	transferResult.value = result;
-	transferStatus.value = status;
-};
-watch([id, () => managerData.value?.current_event], () => updateTransferResult(null, 'pending'));
+const { managerData, squadState, fixtureData, transferPlans, pending, error, isSquadLoading, squadError, refresh, refreshSquad } = useManagerPage(id);
+const planner = useManagerPlanner(squadState, fixtureData, transferPlans);
 const { remember } = useSavedManagers();
 
 onMounted(() => {

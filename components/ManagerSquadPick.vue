@@ -21,6 +21,9 @@
       <p class="font-medium [overflow-wrap:anywhere]">{{ transfer ? 'Transfer for ' : '' }}{{ name(backPick.element) }}</p>
     </div>
     <ManagerPlayerNameplate :aligned="compact" :class="compact ? 'row-start-3 w-full' : '-mt-2 mx-2 mb-2 w-[calc(100%-1rem)]'" :player="frontPick.element" :compact="compact" suggested>
+      <template v-if="transfer" #stats>
+        <ManagerPlayerChange :pick="frontPick" :compared-pick="backPick" :gameweek="gameweek" />
+      </template>
       <template v-if="fixturesAvailable" #fixtures><ManagerPlayerFixture :matches="frontMatches" :compact="compact" available integrated /></template>
     </ManagerPlayerNameplate>
   </button>
@@ -29,14 +32,16 @@
 <script setup>
 import { plannerPlayerName as name } from '~/utils/manager-planner';
 import ManagerPlayerNameplate from '~/components/ManagerPlayerNameplate.vue';
+import ManagerPlayerChange from '~/components/ManagerPlayerChange.vue';
 const props = defineProps({
   pick: { type: Object, required: true }, comparedPick: { type: Object, default: null },
-  matches: { type: Array, default: () => [] }, comparedMatches: { type: Array, default: () => [] },
+  matches: { type: Array, default: () => [] },
   fixturesAvailable: { type: Boolean, default: false }, transfer: { type: Boolean, default: false }, compact: { type: Boolean, default: false },
+  gameweek: { type: Number, default: null },
   detailed: { type: Boolean, default: false }, events: { type: Array, default: () => [] }, teams: { type: Array, default: () => [] },
 });
 defineEmits(['compare']);
-const frontPick = computed(() => !props.transfer && props.comparedPick && Number(props.pick.position) > 11 ? props.comparedPick : props.pick);
-const backPick = computed(() => frontPick.value.element.id === props.pick.element.id ? props.comparedPick : props.pick);
-const frontMatches = computed(() => frontPick.value.element.id === props.pick.element.id ? props.matches : props.comparedMatches);
+const frontPick = toRef(props, 'pick');
+const backPick = toRef(props, 'comparedPick');
+const frontMatches = toRef(props, 'matches');
 </script>

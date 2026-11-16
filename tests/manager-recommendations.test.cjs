@@ -19,7 +19,7 @@ function load(relative, mocks = {}, globals = {}) {
   new Function('require', 'module', 'exports', ...Object.keys(globals), code)(localRequire, module, module.exports, ...Object.values(globals));
   return module.exports;
 }
-const { buildManagerTransferOptions: build, rankManagerTransferSuggestions: rank, buildManagerSellingPrices: prices, buildManagerTransferPreview: preview } = load('server/utils/manager-recommendations.ts');
+const { buildManagerTransferOptions: build, rankManagerTransferSuggestions: rank, buildManagerSellingPrices: prices, buildManagerTransferPreview: preview, buildManagerSquadTransferPlans: fullSquadPlans } = load('server/utils/manager-recommendations.ts');
 const { buildManagerWeekPlan } = load('utils/manager-planner.ts');
 const positions = [1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 1, 2, 4, 2];
 function fixture() {
@@ -159,6 +159,28 @@ test('a transfer from the published bench keeps its true comparison when the for
   };
   const { variants } = useManagerPlannerDisplay(published, [plan]);
   assert.deepEqual(variants.value.find(variant => variant.key === '11').changes, [{ incoming, outgoing, transfer: true }]);
+});
+
+test('whole-squad plans upgrade starters and bench across the same fixture snapshot', () => {
+  const f = fixture();
+  f.elements.push(f.candidate(90, 3, { now_cost: 150, ep_next: '9', points_per_game: '9', form: '9' }));
+  const data = { elements: f.elements, teams: f.teams, events: [{ id: 11, is_next: true }, { id: 12 }] };
+  const [next, future] = fullSquadPlans(f.picks, data, f.fixtures, [11, 12], 10);
+  assert.ok(next.transferPreview.transfers.some(move => move.outgoingId <= 11 && move.incomingId === 90));
+  assert.ok(next.transferPreview.transfers.some(move => move.outgoingId === 14 && move.incomingId === 17));
+  assert.ok(next.transferPreview.replacements.some(pick => pick.position === 14 && pick.element.id === 17));
+  const applied = new Set(next.transferPreview.transfers.map(move => move.incomingId));
+  assert.ok(next.suggestions.every(option => !applied.has(option.incoming.id)));
+  assert.ok(future.suggestions.every(option => option.incoming.expectedPoints === null));
+});
+
+test('bench comparisons use matching estimates and show season points per game for later weeks', () => {
+  const { getManagerLineupDeltas } = load('utils/manager-lineup-metrics.ts');
+  const pick = (expectedPoints, points_per_game, form) => ({ expectedPoints, expectedPointsGameweek: 11, element: { points_per_game, form } });
+  const before = [pick(0, '2', '1'), pick('5', '4', '3')];
+  const after = [pick('4', '6', '5'), pick('4', '4', '3')];
+  assert.deepEqual(getManagerLineupDeltas(after, before, 11).map(row => [row.label, row.delta]), [['Est. pts', '+3.0'], ['Avg form', '+2.0']]);
+  assert.deepEqual(getManagerLineupDeltas(after, before, 12).map(row => [row.label, row.delta]), [['Pts/game', '+4.0'], ['Avg form', '+2.0']]);
 });
 
 test('unscored optional upgrades stay hidden while injury replacements survive provider failure', () => {

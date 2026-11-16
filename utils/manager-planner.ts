@@ -53,16 +53,20 @@ export function summarizePlannerRun(run: ReturnType<typeof getPlannerFixtureRun>
 }
 
 export function buildManagerWeekPlan(squad: Row, fixtures: Row[], gameweek: number) {
+  const available = squad.picks.filter((pick: Row) => isManagerPlayerAvailable(pick.element));
+  const useEstimate = available.length > 0 && available.every((pick: Row) =>
+    Number(pick.expectedPointsGameweek) === gameweek && number(pick.expectedPoints) !== null);
   const ranked = squad.picks.map((pick: Row) => {
     const player = pick.element;
     const week = getPlannerFixtureRun(Number(player.team), fixtures, squad.teams, [gameweek])[0]!;
     const flagged = !isManagerPlayerAvailable(player);
     const ppg = number(player.points_per_game);
     const form = number(player.form);
-    const complete = week.matches.every((match) => match.difficulty !== null) && (ppg !== null || form !== null);
-    // A relative selection score, never a points forecast. Each scheduled match contributes.
+    const complete = week.matches.every((match) => match.difficulty !== null) && (useEstimate || ppg !== null || form !== null);
+    // The official estimate already includes the scheduled fixtures.
     const score = complete && week.matches.length && !flagged
-      ? Math.max(0, ((ppg ?? form!) + (form ?? ppg!)) / 2)
+      ? useEstimate ? number(pick.expectedPoints)!
+      : Math.max(0, ((ppg ?? form!) + (form ?? ppg!)) / 2)
         * week.matches.reduce((total, match) => total + 1 + (3 - match.difficulty!) * 0.15, 0) : null;
     return { pick, week, score, flagged };
   });
@@ -79,7 +83,8 @@ export function buildManagerWeekPlan(squad: Row, fixtures: Row[], gameweek: numb
       const groups = [[1, 1], [2, defenders], [3, midfielders], [4, forwards]];
       const selection = groups.flatMap(([position, count]) => byPosition(position!).slice(0, count));
       if (selection.length !== 11) continue;
-      const score = selection.reduce((total: number, row: Row) => total + row.score, 0);
+      const score = selection.reduce((total: number, row: Row) => total + row.score, 0)
+        + (useEstimate ? Math.max(...selection.map((row: Row) => row.score)) : 0);
       const changes = selection.filter((row: Row) => !publishedIds.has(Number(row.pick.element.id))).length;
       if (score > bestScore + 1e-9 || (Math.abs(score - bestScore) <= 1e-9 && changes < fewestChanges)) {
         best = selection; bestScore = score; fewestChanges = changes;

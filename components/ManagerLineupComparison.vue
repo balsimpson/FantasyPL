@@ -36,5 +36,5 @@ const open = defineModel('open', { type: Boolean, default: false });
 const props = defineProps({ pair: { type: Object, default: null }, gameweek: { type: Number, default: null }, rows: { type: Array, default: () => [] } });
 const fixturesFor = (pick) => props.rows.find((row) => row.pick.element.id === pick.element.id)?.run.find((week) => week.gameweek === props.gameweek)?.matches ?? [];
 const fixtureText = (pick) => fixturesFor(pick).map((match) => `${match.shortName} ${match.venue === 'Home' ? 'H' : 'A'} · ${getManagerDifficultyLabel(match.difficulty)}`).join(' / ') || 'No match';
-const metrics = useManagerComparisonMetrics(() => props.pair);
+const metrics = useManagerComparisonMetrics(() => props.pair, () => props.gameweek);
 </script>

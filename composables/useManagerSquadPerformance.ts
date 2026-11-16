@@ -32,7 +32,7 @@ export function useManagerSquadPerformance(
     const current = summarize(selected, toValue(rows), week, expected);
     const baseline = summarize(original, toValue(rows), week, expected);
     return [
-      { key: 'points', label: expected ? `FPL estimate · GW ${week}` : 'Recent pts/game', decimals: 1, title: expected ? 'Combined FPL next-gameweek estimate for the XI, including the captain.' : 'Combined historical points per game for the XI, including the captain.' },
+      { key: 'points', label: expected ? `FPL estimate · GW ${week}` : 'Season pts/game', decimals: 1, title: expected ? 'Combined FPL next-gameweek estimate for the XI, including the captain.' : 'Combined historical points per game for the XI, including the captain.' },
       { key: 'form', label: 'Average form', decimals: 1, title: 'Average current FPL form across the starting XI.' },
       { key: 'difficulty', label: 'Fixture difficulty', decimals: 1, suffix: '/5', lowerBetter: true, title: 'Average official difficulty across the XI’s scheduled matches.' },
       { key: 'tough', label: 'Tough matchups', decimals: 0, lowerBetter: true, title: 'Starters whose scheduled opponents are all rated 4 or 5.' },

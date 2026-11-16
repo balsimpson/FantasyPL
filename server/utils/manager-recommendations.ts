@@ -1,12 +1,14 @@
 import { isManagerPlayerAvailable } from "../../utils/manager-availability";
 import { buildManagerWeekPlan, getPlannerFixtureRun, summarizePlannerRun } from "../../utils/manager-planner";
 import type { ManagerTransferChip } from "../../shared/manager-transfer-plan";
+import { buildManagerSquad } from "./manager-squad";
 
 type TransferContext = {
 	chip?: ManagerTransferChip;
 	targetGameweek?: number;
 	gameweeks?: number[];
 	fixtures?: PlayerRecord[];
+	wholeSquad?: boolean;
 };
 
 type PlayerRecord = Record<string, any>;
@@ -15,13 +17,14 @@ type ManagerTransferOption = {
 	questionId: string;
 	outgoing: PlayerRecord;
 	incoming: PlayerRecord;
-	netCost: number;
-	bankAfter: number;
+	netCost: number | null;
+	bankAfter: number | null;
 	currentGameweek: number;
 	nextGameweek: number | null;
 	reason: string;
 	priority: number;
 	kind: "availability" | "performance";
+	previewGain?: number;
 };
 
 const positionLabels: Record<number, string> = {
@@ -194,16 +197,22 @@ export function buildManagerTransferOptions(
 	}
 
 	const targetGameweek = context.targetGameweek ?? nextGameweek;
+	const wholeSquad = context.wholeSquad === true;
 	const chip = context.chip ?? 'none';
 	const singleWeek = chip === 'freehit' || chip === 'bboost';
 	const gameweeks = singleWeek && targetGameweek ? [targetGameweek] : context.gameweeks ?? [];
-	const runFor = (player: PlayerRecord) => context.fixtures && gameweeks.length
-		? getPlannerFixtureRun(Number(player.team), context.fixtures, teamRows, gameweeks) : null;
+	const runs = new Map<number, ReturnType<typeof getPlannerFixtureRun>>();
+	const runFor = (player: PlayerRecord) => {
+		if (!context.fixtures || !gameweeks.length) return null;
+		const team = Number(player.team);
+		if (!runs.has(team)) runs.set(team, getPlannerFixtureRun(team, context.fixtures, teamRows, gameweeks));
+		return runs.get(team)!;
+	};
 	const plannerPicks: PlayerRecord[] = roster.map(({ pick, player }) => ({ ...pick, element: player, element_type: positionLabels[Number(player!.element_type)] }));
-	const plan = context.fixtures && targetGameweek
+	const plan = !wholeSquad && context.fixtures && targetGameweek
 		? buildManagerWeekPlan({ picks: plannerPicks, startingXI: plannerPicks.filter((pick) => Number(pick.position) <= 11), teams: teamRows }, context.fixtures, targetGameweek) : null;
 	const retainedIds = new Set<number>(plan?.canPreview ? plan.squad.startingXI.map((pick: PlayerRecord) => Number(pick.element.id)) : []);
-	const keepSuggestedXI = chip === 'none' || chip === '3xc';
+	const keepSuggestedXI = !wholeSquad && (chip === 'none' || chip === '3xc');
 	const estimateGameweek = targetGameweek === nextGameweek ? nextGameweek : null;
 	const evidenceScore = (player: PlayerRecord) => {
 		const measures = [toNumber(player.form), toNumber(player.points_per_game)].filter((value): value is number => value !== null);
@@ -214,9 +223,11 @@ export function buildManagerTransferOptions(
 		const fixtures = run ? run.flatMap((week) => week.matches).reduce((sum, match) => sum + 1 + (3 - (match.difficulty ?? 3)) * 0.15, 0) / run.length : 1;
 		return performance * fixtures;
 	};
+	const squadScore = (player: PlayerRecord, useEstimate: boolean) =>
+		useEstimate ? toNumber(player.ep_next) : evidenceScore(player);
 	const options: ManagerTransferOption[] = [];
 	for (const { pick, player: outgoing, sellingPrice } of roster) {
-		if (!outgoing || sellingPrice === null) continue;
+		if (!outgoing || (!wholeSquad && sellingPrice === null)) continue;
 		const flagged = !isManagerPlayerAvailable(outgoing);
 		// When the legal XI cannot be computed, only suggest availability repairs.
 		if (keepSuggestedXI && (retainedIds.has(Number(outgoing.id)) || (!plan?.canPreview && !flagged))) continue;
@@ -225,12 +236,14 @@ export function buildManagerTransferOptions(
 		const bench = Number(pick.position) > 11;
 		const priority = flagged ? (outgoing.status === 'd' ? 2 : 3) : 0;
 		const role = bench ? 'Published bench' : 'Published XI';
+		const useEstimate = estimateGameweek !== null && toNumber(outgoing.ep_next) !== null;
 		const reason = flagged ? String(outgoing.news || 'Availability not confirmed')
+			: wholeSquad ? useEstimate ? `Higher GW ${targetGameweek} FPL estimate` : 'Stronger form and fixture score'
 			: chip === 'freehit' ? `Improves your GW ${targetGameweek} XI`
 			: chip === 'bboost' ? `Improves your GW ${targetGameweek} total, including the bench`
 			: chip === 'wildcard' ? 'Stronger upcoming fixture run'
 			: 'Upgrade outside your suggested XI';
-		const budget = bank + sellingPrice;
+		const budget = bank + (sellingPrice ?? 0);
 		const alternatives = elements
 			.filter((candidate) => {
 				const candidateId = Number(candidate.id);
@@ -240,12 +253,16 @@ export function buildManagerTransferOptions(
 				if (!Number.isSafeInteger(candidateId) || candidateId < 1 || ownedIds.has(candidateId)) return false;
 				if (Number(candidate.element_type) !== Number(outgoing.element_type)) return false;
 				if (!isManagerPlayerAvailable(candidate) || candidate.can_select === false || candidate.can_transact === false || minutes === null || minutes < 90) return false;
-				if (candidateTeam === null || cost === null || cost > budget) return false;
+				if (candidateTeam === null || cost === null || (!wholeSquad && cost > budget)) return false;
 				const candidateRun = runFor(candidate);
 				if (candidateRun && !candidateRun[0]?.matches.length) return false;
 				const hasPlayingEvidence = (toNumber(candidate.form) ?? 0) > 0 || (estimateGameweek !== null && (toNumber(candidate.ep_next) ?? 0) > 0);
 				if (!hasPlayingEvidence) return false;
-				if (chip === 'freehit' && plan?.canPreview) {
+				if (wholeSquad) {
+					if (candidateRun?.[0]?.matches.some(match => match.difficulty === null)) return false;
+					const score = squadScore(candidate, useEstimate);
+					if (!flagged && (score === null || score - squadScore(outgoing, useEstimate)! < 0.5)) return false;
+				} else if (chip === 'freehit' && plan?.canPreview) {
 					const nextPicks = plannerPicks.map((row) => row.element.id === outgoing.id ? { ...row, element: candidate } : row);
 					const nextPlan = buildManagerWeekPlan({ picks: nextPicks, startingXI: nextPicks.filter((row) => Number(row.position) <= 11), teams: teamRows }, context.fixtures!, targetGameweek!);
 					if (!nextPlan.canPreview || !nextPlan.squad.startingXI.some((row: PlayerRecord) => row.element.id === candidate.id)
@@ -265,6 +282,8 @@ export function buildManagerTransferOptions(
 				return countAfterSale < 3;
 			})
 			.sort((a, b) => {
+				if (wholeSquad) return (squadScore(b, useEstimate) ?? -1) - (squadScore(a, useEstimate) ?? -1)
+					|| evidenceScore(b) - evidenceScore(a) || Number(a.id) - Number(b.id);
 				const aRun = runFor(a), bRun = runFor(b);
 				const aSummary = aRun ? summarizePlannerRun(aRun) : null, bSummary = bRun ? summarizePlannerRun(bRun) : null;
 				// FPL's one-week estimate already accounts for the schedule; do not multiply it by match count.
@@ -274,28 +293,62 @@ export function buildManagerTransferOptions(
 				}
 				if (singleWeek && aSummary && bSummary && aSummary.matches !== bSummary.matches) return bSummary.matches - aSummary.matches;
 				return evidenceScore(b) - evidenceScore(a) || compareAlternatives(a, b, estimateGameweek);
-			})
-			.slice(0, 2);
+			});
 
-		for (const incoming of alternatives) {
+		for (const incoming of wholeSquad ? alternatives : alternatives.slice(0, 2)) {
 			const incomingPrice = toNumber(incoming.now_cost);
 			if (incomingPrice === null) continue;
 			const questionId = `option_${options.length + 1}`;
 			options.push({
 				id: `swap_${Number(pick.element)}_${Number(incoming.id)}`,
 				questionId,
-				outgoing: { ...summarizePlayer(outgoing, teams, sellingPrice, estimateGameweek), squadRole: role },
+				outgoing: { ...summarizePlayer(outgoing, teams, sellingPrice ?? Number(outgoing.now_cost), estimateGameweek), squadRole: role },
 				incoming: summarizePlayer(incoming, teams, incomingPrice, estimateGameweek),
-				netCost: roundToTenth((incomingPrice - sellingPrice) / 10),
-				bankAfter: roundToTenth((bank + sellingPrice - incomingPrice) / 10),
+				netCost: sellingPrice === null ? null : roundToTenth((incomingPrice - sellingPrice) / 10),
+				bankAfter: sellingPrice === null ? null : roundToTenth((bank + sellingPrice - incomingPrice) / 10),
 				currentGameweek,
 				nextGameweek,
 				reason, priority: chip === 'freehit' ? 0 : priority, kind: flagged && chip !== 'freehit' ? "availability" : "performance",
+				...(wholeSquad ? { previewGain: (squadScore(incoming, useEstimate) ?? 0) - (squadScore(outgoing, useEstimate) ?? 0) } : {}),
 			});
 		}
 	}
 
 	return options;
+}
+
+export function buildManagerSquadTransferPlans(
+	picks: PlayerRecord[],
+	bootstrap: { elements: PlayerRecord[]; teams: PlayerRecord[]; events: PlayerRecord[] },
+	fixtures: PlayerRecord[],
+	gameweeks: number[],
+	currentGameweek: number,
+) {
+	if (picks.length !== 15 || new Set(picks.map(pick => Number(pick.element))).size !== 15) return [];
+	const players = new Map(bootstrap.elements.map(player => [Number(player.id), player]));
+	const nextGameweek = Number(bootstrap.events.find(event => event.is_next)?.id) || null;
+	return gameweeks.map(targetGameweek => {
+		const options = buildManagerTransferOptions(picks, bootstrap.elements, bootstrap.teams, new Map(), 0, currentGameweek,
+			nextGameweek, { wholeSquad: true, targetGameweek, gameweeks: [targetGameweek], fixtures });
+		options.sort((a, b) => b.priority - a.priority || (b.previewGain ?? 0) - (a.previewGain ?? 0));
+		const preview = buildManagerTransferPreview(picks, players, options, { scanAllCandidates: true });
+		const incomingIds = new Set(preview.transfers.map(move => move.incomingId));
+		const hasAlternative = new Set<number>();
+		const suggestions = options.filter(({ outgoing, incoming }) => {
+			if (incomingIds.has(incoming.id) || hasAlternative.has(outgoing.id)) return false;
+			hasAlternative.add(outgoing.id);
+			return true;
+		});
+		const replacements = preview.picks.filter(pick => incomingIds.has(Number(pick.element)));
+		return {
+			targetGameweek,
+			nextGameweek,
+			suggestions,
+			transferPreview: replacements.length ? {
+				replacements: buildManagerSquad(replacements, bootstrap).picks, transfers: preview.transfers,
+			} : null,
+		};
+	});
 }
 
 export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(
@@ -330,6 +383,7 @@ export function buildManagerTransferPreview(
 	picks: PlayerRecord[],
 	players: Map<number, PlayerRecord>,
 	suggestions: Pick<ManagerTransferOption, "outgoing" | "incoming">[],
+	{ scanAllCandidates = false } = {},
 ) {
 	const owned = new Set(picks.map((pick) => Number(pick.element)));
 	const clubCounts = new Map<number, number>();
@@ -341,6 +395,9 @@ export function buildManagerTransferPreview(
 	const byOutgoing = new Map<number, {
 		outgoing: PlayerRecord; incoming: PlayerRecord; fromClub: number; toClub: number; gain: number;
 	}[]>();
+	const claimed = new Set<number>();
+	const signed = new Set<number>();
+	const adjustClub = (club: number, delta: number) => clubCounts.set(club, (clubCounts.get(club) ?? 0) + delta);
 	for (const { outgoing, incoming } of suggestions) {
 		if (!owned.has(outgoing.id) || owned.has(incoming.id)) continue;
 		const from = players.get(outgoing.id);
@@ -348,8 +405,17 @@ export function buildManagerTransferPreview(
 		if (!from || !to) continue;
 		const before = outgoing.expectedPoints ?? outgoing.form ?? 0;
 		const after = incoming.expectedPoints ?? incoming.form ?? 0;
+		const fromClub = Number(from.team);
+		const toClub = Number(to.team);
+		if (scanAllCandidates) {
+			if (claimed.has(outgoing.id) || signed.has(incoming.id) || (toClub !== fromClub && (clubCounts.get(toClub) ?? 0) >= 3)) continue;
+			claimed.add(outgoing.id);
+			signed.add(incoming.id);
+			adjustClub(fromClub, -1);
+			adjustClub(toClub, 1);
+		}
 		const alternatives = byOutgoing.get(outgoing.id) ?? [];
-		alternatives.push({ outgoing, incoming, fromClub: Number(from.team), toClub: Number(to.team), gain: after - before });
+		alternatives.push({ outgoing, incoming, fromClub, toClub, gain: after - before });
 		byOutgoing.set(outgoing.id, alternatives);
 	}
 
@@ -357,8 +423,6 @@ export function buildManagerTransferPreview(
 	const selected: (typeof groups)[number] = [];
 	let best = selected.slice();
 	let lowestLoss = Infinity;
-	const signed = new Set<number>();
-	const adjustClub = (club: number, delta: number) => clubCounts.set(club, (clubCounts.get(club) ?? 0) + delta);
 
 	// Consider both shortlisted candidates so one crowded club does not block another upgrade.
 	function select(index: number, loss: number) {
@@ -388,7 +452,9 @@ export function buildManagerTransferPreview(
 		}
 		select(index + 1, loss + Math.max(0, preferred.gain) + 1);
 	}
-	select(0, 0);
+	if (scanAllCandidates) {
+		if ([...clubCounts.values()].every(count => count <= 3)) best = groups.flat();
+	} else select(0, 0);
 
 	const replacements = new Map(best.map(({ outgoing, incoming }) => [outgoing.id, incoming.id]));
 	return {

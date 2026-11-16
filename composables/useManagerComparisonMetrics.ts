@@ -5,13 +5,16 @@ const numeric = (value: unknown) => value === null || value === undefined || val
 const format = (value: unknown, decimals = 0) => numeric(value) === null ? '—' : new Intl.NumberFormat('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(Number(value));
 const statuses: Record<string, string> = { a: 'Available', d: 'Doubtful', i: 'Injured', s: 'Suspended', u: 'Unavailable', n: 'Unavailable' };
 
-export function useManagerComparisonMetrics(pair: MaybeRefOrGetter<Row | null>) {
+export function useManagerComparisonMetrics(pair: MaybeRefOrGetter<Row | null>, gameweek: MaybeRefOrGetter<number | null> = null) {
   return computed(() => {
     const players = toValue(pair);
     if (!players) return [];
     const current = players.outgoing.element;
     const suggested = players.incoming.element;
+    const week = toValue(gameweek);
+    const estimates = week !== null && [players.outgoing, players.incoming].every(pick => Number(pick.expectedPointsGameweek) === week);
     const rows = [
+      ...(estimates ? [{ label: `FPL estimate · GW ${week}`, field: 'ep_next', decimals: 1 }] : []),
       { label: 'Form', field: 'form', decimals: 1 }, { label: 'Points per game', field: 'points_per_game', decimals: 1 },
       { label: 'Season points', field: 'total_points' }, { label: 'Minutes played', field: 'minutes' },
       { label: 'Goals', field: 'goals_scored' }, { label: 'Assists', field: 'assists' },
