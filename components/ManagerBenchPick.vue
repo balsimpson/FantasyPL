@@ -6,7 +6,7 @@
         <span class="absolute bottom-0 h-full" :class="comparedPick ? 'right-0 w-[75%]' : 'inset-x-0 w-full'"><PlayerPortrait :player="frontPick.element" :alt="name(frontPick.element)" /></span>
         <PlayerDisciplineBadges :yellow-cards="frontPick.element.yellow_cards" :red-cards="frontPick.element.red_cards" compact class="absolute bottom-1 left-1 z-10" />
         <span v-if="frontPick.is_captain || frontPick.is_vice_captain" class="absolute right-1 top-1 grid size-6 place-items-center rounded-full text-xs font-black" :class="frontPick.is_captain ? 'bg-lime-300 text-lime-950' : 'bg-amber-200 text-stone-950'" :aria-label="frontPick.is_captain ? 'Captain' : 'Vice-captain'">{{ frontPick.is_captain ? 'C' : 'V' }}</span>
-        <span v-if="comparedPick" class="absolute left-1 top-1 rounded bg-[#0b2119]/95 px-1.5 py-1 text-[0.6rem] font-semibold text-lime-300">Suggested XI</span>
+        <span v-if="comparedPick" class="absolute left-1 top-1 rounded bg-[#0b2119]/95 px-1.5 py-1 text-[0.6rem] font-semibold text-lime-300">{{ transfer ? 'Transfer in' : 'Suggested XI' }}</span>
       </span>
       <span class="px-2 text-[0.65rem] leading-4 text-stone-400 [overflow-wrap:anywhere]" :class="comparedPick ? 'bg-black/30 py-1' : ''">{{ comparedPick ? name(backPick.element) : '' }}</span>
       <span class="flex flex-col items-center justify-center gap-1 px-2 py-2">
@@ -34,10 +34,10 @@ import { plannerPlayerName as name } from '~/utils/manager-planner';
 const props = defineProps({
   pick: { type: Object, required: true }, comparedPick: { type: Object, default: null },
   matches: { type: Array, default: () => [] }, comparedMatches: { type: Array, default: () => [] },
-  fixturesAvailable: { type: Boolean, default: false },
+  fixturesAvailable: { type: Boolean, default: false }, transfer: { type: Boolean, default: false },
 });
 defineEmits(['compare']);
-const frontPick = computed(() => props.comparedPick && Number(props.pick.position) > 11 ? props.comparedPick : props.pick);
+const frontPick = computed(() => !props.transfer && props.comparedPick && Number(props.pick.position) > 11 ? props.comparedPick : props.pick);
 const backPick = computed(() => frontPick.value.element.id === props.pick.element.id ? props.comparedPick : props.pick);
 const frontMatches = computed(() => frontPick.value.element.id === props.pick.element.id ? props.matches : props.comparedMatches);
 const stats = computed(() => {

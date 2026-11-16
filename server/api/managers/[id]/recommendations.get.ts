@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { getManagerHistory, getManagerPicks, getManagerTransfers } from "~~/composables/usePremiereLeague";
-import { buildManagerSellingPrices, buildManagerTransferOptions, rankManagerTransferSuggestions } from "../../../utils/manager-recommendations";
+import { buildManagerSellingPrices, buildManagerTransferOptions, buildManagerTransferPreview, rankManagerTransferSuggestions } from "../../../utils/manager-recommendations";
 import { getManagerFixtures } from "../../../utils/manager-fixtures";
+import { buildManagerSquad } from "../../../utils/manager-squad";
 import { managerTransferPlans, managerTransferGuidance, type ManagerTransferChip } from "../../../../shared/manager-transfer-plan";
 import { isManagerPlayerAvailable } from "../../../../utils/manager-availability";
-import { getPlannerFixtureRun, summarizePlannerRun } from "../../../../utils/manager-planner";
+import { buildManagerWeekPlan, getPlannerFixtureRun, summarizePlannerRun } from "../../../../utils/manager-planner";
 
 const recommendationCache = new Map<number, { fingerprint: string; response: Record<string, any> }>();
 const inFlightRequests = new Map<string, Promise<Record<string, any>>>();
@@ -159,19 +160,25 @@ export default defineEventHandler(async (event) => {
 		const player = players.get(Number(pick.element))!;
 		if (isManagerPlayerAvailable(player)) return [];
 		const hasOption = baseOptions.some((option) => option.outgoing.id === player.id);
-		return [{ id: player.id, name: [player.first_name, player.second_name].filter(Boolean).join(' ') || player.web_name,
+		return [{ id: player.id, name: player.web_name,
 			role: Number(pick.position) > 11 ? 'Published bench' : 'Published XI',
 			news: player.news || 'Availability not confirmed by FPL',
 			message: hasOption ? 'Replacement option below.' : !sellingPrices.has(player.id)
 				? 'Sale value could not be verified. Check your transfer budget in FPL.'
 				: 'No fit, affordable replacement with recent playing evidence was found. Check team news and your bench cover.' }];
 	});
+	const captainPlan = chip === '3xc' && hasFixtures ? buildManagerWeekPlan({
+		picks: selection.picks.map((pick: Record<string, any>) => ({ ...pick, element: players.get(Number(pick.element)) })),
+		startingXI: selection.picks.filter((pick: Record<string, any>) => Number(pick.position) <= 11).map((pick: Record<string, any>) => ({ ...pick, element: players.get(Number(pick.element)) })),
+		teams: bootstrap.teams,
+	}, fixtureData!.fixtures, targetGameweek) : null;
 	const context = {
 		targetGameweek, chip, squadGameweek, publishedChip, chipHistory,
+		captainNote: captainPlan?.captain ? `Triple Captain pick: ${captainPlan.captain.element.web_name}` : null,
 		guidance: managerTransferGuidance[chip], attention,
 		squadNote: publishedChip === 'freehit' ? `Based on your GW ${squadGameweek} permanent squad before Free Hit, not the temporary squad shown above.` : `Based on your published GW ${squadGameweek} squad.`,
 		transferNote: 'Each card is a separate option using the same bank, not a combined transfer plan. Confirm sale prices, current funds and free transfers in FPL. Point hits are not included.',
-		lineupNote: hasFixtures ? null : 'Fixtures could not load. Only availability repairs are shown for a normal week; the suggested XI could not be checked.',
+		lineupNote: hasFixtures ? null : 'Fixtures unavailable. Showing availability fixes only.',
 	};
 	const playerTeams = new Map<number, number>(bootstrap.elements.map((player: Record<string, any>) => [Number(player.id), Number(player.team)]));
 	const withFixtures = (player: Record<string, any>) => {
@@ -184,10 +191,10 @@ export default defineEventHandler(async (event) => {
 		const incoming = withFixtures(option.incoming);
 		const current = outgoing.fixtureSummary;
 		const replacement = incoming.fixtureSummary;
-		const range = gameweeks.length ? `GW ${gameweeks[0]}–${gameweeks.at(-1)}` : '';
+		const range = gameweeks.length ? gameweeks.length === 1 ? `GW ${gameweeks[0]}` : `GW ${gameweeks[0]}–${gameweeks.at(-1)}` : '';
 		const fixtureReason = current?.averageDifficulty != null && replacement?.averageDifficulty != null
-			? `${range}: average fixture difficulty ${current.averageDifficulty.toFixed(1)} → ${replacement.averageDifficulty.toFixed(1)} out of 5, lower is easier. ${current.matches} → ${replacement.matches} scheduled matches. ${current.blanks} → ${replacement.blanks} gameweeks without a fixture.`
-			: 'Fixture comparison is unavailable. Check the schedule before transferring.';
+			? `${range} · Fixture difficulty ${current.averageDifficulty.toFixed(1)} → ${replacement.averageDifficulty.toFixed(1)}${current.matches !== replacement.matches ? ` · Matches ${current.matches} → ${replacement.matches}` : ''}`
+			: 'Fixture comparison unavailable.';
 		return { ...option, outgoing, incoming, fixtureReason };
 	});
 	if (!options.length) {
@@ -209,7 +216,7 @@ export default defineEventHandler(async (event) => {
 		planningGameweeks: gameweeks,
 		bank: roundToTenth(bank / 10),
 		priceUnit: "Prices are in £m. Points per game, form, minutes, and the next-gameweek FPL estimate use the current official feed.",
-		constraints: "Each option is a single same-position transfer. The server has checked budget, availability, a 90-minute minimum sample, and the three-player club limit. Availability repairs may have lower historical stats. Other candidates pass either a performance upgrade gate or a better-fixture gate with no worse form. Normal and Triple Captain plans exclude the suggested XI. Each option uses the original bank independently. Free transfers and point hits are unknown. Do not assume multiple options can be combined. Budget is a feasibility constraint, not a ranking goal.",
+		constraints: "Each option is a single same-position transfer. The server has checked budget, availability, a 90-minute minimum sample, and the three-player club limit. Availability repairs may have lower historical stats. Free Hit candidates must improve the legal starting XI; Bench Boost candidates improve the one-week player estimate or fixture score. Other healthy candidates pass a performance upgrade or better-fixture gate. Normal and Triple Captain plans exclude the suggested XI. Each option uses the original bank independently. Free transfers and point hits are unknown. Do not assume multiple options can be combined. Budget is a feasibility constraint, not a ranking goal.",
 		options: options.map(({ questionId, outgoing, incoming, netCost, bankAfter, reason, kind }) => ({
 			id: questionId, reason, kind,
 			outgoing: modelPlayer(outgoing),
@@ -225,8 +232,15 @@ export default defineEventHandler(async (event) => {
 		criteria: scoreCriteria,
 	}]));
 	const requestBody = { model: "jev-latest", state, questions };
+	const previewPlayers = new Set<number>(selection.picks.map((pick: Record<string, any>) => Number(pick.element)));
+	for (const { incoming } of options) previewPlayers.add(incoming.id);
+	const previewBootstrap = {
+		elements: bootstrap.elements.filter((player: Record<string, any>) => previewPlayers.has(Number(player.id))),
+		teams: bootstrap.teams,
+		events: bootstrap.events,
+	};
 	const fingerprint = createHash("sha256")
-		.update(JSON.stringify({ version: 2, requestBody, options, context }))
+		.update(JSON.stringify({ version: 6, requestBody, options, context, picks: selection.picks, previewBootstrap }))
 		.digest("hex");
 	const cachedFingerprint = query.cachedFingerprint;
 	if (typeof cachedFingerprint === "string" && cachedFingerprint === fingerprint) {
@@ -257,7 +271,9 @@ export default defineEventHandler(async (event) => {
 		finally { inFlightRequests.delete(fingerprint); }
 	}
 
-	const suggestions = rankManagerTransferSuggestions(options, result?.answers ?? {}).map(({ questionId, score, confidence, ...suggestion }) => suggestion);
+	const suggestions = rankManagerTransferSuggestions(options, result?.answers ?? {}, { includeAlternatives: true })
+		.map(({ questionId, score, confidence, ...suggestion }) => suggestion);
+	const preview = buildManagerTransferPreview(selection.picks, players, suggestions);
 	const response = {
 		fingerprint: rankingUnavailable ? undefined : fingerprint,
 		currentGameweek,
@@ -265,6 +281,9 @@ export default defineEventHandler(async (event) => {
 		...context,
 		rankingUnavailable,
 		suggestions,
+		transferPreview: preview.transfers.length ? {
+			squad: buildManagerSquad(preview.picks, previewBootstrap), transfers: preview.transfers,
+		} : null,
 		message: suggestions.length ? null : rankingUnavailable ? "Performance comparisons could not load. Retry to check optional upgrades." : "No clear upgrade was found for the players outside your suggested XI or in your chip plan.",
 	};
 	if (!rankingUnavailable) recommendationCache.set(managerId, { fingerprint, response });

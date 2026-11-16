@@ -2,15 +2,25 @@ import { computed, type MaybeRefOrGetter, toValue } from 'vue';
 
 type Row = Record<string, any>;
 
-function lineupChanges(published: Row[], suggested: Row[]) {
-  const publishedIds = new Set(published.map((pick) => pick.element.id));
-  const suggestedIds = new Set(suggested.map((pick) => pick.element.id));
-  const outgoing = published.filter((pick) => !suggestedIds.has(pick.element.id));
-  return suggested.filter((pick) => !publishedIds.has(pick.element.id)).map((incoming) => {
-    const samePosition = outgoing.findIndex((pick) => pick.element.element_type === incoming.element.element_type);
-    const [previous] = outgoing.splice(samePosition >= 0 ? samePosition : 0, 1);
-    return { incoming, outgoing: previous };
+function lineupChanges(published: Row, plan: Row) {
+  const { squad: suggested, transfers = [] } = plan;
+  const publishedIds = new Set(published.startingXI.map((pick: Row) => pick.element.id));
+  const suggestedIds = new Set(suggested.startingXI.map((pick: Row) => pick.element.id));
+  const incomingIds = new Set(transfers.map((move: Row) => move.incomingId));
+  const outgoingIds = new Set(transfers.map((move: Row) => move.outgoingId));
+  const changes = transfers.flatMap(({ incomingId, outgoingId }: Row) => {
+    const incoming = suggested.picks.find((pick: Row) => pick.element.id === incomingId);
+    const outgoing = published.picks.find((pick: Row) => pick.element.id === outgoingId);
+    return incoming && outgoing ? [{ incoming, outgoing, transfer: true }] : [];
   });
+  const dropped = published.startingXI.filter((pick: Row) => !suggestedIds.has(pick.element.id) && !outgoingIds.has(pick.element.id));
+  for (const incoming of suggested.startingXI) {
+    if (publishedIds.has(incoming.element.id) || incomingIds.has(incoming.element.id) || !dropped.length) continue;
+    const samePosition = dropped.findIndex((pick: Row) => pick.element.element_type === incoming.element.element_type);
+    const [outgoing] = dropped.splice(samePosition >= 0 ? samePosition : 0, 1);
+    changes.push({ incoming, outgoing, transfer: false });
+  }
+  return changes;
 }
 
 export function useManagerPlannerDisplay(published: MaybeRefOrGetter<Row>, plans: MaybeRefOrGetter<Row[]>) {
@@ -21,7 +31,7 @@ export function useManagerPlannerDisplay(published: MaybeRefOrGetter<Row>, plans
     })),
     ...toValue(plans).filter((plan) => plan.canPreview).map((plan) => ({
       key: String(plan.gameweek), gameweek: plan.gameweek, squad: plan.squad,
-      changes: lineupChanges(toValue(published).startingXI, plan.squad.startingXI),
+      changes: lineupChanges(toValue(published), plan),
     })),
   ]);
   return { variants };

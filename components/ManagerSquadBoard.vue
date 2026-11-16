@@ -16,6 +16,7 @@
 					</div>
 				</div>
 			</header>
+			<p class="min-h-5 text-sm text-lime-200" role="status">{{ lineupSummary }}</p>
 			<ManagerSquadPerformance :squad="squad" :published-squad="publishedSquad ?? squad" :rows="fixtureRows" :gameweek="fixtureGameweek" :suggested="Boolean(planningGameweek)" :published-gameweek="publishedGameweek" :gameweek-points="gameweekPoints" :season-points="seasonPoints" />
 		</div>
 
@@ -27,7 +28,7 @@
 						<ul v-for="variant in variants" :key="variant.key" :aria-label="row.label" class="col-start-1 row-start-1 grid grid-rows-[auto_auto_auto_auto_auto] content-start justify-evenly gap-x-1 sm:gap-x-3" :style="{ gridTemplateColumns: `repeat(${(variant.squad.groupedByType[row.key] || []).length}, minmax(0, 8rem))` }"
 							:class="variant.key === activeVariant.key ? '' : 'invisible pointer-events-none'" :inert="variant.key !== activeVariant.key" :aria-hidden="variant.key !== activeVariant.key ? true : undefined">
 							<li v-for="pick in variant.squad.groupedByType[row.key] || []" :key="pick.element.id" class="row-span-5 grid min-w-0 grid-rows-subgrid">
-								<ManagerSquadPick :pick="pick" compact :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" />
+								<ManagerSquadPick :pick="pick" compact :transfer="pairFor(pick, variant)?.transfer" :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" />
 							</li>
 						</ul>
 					</div>
@@ -39,7 +40,7 @@
 				<div class="grid">
 					<ul v-for="variant in variants" :key="variant.key" class="col-start-1 row-start-1 grid grid-cols-2 grid-rows-[auto_auto_auto_auto_auto_auto] items-stretch gap-x-3 sm:grid-cols-4"
 						:class="variant.key === activeVariant.key ? '' : 'invisible pointer-events-none'" :inert="variant.key !== activeVariant.key" :aria-hidden="variant.key !== activeVariant.key ? true : undefined">
-						<li v-for="pick in variant.squad.bench" :key="pick.element.id" class="row-span-6 mb-3 grid min-w-0 grid-rows-subgrid sm:mb-0"><ManagerBenchPick :pick="pick" :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
+						<li v-for="pick in variant.squad.bench" :key="pick.element.id" class="row-span-6 mb-3 grid min-w-0 grid-rows-subgrid sm:mb-0"><ManagerBenchPick :pick="pick" :transfer="pairFor(pick, variant)?.transfer" :compared-pick="comparedPick(pick, variant)" :matches="fixturesFor(pick, variant.gameweek)" :compared-matches="fixturesFor(comparedPick(pick, variant), variant.gameweek)" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
 					</ul>
 				</div>
 			</section>
@@ -60,7 +61,7 @@
 						<span aria-hidden="true" class="h-px flex-1 bg-white/10" />
 					</h3>
 					<ul class="grid auto-rows-fr grid-cols-1 items-stretch gap-4 sm:grid-cols-2" :aria-label="group.label">
-						<li v-for="pick in group.picks" :key="pick.element.id" class="h-full min-w-0"><ManagerSquadPick :pick="pick" detailed :events="squad.events" :teams="squad.teams" :compared-pick="comparedPick(pick)" :matches="fixturesFor(pick)" :compared-matches="fixturesFor(comparedPick(pick))" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
+						<li v-for="pick in group.picks" :key="pick.element.id" class="h-full min-w-0"><ManagerSquadPick :pick="pick" detailed :events="squad.events" :teams="squad.teams" :transfer="pairFor(pick)?.transfer" :compared-pick="comparedPick(pick)" :matches="fixturesFor(pick)" :compared-matches="fixturesFor(comparedPick(pick))" :fixtures-available="fixtureRows.length > 0" @compare="openComparison" /></li>
 					</ul>
 				</section>
 			</div>
@@ -77,12 +78,22 @@ const props = defineProps({
 	squad: { type: Object, required: true }, planningGameweek: { type: Number, default: null },
 	fixtureGameweek: { type: Number, default: null }, fixtureRows: { type: Array, default: () => [] },
 	publishedGameweek: { type: Number, default: null }, gameweekPoints: { type: Number, default: null }, seasonPoints: { type: Number, default: null },
+	previewTransfers: { type: Array, default: () => [] }, transferStatus: { type: String, default: 'pending' },
 	publishedSquad: { type: Object, default: null }, plans: { type: Array, default: () => [] },
 });
 defineEmits(['published', 'preview']);
 const canPreview = computed(() => props.plans.some((plan) => plan.gameweek === props.fixtureGameweek && plan.canPreview));
 const { variants } = useManagerPlannerDisplay(() => props.publishedSquad ?? props.squad, () => props.plans);
 const activeVariant = computed(() => variants.value.find((variant) => variant.key === (props.planningGameweek ? String(props.planningGameweek) : `published-${props.fixtureGameweek ?? 'current'}`)) ?? variants.value[0]);
+const lineupSummary = computed(() => {
+	if (!props.planningGameweek) return '';
+	if (props.previewTransfers.length) return `Transfer preview · ${props.previewTransfers.map(({ outgoing, incoming }) => `${outgoing} → ${incoming}`).join(' · ')}`;
+	if (props.transferStatus === 'pending') return 'Checking transfer options…';
+	if (props.transferStatus === 'error') return 'Transfer options unavailable.';
+	const changes = activeVariant.value.changes;
+	if (!changes.length) return 'No bench changes needed.';
+	return changes.map(({ incoming, outgoing }) => `${incoming.element.web_name} in for ${outgoing.element.web_name}`).join(' · ');
+});
 const comparisonOpen = ref(false);
 const comparisonPair = ref(null);
 const pairFor = (pick, variant = activeVariant.value) => variant.changes.find((pair) => pair.incoming.element.id === pick?.element.id || pair.outgoing.element.id === pick?.element.id);
@@ -92,7 +103,7 @@ const comparedPick = (pick, variant = activeVariant.value) => {
 };
 const fixturesFor = (pick, gameweek = props.fixtureGameweek) => props.fixtureRows.find((row) => row.pick.element.id === pick?.element.id)?.run.find((week) => week.gameweek === (gameweek ?? props.fixtureGameweek))?.matches ?? [];
 const openComparison = (pick) => { comparisonPair.value = pairFor(pick) ?? null; comparisonOpen.value = Boolean(comparisonPair.value); };
-watch(() => props.fixtureGameweek, () => { comparisonOpen.value = false; comparisonPair.value = null; });
+watch(activeVariant, () => { comparisonOpen.value = false; comparisonPair.value = null; });
 const view = ref('pitch');
 const selection = ref('starting');
 const views = [{ value: 'pitch', label: 'Pitch', icon: 'i-lucide-panels-top-left' }, { value: 'gallery', label: 'Gallery', icon: 'i-lucide-layout-grid' }];

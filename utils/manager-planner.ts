@@ -117,7 +117,7 @@ export function buildManagerWeekPlan(squad: Row, fixtures: Row[], gameweek: numb
   startingXI.forEach((pick: Row) => (groupedByType[pick.element_type] ??= []).push(pick));
   return {
     gameweek, headline, reason, blanks, flagged, hardFixtures, captain, viceCaptain,
-    rotations: rotations.length, canPreview: startingXI.length === 11,
+    rotations: rotations.length, canPreview: startingXI.length === 11, selectionScore: best.length ? bestScore : null,
     squad: {
       ...squad, picks: [...startingXI, ...bench], startingXI, bench, groupedByType,
       teamCost: startingXI.reduce((total: number, pick: Row) => total + Number(pick.element.now_cost ?? 0), 0),

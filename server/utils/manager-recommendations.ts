@@ -225,10 +225,11 @@ export function buildManagerTransferOptions(
 		const bench = Number(pick.position) > 11;
 		const priority = flagged ? (outgoing.status === 'd' ? 2 : 3) : 0;
 		const role = bench ? 'Published bench' : 'Published XI';
-		const reason = flagged
-			? `${role}: ${String(outgoing.news || 'FPL availability is not confirmed')}. ${chip === 'bboost' ? 'Bench Boost needs all 15 players available.' : 'Review a fit replacement; check the latest team news before transferring.'}`
-			: keepSuggestedXI ? `Outside the suggested GW ${targetGameweek} XI. Compare this upgrade with keeping your current bench cover.`
-			: `${role}: compare this option for your ${chip === 'wildcard' ? 'Wildcard fixture run' : chip === 'freehit' ? 'one-week Free Hit' : 'Bench Boost'}.`;
+		const reason = flagged ? String(outgoing.news || 'Availability not confirmed')
+			: chip === 'freehit' ? `Improves your GW ${targetGameweek} XI`
+			: chip === 'bboost' ? `Improves your GW ${targetGameweek} total, including the bench`
+			: chip === 'wildcard' ? 'Stronger upcoming fixture run'
+			: 'Upgrade outside your suggested XI';
 		const budget = bank + sellingPrice;
 		const alternatives = elements
 			.filter((candidate) => {
@@ -244,8 +245,17 @@ export function buildManagerTransferOptions(
 				if (candidateRun && !candidateRun[0]?.matches.length) return false;
 				const hasPlayingEvidence = (toNumber(candidate.form) ?? 0) > 0 || (estimateGameweek !== null && (toNumber(candidate.ep_next) ?? 0) > 0);
 				if (!hasPlayingEvidence) return false;
-				// Injury repairs must not beat the injured player's historical points per game.
-				if (!flagged && !isPerformanceUpgrade(outgoing, candidate, estimateGameweek)) {
+				if (chip === 'freehit' && plan?.canPreview) {
+					const nextPicks = plannerPicks.map((row) => row.element.id === outgoing.id ? { ...row, element: candidate } : row);
+					const nextPlan = buildManagerWeekPlan({ picks: nextPicks, startingXI: nextPicks.filter((row) => Number(row.position) <= 11), teams: teamRows }, context.fixtures!, targetGameweek!);
+					if (!nextPlan.canPreview || !nextPlan.squad.startingXI.some((row: PlayerRecord) => row.element.id === candidate.id)
+						|| nextPlan.selectionScore! <= plan.selectionScore! + 1e-9) return false;
+				} else if (singleWeek && !flagged) {
+					const currentValue = outgoingRun?.[0]?.matches.length === 0 ? 0 : estimateGameweek !== null
+						? toNumber(outgoing.ep_next) ?? evidenceScore(outgoing) : evidenceScore(outgoing);
+					const incomingValue = estimateGameweek !== null ? toNumber(candidate.ep_next) ?? evidenceScore(candidate) : evidenceScore(candidate);
+					if (incomingValue <= currentValue) return false;
+				} else if (!flagged && !isPerformanceUpgrade(outgoing, candidate, estimateGameweek)) {
 					const summary = candidateRun ? summarizePlannerRun(candidateRun) : null;
 					const betterFixtures = summary && outgoingSummary && (summary.matches > outgoingSummary.matches
 						|| (summary.averageDifficulty !== null && outgoingSummary.averageDifficulty !== null && summary.averageDifficulty < outgoingSummary.averageDifficulty));
@@ -280,7 +290,7 @@ export function buildManagerTransferOptions(
 				bankAfter: roundToTenth((bank + sellingPrice - incomingPrice) / 10),
 				currentGameweek,
 				nextGameweek,
-				reason, priority, kind: flagged ? "availability" : "performance",
+				reason, priority: chip === 'freehit' ? 0 : priority, kind: flagged && chip !== 'freehit' ? "availability" : "performance",
 			});
 		}
 	}
@@ -288,7 +298,9 @@ export function buildManagerTransferOptions(
 	return options;
 }
 
-export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(options: T[], answers: Record<string, any>) {
+export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(
+	options: T[], answers: Record<string, any>, { includeAlternatives = false } = {},
+) {
 	const ranked = options.flatMap((option) => {
 		const answer = answers?.[option.questionId];
 		const score = toNumber(answer?.score);
@@ -302,6 +314,7 @@ export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(
 		}];
 	}).sort((a, b) => b.priority - a.priority || (b.score ?? -1) - (a.score ?? -1) || (b.confidence ?? -1) - (a.confidence ?? -1));
 
+	if (includeAlternatives) return ranked;
 	const usedOutgoing = new Set<number>();
 	const suggestions = [];
 	for (const suggestion of ranked) {
@@ -311,4 +324,77 @@ export function rankManagerTransferSuggestions<T extends ManagerTransferOption>(
 		suggestions.push(suggestion);
 	}
 	return suggestions;
+}
+
+export function buildManagerTransferPreview(
+	picks: PlayerRecord[],
+	players: Map<number, PlayerRecord>,
+	suggestions: Pick<ManagerTransferOption, "outgoing" | "incoming">[],
+) {
+	const owned = new Set(picks.map((pick) => Number(pick.element)));
+	const clubCounts = new Map<number, number>();
+	for (const id of owned) {
+		const club = Number(players.get(id)?.team);
+		clubCounts.set(club, (clubCounts.get(club) ?? 0) + 1);
+	}
+
+	const byOutgoing = new Map<number, {
+		outgoing: PlayerRecord; incoming: PlayerRecord; fromClub: number; toClub: number; gain: number;
+	}[]>();
+	for (const { outgoing, incoming } of suggestions) {
+		if (!owned.has(outgoing.id) || owned.has(incoming.id)) continue;
+		const from = players.get(outgoing.id);
+		const to = players.get(incoming.id);
+		if (!from || !to) continue;
+		const before = outgoing.expectedPoints ?? outgoing.form ?? 0;
+		const after = incoming.expectedPoints ?? incoming.form ?? 0;
+		const alternatives = byOutgoing.get(outgoing.id) ?? [];
+		alternatives.push({ outgoing, incoming, fromClub: Number(from.team), toClub: Number(to.team), gain: after - before });
+		byOutgoing.set(outgoing.id, alternatives);
+	}
+
+	const groups = [...byOutgoing.values()];
+	const selected: (typeof groups)[number] = [];
+	let best = selected.slice();
+	let lowestLoss = Infinity;
+	const signed = new Set<number>();
+	const adjustClub = (club: number, delta: number) => clubCounts.set(club, (clubCounts.get(club) ?? 0) + delta);
+
+	// Consider both shortlisted candidates so one crowded club does not block another upgrade.
+	function select(index: number, loss: number) {
+		const maxMoves = selected.length + groups.length - index;
+		if (maxMoves < best.length || (maxMoves === best.length && loss >= lowestLoss)) return;
+		if (index === groups.length) {
+			if ([...clubCounts.values()].some(count => count > 3)) return;
+			best = selected.slice();
+			lowestLoss = loss;
+			return;
+		}
+
+		const alternatives = groups[index]!;
+		const preferred = alternatives[0]!;
+		for (const [rank, move] of alternatives.entries()) {
+			if (signed.has(move.incoming.id)) continue;
+			signed.add(move.incoming.id);
+			selected.push(move);
+			adjustClub(move.fromClub, -1);
+			adjustClub(move.toClub, 1);
+			const alternateLoss = rank ? Math.max(0, preferred.gain - move.gain) + rank * 0.01 : 0;
+			select(index + 1, loss + alternateLoss);
+			adjustClub(move.toClub, -1);
+			adjustClub(move.fromClub, 1);
+			selected.pop();
+			signed.delete(move.incoming.id);
+		}
+		select(index + 1, loss + Math.max(0, preferred.gain) + 1);
+	}
+	select(0, 0);
+
+	const replacements = new Map(best.map(({ outgoing, incoming }) => [outgoing.id, incoming.id]));
+	return {
+		picks: picks.map((pick) => ({ ...pick, element: replacements.get(Number(pick.element)) ?? pick.element })),
+		transfers: best.map(({ outgoing, incoming }) => ({
+			outgoingId: outgoing.id, incomingId: incoming.id, outgoing: outgoing.web_name, incoming: incoming.name,
+		})),
+	};
 }

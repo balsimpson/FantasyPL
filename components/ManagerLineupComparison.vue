@@ -3,8 +3,8 @@
     <template #body>
       <div v-if="pair">
         <div class="relative grid h-44 grid-cols-2 border-b border-white/10 sm:h-52">
-          <ManagerPlannerPlayer :pick="pair.outgoing" label="Published XI" />
-          <ManagerPlannerPlayer :pick="pair.incoming" label="Suggested XI" align="right" />
+          <ManagerPlannerPlayer :pick="pair.outgoing" :label="pair.transfer ? 'Transfer out' : 'Published XI'" />
+          <ManagerPlannerPlayer :pick="pair.incoming" :label="pair.transfer ? 'Transfer in' : 'Suggested XI'" align="right" />
           <span class="pointer-events-none absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-[#101216] px-2 py-1 text-[0.6rem] font-bold text-stone-200" aria-hidden="true">vs</span>
         </div>
         <div class="px-3 pb-3 pt-1 sm:px-4">

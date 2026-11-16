@@ -18,7 +18,7 @@
       <span v-if="frontPick.is_captain || frontPick.is_vice_captain" class="absolute right-0 top-1 grid size-5 place-items-center rounded-full text-[0.6rem] font-black sm:size-6" :class="frontPick.is_captain ? 'bg-lime-300 text-lime-950' : 'bg-amber-200 text-stone-950'" :aria-label="frontPick.is_captain ? 'Captain' : 'Vice-captain'">{{ frontPick.is_captain ? 'C' : 'V' }}</span>
     </span>
     <div class="relative z-0 rounded-t-md bg-black/45 px-1 pt-1 text-stone-400" :class="compact ? 'row-start-2 w-full pb-1 text-[0.5rem] leading-3 sm:text-[0.65rem] sm:leading-4' : 'mx-3 w-[calc(100%-1.5rem)] pb-3 text-left text-[0.65rem] leading-4'">
-      <p class="font-medium [overflow-wrap:anywhere]">{{ name(backPick.element) }}</p>
+      <p class="font-medium [overflow-wrap:anywhere]">{{ transfer ? 'Transfer for ' : '' }}{{ name(backPick.element) }}</p>
     </div>
     <ManagerPlayerNameplate :aligned="compact" :class="compact ? 'row-start-3 w-full' : '-mt-2 mx-2 mb-2 w-[calc(100%-1rem)]'" :player="frontPick.element" :compact="compact" suggested>
       <template v-if="fixturesAvailable" #fixtures><ManagerPlayerFixture :matches="frontMatches" :compact="compact" available integrated /></template>
@@ -32,11 +32,11 @@ import ManagerPlayerNameplate from '~/components/ManagerPlayerNameplate.vue';
 const props = defineProps({
   pick: { type: Object, required: true }, comparedPick: { type: Object, default: null },
   matches: { type: Array, default: () => [] }, comparedMatches: { type: Array, default: () => [] },
-  fixturesAvailable: { type: Boolean, default: false }, compact: { type: Boolean, default: false },
+  fixturesAvailable: { type: Boolean, default: false }, transfer: { type: Boolean, default: false }, compact: { type: Boolean, default: false },
   detailed: { type: Boolean, default: false }, events: { type: Array, default: () => [] }, teams: { type: Array, default: () => [] },
 });
 defineEmits(['compare']);
-const frontPick = computed(() => props.comparedPick && Number(props.pick.position) > 11 ? props.comparedPick : props.pick);
+const frontPick = computed(() => !props.transfer && props.comparedPick && Number(props.pick.position) > 11 ? props.comparedPick : props.pick);
 const backPick = computed(() => frontPick.value.element.id === props.pick.element.id ? props.comparedPick : props.pick);
 const frontMatches = computed(() => frontPick.value.element.id === props.pick.element.id ? props.matches : props.comparedMatches);
 </script>

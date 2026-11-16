@@ -5,7 +5,7 @@ export function useManagerTransferRecommendations(managerId: Ref<string | number
   const loading = ref(true);
   const errorMessage = ref('');
   const result = ref<Record<string, any> | null>(null);
-  const cacheKey = computed(() => `manager-recommendations:v2:${managerId.value}:${gameweek.value ?? 'next'}:${chip.value}`);
+  const cacheKey = computed(() => `manager-recommendations:v5:${managerId.value}:${gameweek.value ?? 'next'}:${chip.value}`);
   let requestId = 0;
   const readCache = (key: string) => {
     try {

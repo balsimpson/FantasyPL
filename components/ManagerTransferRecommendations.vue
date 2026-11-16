@@ -1,10 +1,10 @@
 <template>
-	<section aria-labelledby="manager-recommendations-title" aria-roledescription="carousel" class="min-w-0 space-y-3">
+	<section v-if="loading || errorMessage || visibleSuggestions.length || result?.rankingUnavailable || result?.lineupNote || unresolvedPlayers || chip !== 'none'" aria-labelledby="manager-recommendations-title" class="min-w-0 space-y-3">
 		<header class="flex h-9 items-center justify-between gap-3">
-			<h2 id="manager-recommendations-title" class="text-xl font-bold tracking-tight text-white">Transfer options<span v-if="result?.targetGameweek" class="ml-2 text-sm font-normal text-stone-400">GW {{ result.targetGameweek }}</span></h2>
-			<div v-if="result && result.suggestions.length" class="flex items-center gap-2">
-				<span aria-live="polite" aria-atomic="true" class="min-w-8 text-center text-xs tabular-nums text-stone-400">{{ activeSlide + 1 }} / {{ result.suggestions.length }}</span>
-				<div v-if="result.suggestions.length > 1" class="flex items-center gap-1">
+			<h2 id="manager-recommendations-title" class="text-xl font-bold tracking-tight text-white">Transfer options <span v-if="result?.targetGameweek" class="ml-2 text-sm font-normal text-stone-400">GW {{ result.targetGameweek }}</span></h2>
+			<div v-if="visibleSuggestions.length" class="flex items-center gap-2">
+				<span aria-live="polite" aria-atomic="true" class="min-w-8 text-center text-xs tabular-nums text-stone-400">{{ activeSlide + 1 }} / {{ visibleSuggestions.length }}</span>
+				<div v-if="visibleSuggestions.length > 1" class="flex items-center gap-1">
 					<CarouselArrowButton
 						direction="previous"
 						aria-label="Previous recommendation"
@@ -16,33 +16,26 @@
 						direction="next"
 						aria-label="Next recommendation"
 						aria-controls="manager-recommendations-list"
-						:disabled="activeSlide === result.suggestions.length - 1"
+						:disabled="activeSlide === visibleSuggestions.length - 1"
 						@click="scrollToSlide(activeSlide + 1)"
 					/>
 				</div>
 			</div>
 		</header>
 
-		<UFormField label="Chip plan for this gameweek" description="Choose a plan to compare. This does not play a chip in FPL. Check that the chip is available before using it." class="w-full">
+		<UFormField label="Chip" class="w-full">
 			<USelect v-model="chip" :items="chipPlans" class="w-full" :ui="{ base: 'w-full' }" />
 		</UFormField>
-		<p class="text-sm leading-6 text-stone-300">{{ managerTransferGuidance[chip] }}</p>
-		<div v-if="result" class="space-y-2 text-xs leading-5 text-stone-400" aria-live="polite">
-			<p>{{ result.squadNote }} {{ chipHistoryText }}</p>
-			<p v-if="result.lineupNote">{{ result.lineupNote }}</p>
-			<p>{{ result.transferNote }}</p>
-			<ul v-if="result.attention?.length" aria-label="Players with availability flags" class="space-y-2">
-				<li v-for="player in result.attention" :key="player.id">
-					<span class="font-semibold text-amber-200">{{ player.name }}</span> · {{ player.role }} · {{ player.news }}. {{ player.message }}
-				</li>
-			</ul>
-			<div v-if="result.rankingUnavailable" class="flex flex-wrap items-center gap-2">
-				<p>Optional performance comparisons could not finish.</p>
-				<UButton color="neutral" variant="outline" size="sm" :loading="loading" @click="loadRecommendations">Retry comparisons</UButton>
-			</div>
+		<p v-if="result?.captainNote && chip === '3xc'" class="text-sm text-stone-300">{{ result.captainNote }}</p>
+		<p v-if="result?.publishedChip === 'freehit'" class="text-xs text-stone-400">Using your squad before Free Hit.</p>
+		<p v-if="result?.lineupNote" class="text-xs text-stone-400">{{ result.lineupNote }}</p>
+		<p v-if="unresolvedPlayers" class="text-xs text-amber-200">{{ unresolvedPlayers }}</p>
+		<div v-if="result?.rankingUnavailable" class="flex items-center gap-2 text-xs text-stone-400">
+			<span>Some comparisons could not load.</span>
+			<UButton color="neutral" variant="outline" size="sm" :loading="loading" @click="loadRecommendations">Retry</UButton>
 		</div>
 
-		<div class="h-[40rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
+		<div v-if="(loading && !result) || errorMessage || visibleSuggestions.length" class="h-[40rem] min-w-0 lg:h-[24rem]" :aria-busy="loading">
 			<p v-if="loading && !result" class="flex h-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#101216] px-4 text-sm text-stone-300" role="status" aria-live="polite">
 				<UIcon name="i-lucide-loader-circle" class="size-4 text-primary motion-safe:animate-spin" aria-hidden="true" />
 				<span>Comparing your squad with current FPL options…</span>
@@ -55,12 +48,8 @@
 				</UButton>
 			</div>
 
-			<div v-else-if="result" class="h-full min-w-0">
-				<p v-if="!result.suggestions.length" class="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#101216] px-4 text-center text-sm leading-6 text-stone-300" role="status">
-					{{ result.message }}
-				</p>
+			<div v-else-if="visibleSuggestions.length" class="h-full min-w-0">
 				<ol
-					v-else
 					id="manager-recommendations-list"
 					ref="recommendationTrack"
 					aria-label="Transfer recommendations"
@@ -71,9 +60,10 @@
 					<li
 						v-for="(suggestion, slideIndex) in visibleSuggestions"
 						:key="suggestion.id"
+						tabindex="-1"
 						class="h-full min-w-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#101216]"
 						aria-roledescription="slide"
-						:aria-label="`Recommendation ${slideIndex + 1} of ${result.suggestions.length}`"
+						:aria-label="`Recommendation ${slideIndex + 1} of ${visibleSuggestions.length}`"
 					>
 						<div class="grid h-full min-w-0 grid-rows-[18rem_minmax(0,1fr)] lg:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)] lg:grid-rows-1">
 							<div class="relative grid h-full min-w-0 grid-cols-2 border-b border-white/10 lg:border-b-0 lg:border-r">
@@ -133,7 +123,7 @@
 										</dd>
 									</div>
 									<div class="flex shrink-0 items-center gap-1.5">
-										<dt class="shrink-0 text-stone-400">
+										<dt class="shrink-0 text-stone-400" title="For this transfer only; points hits are not included.">
 											<span class="sm:hidden">Bank</span>
 											<span class="hidden sm:inline">Bank after</span>
 										</dt>
@@ -159,16 +149,18 @@
 <script setup>
 import CarouselArrowButton from "~/components/CarouselArrowButton.vue";
 import { CAROUSEL_SINGLE_COLUMNS } from "~/utils/carousel-layout";
-import { managerTransferPlans, managerTransferGuidance } from '~/shared/manager-transfer-plan';
-const props = defineProps({ managerId: { type: [String, Number], required: true }, planningGameweek: { type: Number, default: null } });
+import { managerTransferPlans } from '~/shared/manager-transfer-plan';
+const props = defineProps({
+	managerId: { type: [String, Number], required: true }, planningGameweek: { type: Number, default: null },
+	appliedTransfers: { type: Array, default: () => [] },
+});
+const emit = defineEmits(['result']);
 const chip = ref('none');
 const chipPlans = [...managerTransferPlans];
 const { loading, errorMessage, result, loadRecommendations } = useManagerTransferRecommendations(toRef(props, 'managerId'), toRef(props, 'planningGameweek'), chip);
-const chipHistoryText = computed(() => {
-	if (!result.value || result.value.chipHistory == null) return 'Public chip history is unavailable; you can still compare a chip plan.';
-	if (!result.value.chipHistory.length) return 'No chips are recorded as used in the public history.';
-	return `Recorded chips: ${result.value.chipHistory.map((entry) => `${chipPlans.find((plan) => plan.value === entry.name)?.label ?? entry.name} · GW ${entry.event}`).join(', ')}.`;
-});
+const unresolvedPlayers = computed(() => (result.value?.attention ?? [])
+	.filter((player) => !result.value?.suggestions?.some((suggestion) => suggestion.outgoing.id === player.id))
+	.map((player) => `${player.name}: no suitable replacement found.`).join(' '));
 const recommendationTrack = ref(null);
 const activeSlide = ref(0);
 const toFiniteNumber = (value) => {
@@ -192,7 +184,10 @@ const getBankImpact = (netCost) => {
 	};
 };
 const visibleSuggestions = computed(() => {
-	return (result.value?.suggestions ?? []).map((suggestion) => ({ ...suggestion, bankImpact: getBankImpact(suggestion.netCost) }));
+	const applied = new Set(props.appliedTransfers.map(({ outgoingId, incomingId }) => `swap_${outgoingId}_${incomingId}`));
+	return (result.value?.suggestions ?? [])
+		.filter((suggestion) => !applied.has(suggestion.id))
+		.map((suggestion) => ({ ...suggestion, bankImpact: getBankImpact(suggestion.netCost) }));
 });
 const scrollToSlide = (index) => {
 	const track = recommendationTrack.value;
@@ -214,7 +209,10 @@ const updateActiveSlide = () => {
 			? index : nearest, 0);
 };
 
-watch(result, async () => {
+watch([result, errorMessage, loading], ([value, error, pending]) => {
+	emit('result', error ? null : value, error ? 'error' : pending ? 'pending' : 'ready');
+});
+watch(visibleSuggestions, async () => {
 	activeSlide.value = 0;
 	await nextTick();
 	scrollToSlide(0);

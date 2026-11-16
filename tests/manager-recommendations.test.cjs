@@ -19,7 +19,7 @@ function load(relative, mocks = {}, globals = {}) {
   new Function('require', 'module', 'exports', ...Object.keys(globals), code)(localRequire, module, module.exports, ...Object.values(globals));
   return module.exports;
 }
-const { buildManagerTransferOptions: build, rankManagerTransferSuggestions: rank, buildManagerSellingPrices: prices } = load('server/utils/manager-recommendations.ts');
+const { buildManagerTransferOptions: build, rankManagerTransferSuggestions: rank, buildManagerSellingPrices: prices, buildManagerTransferPreview: preview } = load('server/utils/manager-recommendations.ts');
 const { buildManagerWeekPlan } = load('utils/manager-planner.ts');
 const positions = [1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 1, 2, 4, 2];
 function fixture() {
@@ -47,7 +47,7 @@ test('injured and doubtful bench players get affordable fit replacements despite
   assert.ok(options.some(o => o.outgoing.id === 13 && o.incoming.id === 16));
   assert.ok(options.some(o => o.outgoing.id === 14 && o.incoming.id === 17));
   assert.ok(options.every(o => o.kind === 'availability'));
-  assert.match(options[0].reason, /Published bench/);
+  assert.equal(options[0].outgoing.squadRole, "Published bench");
   assert.deepEqual(rank(options, {}).map(o => o.outgoing.id), [14, 13]);
 });
 
@@ -84,7 +84,7 @@ test('a future gameweek never uses the next-gameweek estimate', () => {
 
 test('one-week chips prefer scheduled doubles and reject blank-week replacements', () => {
   const f = fixture();
-  f.elements.push(f.candidate(19, 4, { team: 7, points_per_game: '1' }));
+  f.elements.push(f.candidate(19, 4, { team: 7, points_per_game: '6', form: '6' }));
   f.fixtures.push({ id: 999, event: 11, team_h: 7, team_a: 20, team_h_difficulty: 3, team_a_difficulty: 3 });
   for (const chip of ['freehit', 'bboost']) {
     const options = build(...f.args, { ...f.context, chip });
@@ -104,6 +104,61 @@ test('one shared incoming option must not hide a second flagged outgoing player'
   assert.ok(ranked.some(o => o.outgoing.id === 13));
   assert.ok(ranked.some(o => o.outgoing.id === 15));
   assert.equal(new Set(ranked.map(o => o.outgoing.id)).size, ranked.length);
+  const combined = preview(f.picks, new Map(f.elements.map(player => [player.id, player])), ranked);
+  assert.equal(combined.transfers.length, 2);
+  assert.equal(new Set(combined.picks.map(pick => pick.element)).size, 15);
+});
+
+test('transfer preview combines independent replacements and respects the club limit', () => {
+  const f = fixture();
+  const players = new Map(f.elements.map(player => [player.id, player]));
+  const suggestions = [13, 14, 15, 11].map(id => {
+    const outgoing = players.get(id);
+    const incoming = f.candidate(100 + id, outgoing.element_type);
+    players.set(incoming.id, incoming);
+    return { outgoing, incoming, netCost: 1, bankAfter: 0 };
+  });
+  const combined = preview(f.picks, players, suggestions);
+  assert.deepEqual(combined.picks.filter(pick => pick.element >= 100).map(pick => pick.element), [113, 114, 115]);
+  assert.deepEqual(f.picks.map(pick => pick.element), positions.map((_, index) => index + 1));
+});
+
+test('the preview uses a goalkeeper alternative to make room for Barnes to Ayari', () => {
+  const covered = [
+    { id: 1, team: 1, name: 'De Cuyper' },
+    { id: 2, team: 1, name: 'Groß' },
+    { id: 3, team: 2, web_name: 'Horníček', expectedPoints: 4 },
+    { id: 4, team: 3, web_name: 'Barnes', expectedPoints: 3.5 },
+  ];
+  const [verbruggen, trafford, ayari] = [
+    { id: 5, team: 1, name: 'Bart Verbruggen', expectedPoints: 6.2 },
+    { id: 6, team: 4, name: 'James Trafford', expectedPoints: 6 },
+    { id: 7, team: 1, name: 'Yasin Ayari', expectedPoints: 7 },
+  ];
+  const players = new Map([...covered, verbruggen, trafford, ayari].map(player => [player.id, player]));
+  const picks = covered.map((player, index) => ({ element: player.id, position: index === 3 ? 15 : index + 1 }));
+  const result = preview(picks, players, [
+    { outgoing: covered[2], incoming: verbruggen },
+    { outgoing: covered[3], incoming: ayari },
+    { outgoing: covered[2], incoming: trafford },
+  ]);
+  assert.deepEqual(result.transfers.map(move => [move.outgoingId, move.incomingId]), [[3, 6], [4, 7]]);
+  assert.deepEqual(result.picks.at(-1), { element: 7, position: 15 });
+});
+
+test('a transfer from the published bench keeps its true comparison when the formation changes', () => {
+  const { useManagerPlannerDisplay } = load('composables/useManagerPlannerDisplay.ts');
+  const midfielder = { element: { id: 1, element_type: 3 } };
+  const outgoing = { element: { id: 2, element_type: 4 } };
+  const incoming = { element: { id: 3, element_type: 4 } };
+  const published = { picks: [midfielder, outgoing], startingXI: [midfielder] };
+  const plan = {
+    gameweek: 11, canPreview: true,
+    squad: { picks: [incoming, midfielder], startingXI: [incoming] },
+    transfers: [{ outgoingId: 2, incomingId: 3 }],
+  };
+  const { variants } = useManagerPlannerDisplay(published, [plan]);
+  assert.deepEqual(variants.value.find(variant => variant.key === '11').changes, [{ incoming, outgoing, transfer: true }]);
 });
 
 test('unscored optional upgrades stay hidden while injury replacements survive provider failure', () => {
@@ -157,6 +212,8 @@ test('missing chip history still returns injured bench replacements without prov
   assert.equal(result.chipHistory, null);
   assert.equal(result.attention.length, 2);
   assert.equal(result.suggestions.length, 2);
+  assert.equal(result.transferPreview.transfers.length, 2);
+  assert.equal(result.transferPreview.squad.picks.length, 15);
   assert.equal(h.providerBodies.length, 0);
 });
 
@@ -199,7 +256,7 @@ test('selected-week requests, invalid plans and fixture outages have explicit re
   await assert.rejects(handlerFixture({ chip: 'bad-chip' }).handler, { statusCode: 400 });
   await assert.rejects(handlerFixture({ gameweek: 30 }).handler, { statusCode: 400 });
   const fallback = await handlerFixture({ fixturesMissing: true }).handler();
-  assert.match(fallback.lineupNote, /Fixtures could not load/);
+  assert.match(fallback.lineupNote, /Fixtures unavailable/);
   assert.equal(fallback.suggestions.length, 2);
 });
 
@@ -236,9 +293,18 @@ test('week and chip switches ignore late responses and keep separate caches', as
   pending[0].resolve({ suggestions: [], chip: 'none', fingerprint: 'a'.repeat(64) }); await new Promise(resolve => setImmediate(resolve));
   assert.equal(state.result.value.chip, 'bboost');
   assert.equal(state.loading.value, false);
-  assert.deepEqual([...storage.keys()], ['manager-recommendations:v2:1:11:bboost']);
+  assert.deepEqual([...storage.keys()], ['manager-recommendations:v5:1:11:bboost']);
   gameweek.value = 12; await vue.nextTick();
   assert.equal(state.result.value, null);
   assert.equal(pending[2].options.query.gameweek, 12);
   cleanup.forEach(fn => fn()); stops.forEach(fn => fn());
+});
+
+
+test('Free Hit rejects a bench-only repair that Bench Boost can use', () => {
+  const f = fixture();
+  const boost = build(...f.args, { ...f.context, chip: 'bboost' });
+  const freehit = build(...f.args, { ...f.context, chip: 'freehit' });
+  assert.ok(boost.some(o => o.outgoing.id === 14 && o.incoming.id === 17));
+  assert.ok(!freehit.some(o => o.outgoing.id === 14 && o.incoming.id === 17));
 });

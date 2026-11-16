@@ -38,16 +38,16 @@
 			/>
 			<div class="grid min-w-0 items-start gap-6 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<ManagerGameweekPlanner v-if="hasPicks" :published-gameweek="managerData.current_event"
-				:gameweeks="planner.gameweeks.value" :plans="planner.plans.value" :rows="planner.rows.value"
-				:selected-plan="planner.selectedPlan.value"
+				:gameweeks="planner.gameweeks.value" :plans="planner.displayPlans.value" :rows="planner.rows.value"
+				:selected-plan="planner.displayPlan.value"
 				:pending="planner.pending.value" :error="planner.error.value"
 				@select="planner.selectGameweek" @retry="planner.refresh" />
 
 				<ManagerSquadBoard v-if="hasPicks" :key="id" :squad="planner.displaySquad.value"
-					:planning-gameweek="planner.previewActive.value ? planner.selectedPlan.value?.gameweek : null"
-					:fixture-gameweek="planner.selectedPlan.value?.gameweek" :fixture-rows="planner.rows.value"
+					:planning-gameweek="planner.previewActive.value ? planner.displayPlan.value?.gameweek : null"
+					:fixture-gameweek="planner.displayPlan.value?.gameweek" :fixture-rows="planner.displayRows.value"
 					:published-gameweek="managerData.current_event" :gameweek-points="managerData.summary_event_points" :season-points="managerData.summary_overall_points"
-					:published-squad="squadState" :plans="planner.plans.value" @preview="planner.showPreview" @published="planner.showPublished" />
+					:preview-transfers="planner.transferPreview.value?.transfers" :transfer-status="transferStatus" :published-squad="squadState" :plans="planner.displayPlans.value" @preview="planner.showPreview" @published="planner.showPublished" />
 				<section v-else-if="isSquadLoading" class="space-y-4 lg:col-start-1 lg:row-start-1" role="status" aria-label="Loading squad">
 					<USkeleton class="h-10 w-48" /><USkeleton class="h-[36rem] w-full rounded-2xl" />
 				</section>
@@ -57,7 +57,7 @@
 					<UButton v-if="squadError" icon="i-lucide-refresh-cw" color="primary" variant="soft" @click="refreshSquad">Try again</UButton>
 				</section>
 			</div>
-			<ManagerTransferRecommendations v-if="hasPicks" :key="id" :manager-id="id" :planning-gameweek="planner.selectedPlan.value?.gameweek ?? planner.gameweeks.value[0] ?? null" />
+			<ManagerTransferRecommendations v-if="hasPicks" :key="`${id}-${managerData.current_event}`" :manager-id="id" :planning-gameweek="planner.displayPlan.value?.gameweek ?? planner.gameweeks.value[0] ?? null" :applied-transfers="planner.transferPreview.value?.transfers" @result="updateTransferResult" />
 		</template>
 
 		<section v-else class="space-y-6 py-4" role="status">
@@ -133,7 +133,14 @@ const getRankMovement = (league) => {
 };
 
 const { managerData, squadState, pending, error, isSquadLoading, squadError, refresh, refreshSquad } = useManagerPage(id);
-const planner = useManagerPlanner(squadState);
+const transferResult = ref(null);
+const transferStatus = ref('pending');
+const planner = useManagerPlanner(squadState, transferResult);
+const updateTransferResult = (result, status) => {
+	transferResult.value = result;
+	transferStatus.value = status;
+};
+watch([id, () => managerData.value?.current_event], () => updateTransferResult(null, 'pending'));
 const { remember } = useSavedManagers();
 
 onMounted(() => {
