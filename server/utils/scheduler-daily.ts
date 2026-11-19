@@ -139,7 +139,7 @@ function fallbackCaption(platform: SchedulerCaptionPlatform, draft: InstagramDra
  */
 export async function generateDailyCaptions(draft: InstagramDraft): Promise<DailyCaptions> {
   const facts = draft.players.map(player => ({
-    name: player.fullName,
+    name: player.fullName.length > 20 ? player.name : player.fullName,
     club: player.club,
     position: player.position,
     price: player.stats.now_cost == null ? null : `£${(player.stats.now_cost / 10).toFixed(1)}m`,
