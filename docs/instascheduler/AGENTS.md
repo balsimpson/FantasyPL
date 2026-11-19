@@ -42,17 +42,17 @@ Scheduler history, status, caption generation and submissions require the existi
 
 ## Daily automation
 
-`/api/cron/daily-post` is the only scheduler path that runs without an admin session. It requires `Authorization: Bearer <CRON_SECRET>` and fails closed when the variable is missing. `vercel.json` runs it at 11:00 UTC (16:30 IST) so the post fills the next Buffer queue slot, around 18:30 IST. Change both times together.
+`/api/cron/daily-post` is the only scheduler path that runs without an admin session. It accepts `Authorization: Bearer` with either `CRON_SECRET` or the existing `SCHEDULER_SERVICE_TOKEN`, and fails closed when neither is set. `.github/workflows/daily-post.yml` runs at 11:00 UTC (16:30 IST) so the post fills the next Buffer queue slot. Keep the workflow time and the buffer target aligned. Vercel Cron was removed after it failed to register; do not move the trigger back without checking the deployment's cron entry.
 
 - It picks one player, or two for a comparison every third IST day, from the existing `utils/scheduler-picks.ts` pools. It excludes every player already queued or published on either channel before choosing, and rotates the same six story angles used by the editor.
 - It renders artwork with satori and `@resvg/resvg-wasm` at 1080 × 1080 (`server/utils/scheduler-artwork.ts`), using the bundled Anton and Oswald fonts in `server/assets/fonts/`. No browser is needed, so do not move this work back into a page.
 - Captions use the shared instructions in `server/utils/scheduler-caption.ts`; the editor and cron must not diverge. A provider failure falls back to a factual caption built from the selected stats rather than skipping the day.
 - A real run uploads one PNG to Cloudinary and calls the same paired reservation as the editor. Convex submits each channel to Buffer. `requestId` is `daily-YYYY-MM-DD` in IST, so a repeated run on the same day does not duplicate the post.
-- `?preview=1` returns the PNG and `?dry=1` returns the draft and captions without uploading or scheduling. Both also accept a signed-in admin session, so the owner can check a deployment without the cron secret. Use these for checks; never use a real run as a smoke test.
-- The function uses a 60-second maximum duration in `nuxt.config.ts`; the full path (two captions, image render, upload, reservation) can exceed the Hobby default.
+- `?preview=1` returns the PNG and `?dry=1` returns the draft and captions without uploading or scheduling. Both also accept a signed-in admin session, so the owner can check a deployment without a secret. Use these for checks; never use a real run as a smoke test.
+- The function uses a 60-second maximum duration in `nuxt.config.ts`; the full path (two captions, image render, upload, reservation) takes about 13 seconds and exceeded the Hobby default.
 - The daily design id is `daily`. It is intentionally absent from the editor gallery. Keep it out of gallery changes unless the owner asks for a manual version.
 
-14 November 2026: both layouts, `?preview`, `?dry` and a production build passed locally. Hosted cron execution, the Vercel `CRON_SECRET`, Cloudinary upload and Buffer confirmation remain unverified; do not claim a live post until History shows it.
+19 November 2026: the full path passed end-to-end against production Cloudinary, Convex and Buffer; Instagram and X both scheduled. The GitHub Actions trigger is the remaining hosted check.
 
 ## Design direction
 

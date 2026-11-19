@@ -43,9 +43,6 @@ export default defineNuxtConfig({
 	nitro: {
 		vercel: {
 			functions: { runtime: "nodejs24.x", maxDuration: 60 },
-			config: {
-				crons: [{ path: "/api/cron/daily-post", schedule: "0 11 * * *" }],
-			},
 		},
 	},
 	vite: {

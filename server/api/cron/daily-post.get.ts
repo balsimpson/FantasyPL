@@ -15,8 +15,10 @@ export default defineEventHandler(async event => {
 
   const query = getQuery(event)
   const secret = process.env.CRON_SECRET
-  if (!secret) throw createError({ statusCode: 503, statusMessage: 'Daily scheduling is not configured on the server.' })
-  const authorized = getHeader(event, 'authorization') === `Bearer ${secret}`
+  const serviceToken = process.env.SCHEDULER_SERVICE_TOKEN
+  if (!secret && !serviceToken) throw createError({ statusCode: 503, statusMessage: 'Daily scheduling is not configured on the server.' })
+  const authorization = getHeader(event, 'authorization')
+  const authorized = [secret, serviceToken].some(token => Boolean(token) && authorization === `Bearer ${token}`)
   if (!authorized) {
     if (query.dry === '1' || query.preview === '1') await requireAdmin(event)
     else throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
