@@ -42,7 +42,7 @@ Scheduler history, status, caption generation and submissions require the existi
 
 ## Daily automation
 
-`/api/cron/daily-post` is the only scheduler path that runs without an admin session. It accepts `Authorization: Bearer` with either `CRON_SECRET` or the existing `SCHEDULER_SERVICE_TOKEN`, and fails closed when neither is set. `.github/workflows/daily-post.yml` runs at 11:00 UTC (16:30 IST) so the post fills the next Buffer queue slot. Keep the workflow time and the buffer target aligned. Vercel Cron was removed after it failed to register; do not move the trigger back without checking the deployment's cron entry.
+`/api/cron/daily-post` is the only scheduler path that runs without an admin session. It accepts `Authorization: Bearer` with either `CRON_SECRET` or the existing `SCHEDULER_SERVICE_TOKEN`, and fails closed when neither is set. The `Daily Instagram and X post` job in `convex/crons.ts` runs at 11:00 UTC (16:30 IST) and calls the endpoint with the service token. Keep that time and the buffer target aligned. Do not move the trigger back to Vercel Cron; it failed to register across four scheduled days.
 
 - It picks one player, or two for a comparison every third IST day, from the existing `utils/scheduler-picks.ts` pools. It excludes every player already queued or published on either channel before choosing, and rotates the same six story angles used by the editor.
 - It renders artwork with satori and `@resvg/resvg-wasm` at 1080 × 1080 (`server/utils/scheduler-artwork.ts`), using the bundled Anton and Oswald fonts in `server/assets/fonts/`. No browser is needed, so do not move this work back into a page.

@@ -34,7 +34,7 @@ export default defineEventHandler(async event => {
   if ('skipped' in plan) return { success: true, skipped: true, reason: plan.skipped }
   step(`draft ${plan.angle} ${plan.draft.players.map(player => player.name).join(',')}`)
 
-  const png = await renderDailyArtwork(plan.draft)
+  const png = await renderDailyArtwork(plan.draft, getRequestURL(event).origin)
   step(`rendered ${png.length} bytes`)
   if (query.preview === '1') {
     setHeader(event, 'Content-Type', 'image/png')

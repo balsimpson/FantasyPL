@@ -51,12 +51,12 @@ async function loadFonts(): Promise<Fonts> {
   return fontPromise
 }
 
-async function ensureResvg() {
+async function ensureResvg(origin: string) {
   if (!resvgPromise) {
     resvgPromise = (async () => {
-      const wasm = await useStorage('assets:server').getItemRaw('resvg.wasm')
-      if (!wasm) throw createError({ statusCode: 500, statusMessage: 'Daily artwork renderer is missing.' })
-      await initWasm(new Uint8Array(wasm))
+      const response = await fetch(new URL('/resvg.wasm', origin), { signal: AbortSignal.timeout(15_000) })
+      if (!response.ok) throw createError({ statusCode: 500, statusMessage: 'Daily artwork renderer is unavailable.' })
+      await initWasm(response)
     })()
   }
   return resvgPromise
@@ -99,14 +99,14 @@ async function imageData(value: string): Promise<string | null> {
   }
 }
 
-async function fadedPhoto(value: string, size: number): Promise<string | null> {
+async function fadedPhoto(value: string, size: number, origin: string): Promise<string | null> {
   const photo = await imageData(value)
   if (!photo) return null
   const key = `${value}|${size}`
   const cached = imageCache.get(key)
   if (cached !== undefined) return cached
   try {
-    await ensureResvg()
+    await ensureResvg(origin)
     const fade = Math.round(size * 0.45)
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
       <defs>
@@ -266,10 +266,10 @@ function comparison(draft: InstagramDraft, photos: (string | null)[]) {
  * Uses the same satori + resvg pipeline as the existing share images, so the
  * cron never needs a browser.
  */
-export async function renderDailyArtwork(draft: InstagramDraft): Promise<Uint8Array> {
+export async function renderDailyArtwork(draft: InstagramDraft, origin: string): Promise<Uint8Array> {
   const [{ anton, oswaldMedium, oswaldBold }, photos] = await Promise.all([
     loadFonts(),
-    Promise.all(draft.players.map(player => fadedPhoto(player.photoUrl, draft.players.length > 1 ? 452 : 540))),
+    Promise.all(draft.players.map(player => fadedPhoto(player.photoUrl, draft.players.length > 1 ? 452 : 540, origin))),
   ])
   const tree = draft.players.length > 1 ? comparison(draft, photos) : spotlight(draft, photos[0] ?? null)
   const svg = await satori(tree as never, {
@@ -283,7 +283,7 @@ export async function renderDailyArtwork(draft: InstagramDraft): Promise<Uint8Ar
       { name: 'Oswald', data: oswaldBold, weight: 700, style: 'normal' },
     ],
   })
-  await ensureResvg()
+  await ensureResvg(origin)
   const resvg = new Resvg(svg, { fitTo: { mode: 'original' }, background: BG, font: { loadSystemFonts: false, defaultFontFamily: 'Oswald' } })
   return resvg.render().asPng()
 }

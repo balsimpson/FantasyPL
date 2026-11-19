@@ -21,6 +21,7 @@ import type * as articleResearchValidators from "../articleResearchValidators.js
 import type * as articleValidators from "../articleValidators.js";
 import type * as articles from "../articles.js";
 import type * as crons from "../crons.js";
+import type * as dailyPost from "../dailyPost.js";
 import type * as homepageBuyLogic from "../homepageBuyLogic.js";
 import type * as homepageTradeLogic from "../homepageTradeLogic.js";
 import type * as homepageTradeReview from "../homepageTradeReview.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   articleValidators: typeof articleValidators;
   articles: typeof articles;
   crons: typeof crons;
+  dailyPost: typeof dailyPost;
   homepageBuyLogic: typeof homepageBuyLogic;
   homepageTradeLogic: typeof homepageTradeLogic;
   homepageTradeReview: typeof homepageTradeReview;
